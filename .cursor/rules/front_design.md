@@ -1,55 +1,54 @@
-당신은 UX/UI 디자이너입니다. 아래 앱 구조를 기반으로 사용자 친화적이고 직관적인 모바일 웹앱 UI를 디자인해주세요. 시니어 사용자도 고려해 글자 크기와 버튼 크기를 충분히 확보해주세요.
+📝 You are a UX/UI Designer.
 
----
+Please design a user-friendly and intuitive mobile web app UI based on the structure below.
+Senior users should be considered, with sufficiently large font sizes and button sizes for ease of use.
 
-🔹 전체 앱 개요:
-- 소셜 로그인 (카카오/네이버) 후 주변 가게를 추천받고, 할인 정보를 확인하고 예약할 수 있는 모바일 웹앱입니다.
-- 하단에는 고정 메뉴바(홈, 현재 예약, 마이페이지)가 있습니다.
+⸻
 
----
+🔹 App Overview:
+	•	A mobile web app where users log in via social accounts (Kakao/Naver), browse nearby shops, check discounts, and make reservations.
+	•	A fixed bottom navigation bar (Home, Current Reservations, My Page) is always visible.
 
-🔹 페이지 및 흐름 구조:
+⸻
 
-1. **로그인/회원가입 화면**
-   - 카카오 로그인, 네이버 로그인 버튼 표시
-   - 로그인 후 홈 화면(추천 리스트)로 이동
+🔹 Page & Flow Structure:
+	1.	Login / Sign-Up Page
+	•	Kakao Login Button, Naver Login Button
+	•	Redirects to Home (Recommended Shops) upon successful login
+	2.	Home (Recommended Shops)
+	•	Display shop recommendation cards in a vertical list
+	•	Each card shows summary info (Shop Name, Location, Key Discount)
+	•	Tapping a card → navigates to Shop Detail Page
+	•	Includes a “View on Map” button
+	3.	Map View Page
+	•	Centered on user’s current location
+	•	Shop markers displayed (tapping marker shows discount summary popup)
+	•	Tapping popup → navigates to Shop Detail Page
+	4.	Shop Detail Page
+	•	Displays shop information, images, and list of discounted services
+	•	User selects a service → taps “Reserve” → navigates to Reservation Confirmation Page
+	5.	Reservation Confirmation Page
+	•	Displays reservation details (Date, Time, Shop Name, Selected Service)
+	•	Includes a “Back” button to return to the previous screen
+	6.	Current Reservations Page (Bottom Nav - Tab 2)
+	•	Displays list of active reservations
+	•	Tapping a reservation → navigates to Reservation Confirmation Page
+	7.	My Page (Bottom Nav - Tab 3)
+	•	“Edit Info” Button → navigates to Edit Info Page
+	•	“Reservation History” Button → navigates to Current Reservations Page
 
-2. **홈 화면 = 추천 리스트**
-   - 추천 가게들을 카드 UI로 나열
-   - 각 가게 카드에는 요약 정보(가게명, 위치, 대표 할인 정보) 표시
-   - 가게 카드 클릭 시 → 가게 상세 페이지로 이동
-   - 지도 보기 버튼 포함
+⸻
 
-3. **지도 화면**
-   - 현재 위치 중심 지도
-   - 가게 마커들 표시 (마커 클릭 시 할인 요약 팝업)
-   - 팝업 클릭 시 → 가게 상세 페이지로 이동
+🔹 Design Guidelines:
+	•	Large text, clear buttons, wide touch areas for accessibility by senior users
+	•	High contrast color scheme for readability
+(e.g., discount rates or reservation constraints are highlighted with color tags)
+	•	Fixed bottom navigation bar with intuitive icons and labels
+	•	Keep the overall layout simple and uncluttered
 
-4. **가게 상세 페이지**
-   - 가게 정보, 사진, 할인 중인 서비스 목록 표시
-   - 서비스 선택 후 “예약하기” 버튼 클릭 → 예약 확인 페이지로 이동
+⸻
 
-5. **예약 확인 페이지**
-   - 예약 완료 정보 표시 (날짜, 시간, 가게명, 선택한 서비스 등)
-   - 이전 화면으로 돌아가기 버튼 포함
-
-6. **현재 예약 페이지 (하단 메뉴 2번)**
-   - 예약 내역 리스트 형태로 표시
-   - 각 예약 클릭 시 → 예약 확인 페이지로 이동
-
-7. **마이페이지 (하단 메뉴 3번)**
-   - 정보 수정 버튼 → 정보 수정 페이지
-   - 예약 내역 버튼 → 예약내역 페이지
-
----
-
-🔹 디자인 가이드:
-
-- 시니어도 쉽게 사용할 수 있도록 **큰 텍스트, 명확한 버튼**, 넓은 터치 영역을 활용
-- **컬러 토너**는 명확한 대비 (배경과 텍스트), 할인율/식사 제약 등 정보는 색상 태그로 구분
-- 하단 고정 메뉴바(홈, 현재 예약, 마이페이지)는 직관적인 아이콘과 함께 제공
-- 서비스 전반에 걸쳐 **간결하고 단순한 구성** 유지
-
----
-
-이 구조를 기반으로, 각 화면에 대한 UI 와이어프레임이나 컴포넌트 설계, 또는 스타일 가이드를 제시해주세요.
+✅ Please provide:
+	•	Wireframes or component design for each screen
+	•	Recommended UI component list
+	•	Style guide focusing on accessibility and simplicity
