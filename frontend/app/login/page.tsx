@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { supabase } from "@/lib/supabase"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -30,15 +31,39 @@ export default function LoginPage() {
     }, 1500)
   }
 
-  const handleSocialLogin = (provider: "kakao" | "google") => {
+  const handleSocialLogin = async (provider: "kakao" | "google") => {
     setIsLoading(true)
 
     // 소셜 로그인 시뮬레이션
-    setTimeout(() => {
+    // setTimeout(() => {
+    //   setIsLoading(false)
+    //   localStorage.setItem("isLoggedIn", "true")
+    //   window.location.href = "/home"
+    // }, 1000)
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      })
+  
+      if (error) {
+        console.error("소셜 로그인 오류:", error.message)
+        setIsLoading(false)
+        return
+      }
+  
+      // OAuth는 브라우저 리다이렉트가 되므로, 아래 코드는 실행되지 않음
+      console.log("소셜 로그인 성공:", data)
+    } catch (err) {
+      console.error("소셜 로그인 중 예외 발생:", err)
       setIsLoading(false)
-      localStorage.setItem("isLoggedIn", "true")
-      window.location.href = "/home"
-    }, 1000)
+    }
   }
 
   return (
