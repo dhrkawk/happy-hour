@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -22,24 +23,19 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // 로그인 시뮬레이션
-    setTimeout(() => {
-      setIsLoading(false)
-      // 실제로는 인증 후 홈으로 리다이렉트
-      localStorage.setItem("isLoggedIn", "true")
-      window.location.href = "/home"
-    }, 1500)
+    // 실제로는 이메일/비밀번호 인증 로직
+    // 예시: const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+    setIsLoading(false)
+    router.push("/")
   }
+
+  const router = useRouter()
 
   const handleSocialLogin = async (provider: "kakao" | "google") => {
     setIsLoading(true)
 
-    // 소셜 로그인 시뮬레이션
-    // setTimeout(() => {
-    //   setIsLoading(false)
-    //   localStorage.setItem("isLoggedIn", "true")
-    //   window.location.href = "/home"
-    // }, 1000)
+    
 
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
