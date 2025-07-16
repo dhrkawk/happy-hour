@@ -1,0 +1,22 @@
+# Dependencies
+/node_modules
+
+# Next.js
+/.next/
+/out/
+
+# FastAPI / Python
+__pycache__/
+*.pyc
+.venv
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+
+# Secrets
+*.env
+*.env.local
+*.env.production
+*.env.test
