@@ -1,59 +1,71 @@
-# Happy Hour 프로젝트
+# Happy Hour
 
-## 1. 개요
+## 🚀 프로젝트 개요
 
-**Happy Hour**는 소상공인의 노쇼 및 유휴 시간을 실시간 할인 슬롯으로 수익화하고, 소비자에게는 즉각적인 할인 기회를 제공하는 위치 기반 플랫폼입니다. 이 프로젝트는 "놓치면 후회한다(FOMO)"는 심리와 "전략적 타임 세일"을 결합하여 소상공인과 소비자 모두에게 가치를 제공하는 것을 목표로 합니다.
+Happy Hour는 소상공인의 노쇼 및 유휴 시간을 실시간 할인 슬롯으로 수익화하고, 소비자에게는 즉각적인 할인 기회를 제공하는 위치 기반 모바일/웹 플랫폼입니다. 'FOMO (Fear Of Missing Out)'와 '전략적 타임 세일'을 동시에 실현하는 것을 목표로 합니다.
 
-## 2. 기술 스택
+## ✨ 주요 기능
 
-본 프로젝트는 MVP(최소 기능 제품)의 빠른 개발과 데이터 기반 가설 검증에 최적화된 현대적인 기술 스택을 채택했습니다.
+-   **실시간 할인 검색 (소비자):** 지도 UI를 통해 주변 상점의 할인 슬롯을 검색하고, 거리, 카테고리, 가격 필터를 적용하여 원하는 할인을 찾을 수 있습니다. 슬롯 카드에는 서비스, 할인율, 남은 시간, FOMO 타이머가 표시됩니다.
+-   **사업주 유휴 시간 등록:** 사업주는 서비스/상품, 할인율 (10~70%), 적용 시간, 노출 범위 (전체/단골), 슬롯 수량 등을 쉽게 설정하여 할인 슬롯을 등록할 수 있습니다.
+-   **브랜드 보호:** 상점당 하루 2개의 'Happy Hour' 슬롯 제한, 'Special Time Deal' 배지, 정가 대비 할인율 표시 조절 등을 통해 사업주의 브랜드 가치를 보호합니다.
 
-- **Frontend**: [Next.js](https://nextjs.org/) + [React Query](https://tanstack.com/query/latest) + [Tailwind CSS](https://tailwindcss.com/)
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com/)
-- **Database & Auth**: [Supabase](https://supabase.io/)
-- **Deployment**: [Vercel](https://vercel.com/) (Frontend), [Fly.io](https://fly.io/) (Backend)
-- **CI/CD**: [GitHub Actions](https://github.com/features/actions)
+## 🛠️ 기술 스택
 
-## 3. 프로젝트 구조
+### 프론트엔드
+-   **Next.js:** SSR (Server-Side Rendering) 및 PWA (Progressive Web App) 지원을 위한 React 프레임워크.
+-   **React Query:** 데이터 페칭 및 상태 관리를 위한 라이브러리.
+-   **Tailwind CSS:** 빠르고 유연한 UI 개발을 위한 유틸리티 우선 CSS 프레임워크.
 
-본 프로젝트는 코드의 재사용성과 유지보수성을 극대화하기 위해 **모노레포(Monorepo)** 구조를 채택했습니다. `apps`와 `packages` 두 개의 최상위 디렉토리로 구성됩니다.
+### 백엔드
+-   **FastAPI:** 경량 비동기 API 서버 구축을 위한 Python 웹 프레임워크.
 
+### 데이터베이스 및 인증
+-   **Supabase Postgres:** 관리형 PostgreSQL 데이터베이스.
+-   **Supabase Auth:** JWT 기반의 간편한 사용자 인증 시스템.
+
+### 배포
+-   **Vercel (FE):** Next.js 애플리케이션의 빠르고 쉬운 배포.
+-   **Fly.io (BE):** FastAPI 백엔드 애플리케이션 배포.
+
+## ⚙️ 설치 및 실행
+
+### 1. 환경 변수 설정
+
+프로젝트 루트 디렉토리와 `frontend` 디렉토리에 `.env` 파일을 생성하고 Supabase 연결 정보를 추가해야 합니다.
+
+**루트 디렉토리 (`/Users/m2nsteel/happy-hour/.env`)**
+```env
+SUPABASE_URL=YOUR_SUPABASE_URL
+SUPABASE_KEY=YOUR_SUPABASE_ANON_KEY
 ```
-/
-├── apps/
-│   ├── web/      # Next.js 프론트엔드 애플리케이션
-│   └── api/      # FastAPI 백엔드 애플리케이션
-├── packages/
-│   ├── ui/       # 공통 React UI 컴포넌트
-│   ├── db/       # 데이터베이스 스키마 및 클라이언트
-│   ├── auth/     # 인증 관련 공통 로직
-│   └── utils/    # 기타 공통 유틸리티
-└── README.md
+
+**프론트엔드 디렉토리 (`/Users/m2nsteel/happy-hour/frontend/.env.local`)**
+```env
+NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 ```
 
-### 3.1. `apps`
+`YOUR_SUPABASE_URL`과 `YOUR_SUPABASE_ANON_KEY`는 실제 Supabase 프로젝트의 URL과 Anon Key로 대체해야 합니다.
 
-실제로 배포되는 애플리케이션들이 위치하는 디렉토리입니다.
+### 2. 백엔드 설정 및 실행
 
-- **`apps/web`**: 사용자가 직접 상호작용하는 웹 애플리케이션입니다. Next.js를 사용하여 서버 사이드 렌더링(SSR)과 정적 사이트 생성(SSG)을 지원하며, React Query를 통해 서버 상태를 관리하고 Tailwind CSS로 스타일링합니다.
-- **`apps/api`**: FastAPI를 사용하여 구현된 백엔드 API 서버입니다. 비동기 처리를 통해 높은 성능을 제공하며, Supabase와 연동하여 데이터베이스 및 인증을 처리합니다.
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
 
-### 3.2. `packages`
+### 3. 프론트엔드 설정 및 실행
 
-여러 애플리케이션에서 공통으로 사용되는 코드들을 모아놓은 라이브러리(패키지) 디렉토리입니다.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-- **`packages/ui`**: 버튼, 인풋, 카드 등 프로젝트 전반에서 사용되는 공통 UI 컴포넌트들을 포함합니다. 이를 통해 일관된 디자인 시스템을 유지하고 코드 중복을 줄입니다.
-- **`packages/db`**: Supabase 데이터베이스 스키마 정의, 마이그레이션 스크립트, 데이터베이스 클라이언트 등을 관리합니다.
-- **`packages/auth`**: Supabase Auth를 기반으로 한 로그인, 회원가입, 세션 관리 등 인증 관련 로직을 공통 모듈로 분리하여 `web`과 `api` 양쪽에서 모두 사용할 수 있도록 합니다.
-- **`packages/utils`**: 날짜 포맷팅, 데이터 검증 등 특정 도메인에 종속되지 않는 순수 유틸리티 함수들을 포함합니다.
+## 🚀 사용 방법
 
-## 4. 설계 원칙
-
-- **도메인 기반 분리 (Domain-Driven Design)**: 각 `package`는 명확한 책임(UI, DB, Auth 등)을 가집니다. 이를 통해 코드의 응집도를 높이고 결합도를 낮춥니다.
-- **관심사 분리 (Separation of Concerns)**: 프론트엔드(`apps/web`)와 백엔드(`apps/api`)를 명확하게 분리하여 독립적인 개발 및 배포가 가능하도록 합니다.
-- **재사용성 (Reusability)**: 공통 로직을 `packages`로 추출하여 여러 애플리케이션에서 쉽게 재사용하고, 코드 중복을 최소화합니다.
-- **확장성 (Scalability)**: 모노레포 구조는 향후 새로운 애플리케이션(예: 어드민 대시보드, 모바일 앱)을 추가하거나, 새로운 공통 패키지를 도입하기에 용이합니다.
-
-## 5. 시작하기
-
-프로젝트를 로컬 환경에서 실행하기 위한 자세한 방법은 각 `apps` 및 `packages` 디렉토리의 README 파일을 참고하십시오. (추후 작성 예정)
+백엔드와 프론트엔드 서버가 모두 실행되면, 웹 브라우저에서 `http://localhost:3000` (프론트엔드 기본 포트)에 접속하여 애플리케이션을 사용할 수 있습니다.
