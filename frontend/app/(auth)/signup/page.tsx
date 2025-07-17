@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { createClient } from "@/lib/supabase/client"
 import { Separator } from "@/components/ui/separator"
 
 export default function SignupPage() {
@@ -39,24 +40,49 @@ export default function SignupPage() {
 
     setIsLoading(true)
 
-    // 회원가입 시뮬레이션
-    setTimeout(() => {
-      setIsLoading(false)
-      localStorage.setItem("isLoggedIn", "true")
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: { name: formData.name },
+        },
+      })
+
+      if (error) {
+        alert(`회원가입 실패: ${error.message}`)
+        setIsLoading(false)
+        return
+      }
+
       alert("회원가입이 완료되었습니다!")
       window.location.href = "/home"
-    }, 1500)
+    } catch (err) {
+      console.error(err)
+      alert("회원가입 중 오류가 발생했습니다.")
+      setIsLoading(false)
+    }
   }
 
-  const handleSocialSignup = (provider: "kakao" | "google") => {
+  const handleSocialSignup = async (provider: "kakao" | "google") => {
     setIsLoading(true)
-
-    // 소셜 회원가입 시뮬레이션
-    setTimeout(() => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (error) {
+        alert(`소셜 회원가입 실패: ${error.message}`)
+        setIsLoading(false)
+      }
+    } catch (err) {
+      console.error(err)
       setIsLoading(false)
-      localStorage.setItem("isLoggedIn", "true")
-      window.location.href = "/home"
-    }, 1000)
+    }
   }
 
   return (

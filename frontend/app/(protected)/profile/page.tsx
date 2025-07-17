@@ -6,15 +6,35 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import BottomNavigation from "@/components/bottom-navigation"
+import { useUser } from  "@/hooks/use-user"
+import { createClient } from "@/lib/supabase/client"
 
 export default function ProfilePage() {
-  const userData = {
-    name: "김해피",
-    email: "happy@example.com",
-    totalBookings: 12,
-    totalSavings: 45600,
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
+  const { user, isLoading } = useUser()
+
+  if (isLoading) {
+    return <div className="p-6 text-center">로딩 중...</div>
   }
 
+  if (!user) {
+    return (
+      <div className="p-6 text-center">
+        사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.
+      </div>
+    )
+  }
+
+  const userData = {
+    name: user.user_metadata?.name || user.email,
+    email: user.email,
+    totalBookings: 0,
+    totalSavings: 0,
+  }
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
       {/* 헤더 */}
@@ -103,10 +123,7 @@ export default function ProfilePage() {
 
           <Card
             className="border-red-100 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => {
-              localStorage.removeItem("isLoggedIn")
-              window.location.href = "/login"
-            }}
+            onClick={handleLogout}
           >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
