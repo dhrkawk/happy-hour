@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -20,26 +21,38 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    const supabase = createClient()
 
-    // 로그인 시뮬레이션
-    setTimeout(() => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      alert('이메일 또는 비밀번호가 잘못되었습니다.')
       setIsLoading(false)
-      // 실제로는 인증 후 홈으로 리다이렉트
-      localStorage.setItem("isLoggedIn", "true")
-      window.location.href = "/home"
-    }, 1500)
+      return
+    }
+
+    window.location.href = '/home'
   }
 
-  const handleSocialLogin = (provider: "kakao" | "google") => {
+  const handleSocialLogin = async (provider: "kakao" | "google") => {
     setIsLoading(true)
-
-    // 소셜 로그인 시뮬레이션
-    setTimeout(() => {
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { access_type: 'offline', prompt: 'consent' },
+      },
+    })
+    if (error) {
+      alert('소셜 로그인 오류: ' + error.message)
       setIsLoading(false)
-      localStorage.setItem("isLoggedIn", "true")
-      window.location.href = "/home"
-    }, 1000)
+    }
   }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex items-center justify-center p-4">
