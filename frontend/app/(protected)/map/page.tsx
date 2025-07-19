@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
 import { storesData } from "@/lib/store-data"
+import NaverMap from "@/components/map/naver-map"
 
 // 더미 데이터 (거리순으로 정렬)
 const allStores = Object.values(storesData)
@@ -179,22 +180,8 @@ export default function MapPage() {
       )}
 
       {/* 지도 영역 */}
-      <div className="relative h-[60vh] bg-gradient-to-br from-teal-100 to-teal-200">
-        {/* 지도 플레이스홀더 */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-4xl mb-2">🗺️</div>
-            <p className="text-gray-600">실제 지도 API 연동 시</p>
-            <p className="text-gray-600">여기에 지도가 표시됩니다</p>
-            {userLocation && (
-              <div className="mt-2 text-sm text-gray-500">
-                <p>
-                  현재 위치: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="relative h-[60vh] bg-gray-200">
+        <NaverMap userLocation={userLocation} />
 
         {/* 가게 핀들 */}
         {storesWithRealDistance.map((store, index) => (
