@@ -1,29 +1,70 @@
-"use client"
+'use client'
 
 import { useState, useEffect } from "react"
 import { MapPin, Clock, Map } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
 import { storesData } from "@/lib/store-data"
+import { createClient } from "@/lib/supabase/client"
 
-// 홈페이지용 가게 리스트 (거리순으로 정렬)
+// 가게 데이터 (거리순 정렬)
 const allStores = Object.values(storesData)
   .map((store) => ({
     ...store,
-    image: store.thumbnail, // 썸네일 이미지 사용
+    image: store.thumbnail,
   }))
-  .sort((a, b) => a.distance - b.distance) // 거리순으로 정렬
+  .sort((a, b) => a.distance - b.distance)
 
 export default function HomePage() {
+  const router = useRouter()
+  const supabase = createClient()
+
   const [location, setLocation] = useState("현재 위치를 가져오는 중...")
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
   const [filteredStores, setFilteredStores] = useState(allStores)
+  const [onboardingChecked, setOnboardingChecked] = useState(false)
 
+  // 온보딩 체크
   useEffect(() => {
+    const checkOnboarding = async () => {
+      const cached = localStorage.getItem('onboardingChecked')
+      if (cached === 'true') {
+        setOnboardingChecked(true)
+        return
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!profile) {
+        router.push('/onboarding')
+      } else {
+        localStorage.setItem('onboardingChecked', 'true')
+        setOnboardingChecked(true)
+      }
+    }
+
+    checkOnboarding()
+  }, [router, supabase])
+
+  // 위치 정보
+  useEffect(() => {
+    if (!onboardingChecked) return
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -61,16 +102,20 @@ export default function HomePage() {
     } else {
       setLocation("이 브라우저에서는 위치 정보를 지원하지 않습니다.")
     }
-  }, [])
+  }, [onboardingChecked])
 
   // 카테고리 필터링
   useEffect(() => {
+    if (!onboardingChecked) return
+
     if (selectedCategory === "전체") {
       setFilteredStores(allStores)
     } else {
       setFilteredStores(allStores.filter((store) => store.category === selectedCategory))
     }
-  }, [selectedCategory])
+  }, [selectedCategory, onboardingChecked])
+
+  if (!onboardingChecked) return null
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
@@ -93,7 +138,6 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* 카테고리 필터 */}
           <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
         </div>
       </header>
@@ -102,8 +146,7 @@ export default function HomePage() {
       <div className="px-4 py-4 space-y-4 pb-24">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">
-            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} (
-            {filteredStores.length})
+            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} ({filteredStores.length})
           </h2>
           <Badge variant="secondary" className="bg-teal-100 text-teal-700">
             거리순
