@@ -16,6 +16,17 @@ export default async function ProtectedLayout({
     redirect('/login')
   }
 
+
+  const { data: profile } = await supabase
+  .from('user_profiles')
+  .select('user_id')
+  .eq('user_id', user.id)
+  .maybeSingle()
+
+  if (!profile) {
+    redirect('/onboarding')
+  }
+
   return (
     <>
       <NaverMapScript />
