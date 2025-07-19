@@ -24,10 +24,43 @@ export default function HomePage() {
   const [filteredStores, setFilteredStores] = useState(allStores)
 
   useEffect(() => {
-    // 위치 정보 요청 시뮬레이션
-    setTimeout(() => {
-      setLocation("서울시 강남구 역삼동")
-    }, 1000)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            )
+            const data = await response.json()
+            const address = data.address
+            const locationString = `${address.city || ""} ${address.road || address.suburb || address.neighbourhood || ""}`.trim()
+            setLocation(locationString || "위치를 찾을 수 없습니다.")
+          } catch (error) {
+            console.error("Error fetching address: ", error)
+            setLocation("주소를 가져오는 데 실패했습니다.")
+          }
+        },
+        (error) => {
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              setLocation("위치 정보 제공에 동의해주세요.")
+              break
+            case error.POSITION_UNAVAILABLE:
+              setLocation("현재 위치를 가져올 수 없습니다.")
+              break
+            case error.TIMEOUT:
+              setLocation("위치 정보를 가져오는 데 시간이 초과되었습니다.")
+              break
+            default:
+              setLocation("알 수 없는 오류가 발생했습니다.")
+              break
+          }
+        }
+      )
+    } else {
+      setLocation("이 브라우저에서는 위치 정보를 지원하지 않습니다.")
+    }
   }, [])
 
   // 카테고리 필터링

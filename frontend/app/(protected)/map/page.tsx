@@ -49,14 +49,17 @@ export default function MapPage() {
         const { latitude, longitude } = position.coords
 
         try {
-          // 실제로는 역지오코딩 API를 사용하여 주소를 가져올 수 있습니다
-          // 여기서는 시뮬레이션으로 처리
-          const mockAddress = "서울시 강남구 역삼동"
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          )
+          const data = await response.json()
+          const address = data.address
+          const locationString = `${address.city || ""} ${address.road || address.suburb || address.neighbourhood || ""}`.trim()
 
           setUserLocation({
             lat: latitude,
             lng: longitude,
-            address: mockAddress,
+            address: locationString || "위치를 찾을 수 없습니다.",
           })
         } catch (error) {
           console.error("주소 변환 실패:", error)
