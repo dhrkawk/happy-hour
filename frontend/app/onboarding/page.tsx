@@ -24,7 +24,7 @@ export default function OnboardingPage() {
       router.push('/login')
       return
     }
-    console.log(user.id)
+
     const { error } = await supabase.from('user_profiles').insert({
         user_id: user.id,
         email: user.email,
