@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -50,6 +51,7 @@ export default function LoginPage() {
     if (error) {
       alert('소셜 로그인 오류: ' + error.message)
       setIsLoading(false)
+    }
     }
   }
 
