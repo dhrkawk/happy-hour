@@ -8,36 +8,90 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
-import { storesData } from "@/lib/store-data"
+import { createClient } from "@/lib/supabase/client"
 
-// 홈페이지용 가게 리스트 (거리순으로 정렬)
-const allStores = Object.values(storesData)
-  .map((store) => ({
-    ...store,
-    image: store.thumbnail, // 썸네일 이미지 사용
-  }))
-  .sort((a, b) => a.distance - b.distance) // 거리순으로 정렬
+interface StoreData {
+  id: string
+  name: string
+  category: string
+  address: string
+  thumbnail: string
+  distance: number
+  discount: number
+  originalPrice: number
+  discountPrice: number
+  timeLeft: string
+}
 
 export default function HomePage() {
   const [location, setLocation] = useState("현재 위치를 가져오는 중...")
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
-  const [filteredStores, setFilteredStores] = useState(allStores)
+  const [allStores, setAllStores] = useState<StoreData[]>([])
+  const [filteredStores, setFilteredStores] = useState<StoreData[]>([])
+  const [loadingStores, setLoadingStores] = useState(true)
 
   useEffect(() => {
+    const fetchStores = async () => {
+      setLoadingStores(true)
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("stores")
+        .select("*, discounts(*, store_menus(*))")
+
+      if (error) {
+        console.error("Error fetching stores from DB:", error)
+        setAllStores([])
+        setLoadingStores(false)
+        return
+      }
+
+      const transformedStores: StoreData[] = (data || []).map((store: any) => {
+        const discount = store.discounts && store.discounts.length > 0 ? store.discounts[0] : null
+        const originalPrice = discount?.original_price || 0
+        const discountRate = discount?.discount_rate || 0
+        const discountPrice = originalPrice * (1 - discountRate / 100)
+
+        return {
+          id: store.id,
+          name: store.name,
+          category: store.category,
+          address: store.address,
+          thumbnail: discount?.store_menus?.thumbnail || "/placeholder.svg",
+          distance: 0.5, // 실제 거리 계산 필요시 수정
+          discount: discountRate,
+          originalPrice: originalPrice,
+          discountPrice: discountPrice,
+          timeLeft: "2시간", // 실제 남은 시간 계산 필요시 수정
+        }
+      }).sort((a, b) => a.distance - b.distance)
+
+      setAllStores(transformedStores)
+      setLoadingStores(false)
+    }
+
+    fetchStores()
+
     // 위치 정보 요청 시뮬레이션
     setTimeout(() => {
       setLocation("서울시 강남구 역삼동")
     }, 1000)
   }, [])
 
-  // 카테고리 필터링
   useEffect(() => {
     if (selectedCategory === "전체") {
       setFilteredStores(allStores)
     } else {
       setFilteredStores(allStores.filter((store) => store.category === selectedCategory))
     }
-  }, [selectedCategory])
+  }, [selectedCategory, allStores])
+
+  if (loadingStores) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex flex-col items-center justify-center p-4">
+        <p>가게 정보를 불러오는 중...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex flex-col items-center p-4">
@@ -64,8 +118,6 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
-
-          {/* 카테고리 필터 */}
           <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
         </div>
       </header>
@@ -99,7 +151,7 @@ export default function HomePage() {
                   <div className="flex">
                     <div className="w-20 h-20 bg-gray-200 flex-shrink-0">
                       <img
-                        src={store.image || "/placeholder.svg"}
+                        src={store.thumbnail || "/placeholder.svg"}
                         alt={store.name}
                         className="w-full h-full object-cover"
                       />
@@ -142,8 +194,6 @@ export default function HomePage() {
           ))
         )}
       </div>
-
-      {/* 하단 네비게이션 */}
       <BottomNavigation />
     </div>
   )
