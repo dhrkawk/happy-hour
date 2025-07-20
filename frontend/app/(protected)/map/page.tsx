@@ -8,17 +8,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
-import { storesData } from "@/lib/store-data"
-import NaverMap from "@/components/map/naver-map"
-
-// 더미 데이터 (거리순으로 정렬)
-const allStores = Object.values(storesData)
-  .map((store) => ({
-    ...store,
-    lat: 37.5665 + (Math.random() - 0.5) * 0.01, // 랜덤 위치
-    lng: 126.978 + (Math.random() - 0.5) * 0.01,
-  }))
-  .sort((a, b) => a.distance - b.distance)
+import { createClient } from "@/lib/supabase/client"
+import KakaoMap from "@/components/map/kakao-map"
 
 interface UserLocation {
   lat: number
@@ -32,91 +23,125 @@ export default function MapPage() {
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
-  const [filteredStores, setFilteredStores] = useState(allStores)
+  const [allFetchedStores, setAllFetchedStores] = useState<any[]>([]) // New state for all stores
+  const [filteredStores, setFilteredStores] = useState<any[]>([]) // filteredStores will be derived from allFetchedStores
 
-  // 사용자 위치 가져오기
-  const getUserLocation = () => {
-    setLocationLoading(true)
-    setLocationError(null)
+  // Fetch stores from Supabase
+  useEffect(() => {
+    const fetchStores = async () => {
+      const supabase = createClient()
+      const { data, error } = await supabase.from("stores").select("*")
 
-    if (!navigator.geolocation) {
-      setLocationError("위치 서비스가 지원되지 않습니다")
-      setLocationLoading(false)
-      return
+      if (error) {
+        console.error("Error fetching stores:", error)
+        // Fallback to dummy data if Supabase fetch fails
+        const { storesData } = await import("@/lib/store-data")
+        const dummyStores = Object.values(storesData)
+          .map((store) => ({
+            ...store,
+            lat: 37.5665 + (Math.random() - 0.5) * 0.01, // 랜덤 위치
+            lng: 126.978 + (Math.random() - 0.5) * 0.01,
+          }))
+          .sort((a, b) => a.distance - b.distance)
+        setAllFetchedStores(dummyStores.filter((store: any) => store.activated))
+      } else {
+        // Ensure lat and lng are numbers for the map component
+        const formattedData = data.map(store => ({
+          ...store,
+          lat: parseFloat(store.lat),
+          lng: parseFloat(store.lng),
+        }))
+        setAllFetchedStores(formattedData.filter((store: any) => store.activated))
+      }
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords
+    fetchStores()
+  }, []) // Run once on mount
 
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-          )
-          const data = await response.json()
-          const address = data.address
-          const locationString = `${address.city || ""} ${address.road || address.suburb || address.neighbourhood || ""}`.trim()
-
-          setUserLocation({
-            lat: latitude,
-            lng: longitude,
-            address: locationString || "위치를 찾을 수 없습니다.",
-          })
-        } catch (error) {
-          console.error("주소 변환 실패:", error)
-          setUserLocation({
-            lat: latitude,
-            lng: longitude,
-            address: `위도: ${latitude.toFixed(4)}, 경도: ${longitude.toFixed(4)}`,
-          })
-        }
-
-        setLocationLoading(false)
-      },
-      (error) => {
-        let errorMessage = "위치를 가져올 수 없습니다"
-
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = "위치 접근이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요."
-            break
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = "위치 정보를 사용할 수 없습니다"
-            break
-          case error.TIMEOUT:
-            errorMessage = "위치 요청 시간이 초과되었습니다"
-            break
-        }
-
-        setLocationError(errorMessage)
-        setLocationLoading(false)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000, // 5분
-      },
-    )
-  }
-
-  // 컴포넌트 마운트 시 위치 가져오기
+  // 컴포넌트 마운트 시 위치 추적 시작
   useEffect(() => {
-    getUserLocation()
-  }, [])
+    let watchId: number | null = null;
+
+    if (navigator.geolocation) {
+      setLocationLoading(true);
+      watchId = navigator.geolocation.watchPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            );
+            const data = await response.json();
+            const address = data.address;
+            const locationString = `${address.city || ""} ${address.road || address.suburb || address.neighbourhood || ""}`.trim();
+
+            setUserLocation({
+              lat: latitude,
+              lng: longitude,
+              address: locationString || "위치를 찾을 수 없습니다.",
+            });
+          } catch (error) {
+            console.error("주소 변환 실패:", error);
+            setUserLocation({
+              lat: latitude,
+              lng: longitude,
+              address: `위도: ${latitude.toFixed(4)}, 경도: ${longitude.toFixed(4)}`,
+            });
+          }
+          setLocationLoading(false);
+        },
+        (error) => {
+          let errorMessage = "위치를 가져올 수 없습니다";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = "위치 접근이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "위치 정보를 사용할 수 없습니다";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "위치 요청 시간이 초과되었습니다";
+              break;
+          }
+          setLocationError(errorMessage);
+          setLocationLoading(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0, // 항상 최신 위치를 받도록 설정
+        }
+      );
+    } else {
+      setLocationError("이 브라우저에서는 위치 정보를 지원하지 않습니다.");
+    }
+
+    // 컴포넌트 언마운트 시 위치 추적 중지
+    return () => {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, []);
 
   // 카테고리 필터링
   useEffect(() => {
     if (selectedCategory === "전체") {
-      setFilteredStores(allStores)
+      setFilteredStores(allFetchedStores)
     } else {
-      setFilteredStores(allStores.filter((store) => store.category === selectedCategory))
+      setFilteredStores(allFetchedStores.filter((store: any) => store.category === selectedCategory))
     }
     // 필터링 시 선택된 가게 초기화
     setSelectedStore(null)
-  }, [selectedCategory])
+  }, [selectedCategory, allFetchedStores])
 
   // 거리 계산 함수 (하버사인 공식)
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    console.log(`calculateDistance inputs: userLat=${lat1}, userLng=${lng1}, storeLat=${lat2}, storeLng=${lng2}`);
+    if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) {
+      console.warn("calculateDistance received NaN input. Returning NaN.");
+      return NaN; // Return NaN to indicate invalid calculation
+    }
     const R = 6371 // 지구 반지름 (km)
     const dLat = ((lat2 - lat1) * Math.PI) / 180
     const dLng = ((lng2 - lng1) * Math.PI) / 180
@@ -124,18 +149,25 @@ export default function MapPage() {
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    return R * c
+    const distance = R * c;
+    console.log(`Calculated distance: ${distance}`);
+    return distance;
   }
 
   // 실제 위치 기반으로 거리 업데이트
-  const storesWithRealDistance = userLocation
-    ? filteredStores
-        .map((store) => ({
-          ...store,
-          distance: calculateDistance(userLocation.lat, userLocation.lng, store.lat, store.lng),
-        }))
-        .sort((a, b) => a.distance - b.distance)
-    : filteredStores
+  const storesWithRealDistance = filteredStores
+    .map((store) => {
+      const distance = userLocation
+        ? calculateDistance(userLocation.lat, userLocation.lng, store.lat, store.lng)
+        : NaN; // Assign NaN if userLocation is null
+      return {
+        ...store,
+        distance: distance,
+      };
+    })
+    .sort((a, b) => a.distance - b.distance);
+
+  console.log("Stores with real distance before rendering:", storesWithRealDistance);
 
   return (
     <div className="min-h-screen bg-white">
@@ -154,9 +186,6 @@ export default function MapPage() {
                 {userLocation && <p className="text-xs text-gray-500">{userLocation.address}</p>}
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={getUserLocation} disabled={locationLoading}>
-              {locationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            </Button>
           </div>
 
           {/* 카테고리 필터 */}
@@ -168,20 +197,13 @@ export default function MapPage() {
       {locationError && (
         <div className="px-4 py-3 bg-red-50 border-b border-red-200">
           <p className="text-sm text-red-600">{locationError}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={getUserLocation}
-            className="mt-2 text-red-600 border-red-300 bg-transparent"
-          >
-            다시 시도
-          </Button>
+          
         </div>
       )}
 
       {/* 지도 영역 */}
       <div className="relative h-[60vh] bg-gray-200">
-        <NaverMap userLocation={userLocation} />
+        <KakaoMap userLocation={userLocation} stores={storesWithRealDistance} />
 
         {/* 가게 핀들 */}
         {storesWithRealDistance.map((store, index) => (
@@ -283,12 +305,18 @@ export default function MapPage() {
                       <h3 className="font-medium text-gray-800">{store.name}</h3>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge className="bg-orange-500 text-white text-xs">{store.discount}% 할인</Badge>
-                        <span className="text-sm text-gray-500">{store.distance.toFixed(1)}km</span>
+                        <span className="text-sm text-gray-500">
+                          {typeof store.distance === 'number' && !isNaN(store.distance)
+                            ? `${store.distance.toFixed(1)}km`
+                            : '거리 계산 중...'}
+                        </span>
                         <span className="text-xs text-gray-400">{store.category}</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-bold text-teal-600">{store.discountPrice.toLocaleString()}원</div>
+                      <div className="text-sm font-bold text-teal-600">
+                        {store.discountPrice ? store.discountPrice.toLocaleString() : '-'}원
+                      </div>
                     </div>
                   </div>
                 </CardContent>
