@@ -34,75 +34,71 @@ export default function MapPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
   const [filteredStores, setFilteredStores] = useState(allStores)
 
-  // 사용자 위치 가져오기
-  const getUserLocation = () => {
-    setLocationLoading(true)
-    setLocationError(null)
+  // 컴포넌트 마운트 시 위치 추적 시작
+  useEffect(() => {
+    let watchId: number | null = null;
 
-    if (!navigator.geolocation) {
-      setLocationError("위치 서비스가 지원되지 않습니다")
-      setLocationLoading(false)
-      return
+    if (navigator.geolocation) {
+      setLocationLoading(true);
+      watchId = navigator.geolocation.watchPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            );
+            const data = await response.json();
+            const address = data.address;
+            const locationString = `${address.city || ""} ${address.road || address.suburb || address.neighbourhood || ""}`.trim();
+
+            setUserLocation({
+              lat: latitude,
+              lng: longitude,
+              address: locationString || "위치를 찾을 수 없습니다.",
+            });
+          } catch (error) {
+            console.error("주소 변환 실패:", error);
+            setUserLocation({
+              lat: latitude,
+              lng: longitude,
+              address: `위도: ${latitude.toFixed(4)}, 경도: ${longitude.toFixed(4)}`,
+            });
+          }
+          setLocationLoading(false);
+        },
+        (error) => {
+          let errorMessage = "위치를 가져올 수 없습니다";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = "위치 접근이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "위치 정보를 사용할 수 없습니다";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "위치 요청 시간이 초과되었습니다";
+              break;
+          }
+          setLocationError(errorMessage);
+          setLocationLoading(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0, // 항상 최신 위치를 받도록 설정
+        }
+      );
+    } else {
+      setLocationError("이 브라우저에서는 위치 정보를 지원하지 않습니다.");
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords
-
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-          )
-          const data = await response.json()
-          const address = data.address
-          const locationString = `${address.city || ""} ${address.road || address.suburb || address.neighbourhood || ""}`.trim()
-
-          setUserLocation({
-            lat: latitude,
-            lng: longitude,
-            address: locationString || "위치를 찾을 수 없습니다.",
-          })
-        } catch (error) {
-          console.error("주소 변환 실패:", error)
-          setUserLocation({
-            lat: latitude,
-            lng: longitude,
-            address: `위도: ${latitude.toFixed(4)}, 경도: ${longitude.toFixed(4)}`,
-          })
-        }
-
-        setLocationLoading(false)
-      },
-      (error) => {
-        let errorMessage = "위치를 가져올 수 없습니다"
-
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = "위치 접근이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요."
-            break
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = "위치 정보를 사용할 수 없습니다"
-            break
-          case error.TIMEOUT:
-            errorMessage = "위치 요청 시간이 초과되었습니다"
-            break
-        }
-
-        setLocationError(errorMessage)
-        setLocationLoading(false)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000, // 5분
-      },
-    )
-  }
-
-  // 컴포넌트 마운트 시 위치 가져오기
-  useEffect(() => {
-    getUserLocation()
-  }, [])
+    // 컴포넌트 언마운트 시 위치 추적 중지
+    return () => {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, []);
 
   // 카테고리 필터링
   useEffect(() => {
@@ -154,9 +150,6 @@ export default function MapPage() {
                 {userLocation && <p className="text-xs text-gray-500">{userLocation.address}</p>}
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={getUserLocation} disabled={locationLoading}>
-              {locationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            </Button>
           </div>
 
           {/* 카테고리 필터 */}
