@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 
 declare global {
   interface Window {
@@ -17,6 +18,7 @@ interface KakaoMapProps {
 }
 
 export default function KakaoMap({ userLocation, stores }: KakaoMapProps) {
+  const router = useRouter() // Initialize useRouter
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const userMarkerInstance = useRef<any>(null)
@@ -109,6 +111,12 @@ export default function KakaoMap({ userLocation, stores }: KakaoMapProps) {
           image: storeMarkerImage, // Set the custom store marker image
           map: mapInstance.current,
         });
+
+        // Add click listener to the store marker
+        window.kakao.maps.event.addListener(marker, 'click', function() {
+          router.push(`/store/${store.id}`);
+        });
+
         storeMarkersInstance.current.push(marker);
       }
     });

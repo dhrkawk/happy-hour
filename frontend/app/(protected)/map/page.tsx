@@ -43,7 +43,7 @@ export default function MapPage() {
             lng: 126.978 + (Math.random() - 0.5) * 0.01,
           }))
           .sort((a, b) => a.distance - b.distance)
-        setAllFetchedStores(dummyStores)
+        setAllFetchedStores(dummyStores.filter((store: any) => store.activated))
       } else {
         // Ensure lat and lng are numbers for the map component
         const formattedData = data.map(store => ({
@@ -51,7 +51,7 @@ export default function MapPage() {
           lat: parseFloat(store.lat),
           lng: parseFloat(store.lng),
         }))
-        setAllFetchedStores(formattedData)
+        setAllFetchedStores(formattedData.filter((store: any) => store.activated))
       }
     }
 
