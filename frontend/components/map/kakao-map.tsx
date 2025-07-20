@@ -17,34 +17,75 @@ interface KakaoMapProps {
 
 export default function KakaoMap({ userLocation }: KakaoMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
+  const mapInstance = useRef<any>(null)
+  const markerInstance = useRef<any>(null)
 
+  // Effect for script loading and initial map creation
   useEffect(() => {
-    const kakaoMapScript = document.createElement('script')
-    kakaoMapScript.async = false
-    kakaoMapScript.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAPS_APP_KEY}&autoload=false`
-    document.head.appendChild(kakaoMapScript)
-
-    const onLoadKakaoAPI = () => {
-      if (!mapContainer.current) return
-      window.kakao.maps.load(() => {
-        const center = userLocation
-          ? new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng)
-          : new window.kakao.maps.LatLng(37.5665, 126.978) // Default to Seoul
-
-        const mapOption = {
-          center,
-          level: 3,
-        }
-        new window.kakao.maps.Map(mapContainer.current, mapOption)
-      })
+    if (window.kakao && window.kakao.maps) {
+      initMap()
+      return
     }
 
-    kakaoMapScript.addEventListener('load', onLoadKakaoAPI)
-
-    return () => {
-      kakaoMapScript.removeEventListener('load', onLoadKakaoAPI)
+    const script = document.createElement('script')
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAPS_APP_KEY}&autoload=false`
+    script.async = true
+    script.onload = () => {
+      window.kakao.maps.load(initMap)
     }
-  }, [userLocation])
+    document.head.appendChild(script)
+  }, []) // Runs only once
+
+  // Effect for updating map when userLocation changes
+  useEffect(() => {
+    if (!mapInstance.current || !userLocation) {
+      return
+    }
+
+    const { lat, lng } = userLocation
+    const newCenter = new window.kakao.maps.LatLng(lat, lng)
+
+    // Move map center
+    mapInstance.current.panTo(newCenter)
+
+    // Create or move the marker
+    if (markerInstance.current) {
+      markerInstance.current.setPosition(newCenter)
+    } else {
+      // Define a custom SVG for the marker
+      const svgMarker = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#3B82F6" stroke="white" stroke-width="2"/></svg>';
+      
+      // Create a data URI from the SVG
+      const markerImageSrc = `data:image/svg+xml;base64,${btoa(svgMarker)}`;
+      
+      const imageSize = new window.kakao.maps.Size(24, 24);
+      const imageOption = { offset: new window.kakao.maps.Point(12, 12) }; // Center the marker on its coordinates
+
+      const markerImage = new window.kakao.maps.MarkerImage(
+        markerImageSrc,
+        imageSize,
+        imageOption
+      );
+
+      const marker = new window.kakao.maps.Marker({
+        position: newCenter,
+        image: markerImage, // Set the custom marker image
+      });
+
+      marker.setMap(mapInstance.current);
+      markerInstance.current = marker;
+    }
+  }, [userLocation]) // Runs when userLocation changes
+
+  const initMap = () => {
+    if (!mapContainer.current) return
+    const defaultCenter = new window.kakao.maps.LatLng(37.5665, 126.978) // Seoul
+    const mapOption = {
+      center: defaultCenter,
+      level: 3,
+    }
+    mapInstance.current = new window.kakao.maps.Map(mapContainer.current, mapOption)
+  }
 
   return <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
 }
