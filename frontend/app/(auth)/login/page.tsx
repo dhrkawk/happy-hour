@@ -52,9 +52,7 @@ export default function LoginPage() {
       alert('소셜 로그인 오류: ' + error.message)
       setIsLoading(false)
     }
-    }
   }
-
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex items-center justify-center p-4">
