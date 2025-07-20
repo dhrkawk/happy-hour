@@ -9,8 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
 import { storesData } from "@/lib/store-data"
-import NaverMap from "@/components/map/naver-map"
-import NaverMapScript from "@/components/map/naver-map-script"
+import KakaoMap from "@/components/map/kakao-map"
 
 // 더미 데이터 (거리순으로 정렬)
 const allStores = Object.values(storesData)
@@ -139,9 +138,7 @@ export default function MapPage() {
     : filteredStores
 
   return (
-    <>
-      <NaverMapScript />
-      <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-teal-100 relative z-10 safe-area-top">
         <div className="px-4 py-4">
@@ -184,7 +181,7 @@ export default function MapPage() {
 
       {/* 지도 영역 */}
       <div className="relative h-[60vh] bg-gray-200">
-        <NaverMap userLocation={userLocation} />
+        <KakaoMap userLocation={userLocation} />
 
         {/* 가게 핀들 */}
         {storesWithRealDistance.map((store, index) => (
@@ -304,6 +301,5 @@ export default function MapPage() {
       {/* 하단 네비게이션 */}
       <BottomNavigation />
     </div>
-    </>
   )
 }
