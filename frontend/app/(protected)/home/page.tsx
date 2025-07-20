@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState, useEffect } from "react"
 import { MapPin, Clock, Map } from "lucide-react"
@@ -9,16 +9,21 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
-import { storesData } from "@/lib/store-data"
+
 import { createClient } from "@/lib/supabase/client"
 
-// 가게 데이터 (거리순 정렬)
-const allStores = Object.values(storesData)
-  .map((store) => ({
-    ...store,
-    image: store.thumbnail,
-  }))
-  .sort((a, b) => a.distance - b.distance)
+interface StoreData {
+  id: string
+  name: string
+  category: string
+  address: string
+  thumbnail: string
+  distance: number
+  discount: number
+  originalPrice: number
+  discountPrice: number
+  timeLeft: string
+}
 
 export default function HomePage() {
   const router = useRouter()
@@ -26,10 +31,11 @@ export default function HomePage() {
 
   const [location, setLocation] = useState("현재 위치를 가져오는 중...")
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
-  const [filteredStores, setFilteredStores] = useState(allStores)
+  const [allStores, setAllStores] = useState<StoreData[]>([])
+  const [filteredStores, setFilteredStores] = useState<StoreData[]>([])
+  const [loadingStores, setLoadingStores] = useState(true)
   const [onboardingChecked, setOnboardingChecked] = useState(false)
 
-  // 온보딩 체크
   useEffect(() => {
     const checkOnboarding = async () => {
       const cached = localStorage.getItem('onboardingChecked')
@@ -61,10 +67,49 @@ export default function HomePage() {
     checkOnboarding()
   }, [router, supabase])
 
-  // 위치 정보
+  // ✅ 온보딩 체크 후 스토어 불러오기 + 위치 설정
   useEffect(() => {
     if (!onboardingChecked) return
 
+    const fetchStores = async () => {
+      setLoadingStores(true)
+      const { data, error } = await supabase
+        .from("stores")
+        .select("*, discounts(*, store_menus(*))")
+
+      if (error) {
+        console.error("Error fetching stores from DB:", error)
+        setAllStores([])
+      } else {
+        const transformedStores: StoreData[] = (data || []).map((store: any) => {
+          const discount = store.discounts?.[0] || null
+          const originalPrice = discount?.original_price || 0
+          const discountRate = discount?.discount_rate || 0
+          const discountPrice = originalPrice * (1 - discountRate / 100)
+
+          return {
+            id: store.id,
+            name: store.name,
+            category: store.category,
+            address: store.address,
+            thumbnail: discount?.store_menus?.thumbnail || "/placeholder.svg",
+            distance: 0.5, // 나중에 실제 계산으로 수정 가능
+            discount: discountRate,
+            originalPrice: originalPrice,
+            discountPrice: discountPrice,
+            timeLeft: "2시간",
+          }
+        }).sort((a, b) => a.distance - b.distance)
+
+        setAllStores(transformedStores)
+      }
+
+      setLoadingStores(false)
+    }
+
+    fetchStores()
+
+    // ✅ 위치 정보 요청
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -104,7 +149,7 @@ export default function HomePage() {
     }
   }, [onboardingChecked])
 
-  // 카테고리 필터링
+  // ✅ 카테고리 필터링
   useEffect(() => {
     if (!onboardingChecked) return
 
@@ -113,10 +158,15 @@ export default function HomePage() {
     } else {
       setFilteredStores(allStores.filter((store) => store.category === selectedCategory))
     }
-  }, [selectedCategory, onboardingChecked])
+  }, [selectedCategory, allStores, onboardingChecked])
 
-  if (!onboardingChecked) return null
-
+  if (!onboardingChecked || loadingStores) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex flex-col items-center justify-center p-4">
+        <p>가게 정보를 불러오는 중...</p>
+      </div>
+    )
+  }
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
       {/* 헤더 */}
@@ -170,7 +220,7 @@ export default function HomePage() {
                   <div className="flex">
                     <div className="w-20 h-20 bg-gray-200 flex-shrink-0">
                       <img
-                        src={store.image || "/placeholder.svg"}
+                        src={store.thumbnail || "/placeholder.svg"}
                         alt={store.name}
                         className="w-full h-full object-cover"
                       />

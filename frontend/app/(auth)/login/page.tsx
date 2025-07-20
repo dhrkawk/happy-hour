@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -52,7 +53,6 @@ export default function LoginPage() {
       setIsLoading(false)
     }
   }
-
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex items-center justify-center p-4">
