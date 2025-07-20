@@ -10,6 +10,7 @@ import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
 import { storesData } from "@/lib/store-data"
 import NaverMap from "@/components/map/naver-map"
+import NaverMapScript from "@/components/map/naver-map-script"
 
 // 더미 데이터 (거리순으로 정렬)
 const allStores = Object.values(storesData)
@@ -138,7 +139,9 @@ export default function MapPage() {
     : filteredStores
 
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <NaverMapScript />
+      <div className="min-h-screen bg-white">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-teal-100 relative z-10 safe-area-top">
         <div className="px-4 py-4">
@@ -301,5 +304,6 @@ export default function MapPage() {
       {/* 하단 네비게이션 */}
       <BottomNavigation />
     </div>
+    </>
   )
 }

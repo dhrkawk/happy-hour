@@ -2,8 +2,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-import NaverMapScript from "@/components/map/naver-map-script"
-
 export default async function ProtectedLayout({
   children,
 }: {
@@ -16,10 +14,5 @@ export default async function ProtectedLayout({
     redirect('/login')
   }
 
-  return (
-    <>
-      <NaverMapScript />
-      {children}
-    </>
-  )
+  return <>{children}</>
 }
