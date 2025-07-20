@@ -161,20 +161,13 @@ export default function MapPage() {
       {locationError && (
         <div className="px-4 py-3 bg-red-50 border-b border-red-200">
           <p className="text-sm text-red-600">{locationError}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={getUserLocation}
-            className="mt-2 text-red-600 border-red-300 bg-transparent"
-          >
-            다시 시도
-          </Button>
+          
         </div>
       )}
 
       {/* 지도 영역 */}
       <div className="relative h-[60vh] bg-gray-200">
-        <KakaoMap userLocation={userLocation} />
+        <KakaoMap userLocation={userLocation} stores={storesWithRealDistance} />
 
         {/* 가게 핀들 */}
         {storesWithRealDistance.map((store, index) => (
