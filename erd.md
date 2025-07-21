@@ -32,6 +32,7 @@
 | lng        | float8       | NOT NULL           | 경도                       |
 | phone      | varchar      |                    | 가게 연락처                |
 | created_at | timestamptz  | NOT NULL, DEFAULT now() | 등록일자                |
+| activated  | boolean      | NOT NULL, DEFAULT false | 활성화 여부 (지도 표시) |
 | category   | varchar      | NOT NULL, DEFAULT '' | 업종/카테고리           |
 
 > [기능] 가게 등록/수정 시 row 생성/갱신

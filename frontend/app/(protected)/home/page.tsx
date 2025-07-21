@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react"
 import { MapPin, Clock, Map } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
+
 import { createClient } from "@/lib/supabase/client"
 
 interface StoreData {
@@ -24,16 +26,53 @@ interface StoreData {
 }
 
 export default function HomePage() {
+  const router = useRouter()
+  const supabase = createClient()
+
   const [location, setLocation] = useState("현재 위치를 가져오는 중...")
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
   const [allStores, setAllStores] = useState<StoreData[]>([])
   const [filteredStores, setFilteredStores] = useState<StoreData[]>([])
   const [loadingStores, setLoadingStores] = useState(true)
+  const [onboardingChecked, setOnboardingChecked] = useState(false)
 
   useEffect(() => {
+    const checkOnboarding = async () => {
+      const cached = localStorage.getItem('onboardingChecked')
+      if (cached === 'true') {
+        setOnboardingChecked(true)
+        return
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!profile) {
+        router.push('/onboarding')
+      } else {
+        localStorage.setItem('onboardingChecked', 'true')
+        setOnboardingChecked(true)
+      }
+    }
+
+    checkOnboarding()
+  }, [router, supabase])
+
+  // ✅ 온보딩 체크 후 스토어 불러오기 + 위치 설정
+  useEffect(() => {
+    if (!onboardingChecked) return
+
     const fetchStores = async () => {
       setLoadingStores(true)
-      const supabase = createClient()
       const { data, error } = await supabase
         .from("stores")
         .select("*, discounts(*, store_menus(*))")
@@ -41,65 +80,95 @@ export default function HomePage() {
       if (error) {
         console.error("Error fetching stores from DB:", error)
         setAllStores([])
-        setLoadingStores(false)
-        return
+      } else {
+        const transformedStores: StoreData[] = (data || []).map((store: any) => {
+          const discount = store.discounts?.[0] || null
+          const originalPrice = discount?.original_price || 0
+          const discountRate = discount?.discount_rate || 0
+          const discountPrice = originalPrice * (1 - discountRate / 100)
+
+          return {
+            id: store.id,
+            name: store.name,
+            category: store.category,
+            address: store.address,
+            thumbnail: discount?.store_menus?.thumbnail || "/placeholder.svg",
+            distance: 0.5, // 나중에 실제 계산으로 수정 가능
+            discount: discountRate,
+            originalPrice: originalPrice,
+            discountPrice: discountPrice,
+            timeLeft: "2시간",
+          }
+        }).sort((a, b) => a.distance - b.distance)
+
+        setAllStores(transformedStores)
       }
 
-      const transformedStores: StoreData[] = (data || []).map((store: any) => {
-        const discount = store.discounts && store.discounts.length > 0 ? store.discounts[0] : null
-        const originalPrice = discount?.original_price || 0
-        const discountRate = discount?.discount_rate || 0
-        const discountPrice = originalPrice * (1 - discountRate / 100)
-
-        return {
-          id: store.id,
-          name: store.name,
-          category: store.category,
-          address: store.address,
-          thumbnail: discount?.store_menus?.thumbnail || "/placeholder.svg",
-          distance: 0.5, // 실제 거리 계산 필요시 수정
-          discount: discountRate,
-          originalPrice: originalPrice,
-          discountPrice: discountPrice,
-          timeLeft: "2시간", // 실제 남은 시간 계산 필요시 수정
-        }
-      }).sort((a, b) => a.distance - b.distance)
-
-      setAllStores(transformedStores)
       setLoadingStores(false)
     }
 
     fetchStores()
 
-    // 위치 정보 요청 시뮬레이션
-    setTimeout(() => {
-      setLocation("서울시 강남구 역삼동")
-    }, 1000)
-  }, [])
+    // ✅ 위치 정보 요청
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            )
+            const data = await response.json()
+            const address = data.address
+            const locationString = `${address.city || ""} ${address.road || address.suburb || address.neighbourhood || ""}`.trim()
+            setLocation(locationString || "위치를 찾을 수 없습니다.")
+          } catch (error) {
+            console.error("Error fetching address: ", error)
+            setLocation("주소를 가져오는 데 실패했습니다.")
+          }
+        },
+        (error) => {
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              setLocation("위치 정보 제공에 동의해주세요.")
+              break
+            case error.POSITION_UNAVAILABLE:
+              setLocation("현재 위치를 가져올 수 없습니다.")
+              break
+            case error.TIMEOUT:
+              setLocation("위치 정보를 가져오는 데 시간이 초과되었습니다.")
+              break
+            default:
+              setLocation("알 수 없는 오류가 발생했습니다.")
+              break
+          }
+        }
+      )
+    } else {
+      setLocation("이 브라우저에서는 위치 정보를 지원하지 않습니다.")
+    }
+  }, [onboardingChecked])
 
+  // ✅ 카테고리 필터링
   useEffect(() => {
+    if (!onboardingChecked) return
+
     if (selectedCategory === "전체") {
       setFilteredStores(allStores)
     } else {
       setFilteredStores(allStores.filter((store) => store.category === selectedCategory))
     }
-  }, [selectedCategory, allStores])
+  }, [selectedCategory, allStores, onboardingChecked])
 
-  if (loadingStores) {
+  if (!onboardingChecked || loadingStores) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex flex-col items-center justify-center p-4">
         <p>가게 정보를 불러오는 중...</p>
       </div>
     )
   }
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex flex-col items-center p-4">
-      <div className="w-full max-w-2xl flex justify-end mb-4">
-        <Link href="/home/create">
-          <Button className="bg-teal-500 hover:bg-teal-600 text-white">등록</Button>
-        </Link>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-teal-100">
         <div className="px-4 py-4">
@@ -118,6 +187,7 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
+
           <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
         </div>
       </header>
@@ -126,8 +196,7 @@ export default function HomePage() {
       <div className="px-4 py-4 space-y-4 pb-24">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">
-            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} (
-            {filteredStores.length})
+            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} ({filteredStores.length})
           </h2>
           <Badge variant="secondary" className="bg-teal-100 text-teal-700">
             거리순
@@ -194,6 +263,8 @@ export default function HomePage() {
           ))
         )}
       </div>
+
+      {/* 하단 네비게이션 */}
       <BottomNavigation />
     </div>
   )

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import React from "react"
 import { ArrowLeft, MapPin, Clock, Heart, Share2, Phone, Plus, Minus, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -16,7 +17,8 @@ interface CartItem {
 }
 
 export default function StorePage({ params }: { params: { id: string } }) {
-  const storeId = Number.parseInt(params.id)
+  const unwrappedParams = React.use(Promise.resolve(params)); // Ensure params is a Promise
+  const storeId = Number.parseInt(unwrappedParams.id)
   const storeData = getStoreById(storeId)
 
   const [selectedImage, setSelectedImage] = useState(0)
