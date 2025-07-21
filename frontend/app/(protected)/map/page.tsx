@@ -170,7 +170,7 @@ export default function MapPage() {
   console.log("Stores with real distance before rendering:", storesWithRealDistance);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white max-w-xl mx-auto">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-teal-100 relative z-10 safe-area-top">
         <div className="px-4 py-4">

@@ -83,7 +83,7 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-teal-100">
         <div className="px-4 py-4">
