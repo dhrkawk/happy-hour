@@ -146,7 +146,7 @@ export default function HomePage() {
             category: store.category,
             address: store.address,
             thumbnail: menu?.thumbnail || "/no-image.jpg",
-            distance: calculateDistance(userLat, userLng, storeLat, storeLng),
+            distance: coordinates ? calculateDistance(coordinates.lat, coordinates.lng, storeLat, storeLng) : 0,
             discount: discountRate,
             originalPrice: originalPrice,
             discountPrice: discountPrice,

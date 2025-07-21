@@ -24,10 +24,10 @@ export default function KakaoMap({ userLocation, stores }: KakaoMapProps) {
   const userMarkerInstance = useRef<any>(null)
   const storeMarkersInstance = useRef<any[]>([])
 
-  const initMap = () => {
-    if (!mapContainer.current || !userLocation) return
+  const initMap = (lat: number, lng: number) => {
+    if (!mapContainer.current) return
 
-    const center = new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng)
+    const center = new window.kakao.maps.LatLng(lat, lng)
     const mapOption = {
       center: center,
       level: 3,
@@ -37,8 +37,8 @@ export default function KakaoMap({ userLocation, stores }: KakaoMapProps) {
 
   useEffect(() => {
     if (window.kakao && window.kakao.maps) {
-      if (userLocation) {
-        initMap()
+      if (!mapInstance.current && userLocation) {
+        initMap(userLocation.lat, userLocation.lng)
       }
       return
     }
@@ -48,13 +48,13 @@ export default function KakaoMap({ userLocation, stores }: KakaoMapProps) {
     script.async = true
     script.onload = () => {
       window.kakao.maps.load(() => {
-        if (userLocation) {
-          initMap()
+        if (!mapInstance.current && userLocation) {
+          initMap(userLocation.lat, userLocation.lng)
         }
       })
     }
     document.head.appendChild(script)
-  }, [userLocation]) // userLocation이 준비되면 지도를 초기화합니다.
+  }, [userLocation])
 
   // 사용자 위치 마커 업데이트
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function KakaoMap({ userLocation, stores }: KakaoMapProps) {
       const marker = new window.kakao.maps.Marker({
         position: userPosition,
         image: markerImage,
-        zIndex: 10,
+        zIndex: 20,
       })
 
       marker.setMap(mapInstance.current)
