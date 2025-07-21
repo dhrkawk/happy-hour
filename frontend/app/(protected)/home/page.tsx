@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { MapPin, Clock, Map } from "lucide-react"
+import { MapPin, Clock, Map, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,47 @@ interface StoreData {
   originalPrice: number
   discountPrice: number
   timeLeft: string
+  lat: number
+  lng: number
+}
+
+// Haversine 공식을 사용하여 두 지점 간의 거리를 계산 (단위: km)
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // 지구 반지름 (킬로미터)
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// 남은 시간을 계산하여 보기 좋은 형식으로 반환
+function formatTimeLeft(endTime: string): string {
+  const now = new Date();
+  const end = new Date(endTime);
+  const diff = end.getTime() - now.getTime();
+
+  if (diff <= 0) {
+    return "할인 종료";
+  }
+
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days}일 남음`;
+  } else if (hours > 0) {
+    return `${hours}시간 남음`;
+  } else if (minutes > 0) {
+    return `${minutes}분 남음`;
+  } else {
+    return `${seconds}초 남음`;
+  }
 }
 
 export default function HomePage() {
@@ -81,24 +122,35 @@ export default function HomePage() {
         console.error("Error fetching stores from DB:", error)
         setAllStores([])
       } else {
+        const userLat = 37.4979; // 예시: 강남역
+        const userLng = 127.0276;
+
         const transformedStores: StoreData[] = (data || []).map((store: any) => {
-          const discount = store.discounts?.[0] || null
-          const originalPrice = discount?.original_price || 0
-          const discountRate = discount?.discount_rate || 0
-          const discountPrice = originalPrice * (1 - discountRate / 100)
+          const discount = store.discounts?.[0] || null;
+          const menu = discount?.store_menus || null;
+          const originalPrice = menu?.price ?? 0;
+          const discountRate = discount?.discount_rate ?? 0;
+          const discountPrice = originalPrice * (1 - discountRate / 100);
+
+          // 안전하게 값 할당
+          const storeLat = store.lat ?? 0;
+          const storeLng = store.lng ?? 0;
+          const endTime = discount?.end_time ?? "";
 
           return {
             id: store.id,
             name: store.name,
             category: store.category,
             address: store.address,
-            thumbnail: discount?.store_menus?.thumbnail || "/placeholder.svg",
-            distance: 0.5, // 나중에 실제 계산으로 수정 가능
+            thumbnail: menu?.thumbnail || "/no-image.jpg",
+            distance: calculateDistance(userLat, userLng, storeLat, storeLng),
             discount: discountRate,
             originalPrice: originalPrice,
             discountPrice: discountPrice,
-            timeLeft: "2시간",
-          }
+            timeLeft: endTime ? formatTimeLeft(endTime) : "정보 없음",
+            lat: storeLat,
+            lng: storeLng,
+          };
         }).sort((a, b) => a.distance - b.distance)
 
         setAllStores(transformedStores)
@@ -168,7 +220,9 @@ export default function HomePage() {
     )
   }
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto relative">
+      
+
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-teal-100">
         <div className="px-4 py-4">
@@ -217,10 +271,10 @@ export default function HomePage() {
             <Link key={store.id} href={`/store/${store.id}`}>
               <Card className="overflow-hidden hover:shadow-lg transition-shadow border-teal-100">
                 <CardContent className="p-0">
-                  <div className="flex">
+                  <div className="flex items-center">
                     <div className="w-20 h-20 bg-gray-200 flex-shrink-0">
                       <img
-                        src={store.thumbnail || "/placeholder.svg"}
+                        src={store.thumbnail || "/no-image.jpg"}
                         alt={store.name}
                         className="w-full h-full object-cover"
                       />
@@ -232,7 +286,7 @@ export default function HomePage() {
                           <div className="flex items-center gap-2 mt-1">
                             <div className="flex items-center gap-1 text-xs text-gray-500">
                               <MapPin className="w-3 h-3" />
-                              {store.distance}km
+                              {store.distance.toFixed(1)}km
                             </div>
                             <span className="text-xs text-gray-400">{store.category}</span>
                           </div>
@@ -242,16 +296,21 @@ export default function HomePage() {
                             </Badge>
                             <div className="flex items-center gap-1 text-xs text-gray-500">
                               <Clock className="w-3 h-3" />
-                              {store.timeLeft} 남음
+                              {store.timeLeft}
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-400 line-through">
-                            {store.originalPrice.toLocaleString()}원
+                            {/* 원가: store_menus.price */}
+                            {store.originalPrice?.toLocaleString()}원
                           </div>
                           <div className="text-sm font-bold text-teal-600">
-                            {store.discountPrice.toLocaleString()}원
+                            {/* 할인가: 원가 * (1 - 할인율/100) */}
+                            {(store.originalPrice && store.discount)
+                              ? (store.originalPrice * (1 - store.discount / 100)).toLocaleString()
+                              : store.discountPrice.toLocaleString()
+                            }원
                           </div>
                         </div>
                       </div>
@@ -266,6 +325,15 @@ export default function HomePage() {
 
       {/* 하단 네비게이션 */}
       <BottomNavigation />
+
+      {/* 등록 버튼 (플로팅) */}
+      <Link href="/home/create">
+        <Button
+          className="absolute bottom-24 right-4 w-14 h-14 rounded-full bg-teal-500 hover:bg-teal-600 text-white shadow-lg flex items-center justify-center"
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
+      </Link>
     </div>
   )
 }

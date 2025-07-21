@@ -1,8 +1,10 @@
 {
   "mcpServers": {
-    "notion - happy": {
-      "command": "npx",
+    "notion": {
+      "command": "cmd",
       "args": [
+        "/c",
+        "npx",
         "-y",
         "@smithery/cli@latest",
         "run",
@@ -13,18 +15,18 @@
         "full-anglerfish-diFTHH"
       ]
     },
-    "supabase-mcp-happy": {
-      "command": "npx",
+    "supabase": {
+      "command": "cmd",
       "args": [
+        "/c",
+        "npx",
         "-y",
-        "@smithery/cli@latest",
-        "run",
-        "@supabase-community/supabase-mcp",
-        "--key",
-        "17036c26-a2b8-4341-8e12-01cd19deb0a0",
-        "--profile",
-        "full-anglerfish-diFTHH"
-      ]
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=vyxqhyhoxcrvyxvbqrvf"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_1353637350f46cddf8ff9aa6d9b996b5dbc79eab"
+      }
     }
   }
 } 
