@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { MapPin, Clock, Map, Plus } from "lucide-react"
+import { MapPin, Clock, Map, Plus, RefreshCw, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
-
+import { useAppContext } from "@/contexts/app-context"
 import { createClient } from "@/lib/supabase/client"
+import { StoreCardSkeleton } from "@/components/store-card-skeleton"
 
 interface StoreData {
   id: string
@@ -29,48 +30,50 @@ interface StoreData {
 
 // Haversine 공식을 사용하여 두 지점 간의 거리를 계산 (단위: km)
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371; // 지구 반지름 (킬로미터)
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 0
+  const R = 6371 // 지구 반지름 (킬로미터)
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
 }
 
 // 남은 시간을 계산하여 보기 좋은 형식으로 반환
 function formatTimeLeft(endTime: string): string {
-  const now = new Date();
-  const end = new Date(endTime);
-  const diff = end.getTime() - now.getTime();
+  const now = new Date()
+  const end = new Date(endTime)
+  const diff = end.getTime() - now.getTime()
 
   if (diff <= 0) {
-    return "할인 종료";
+    return "할인 종료"
   }
 
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
 
   if (days > 0) {
-    return `${days}일 남음`;
+    return `${days}일 남음`
   } else if (hours > 0) {
-    return `${hours}시간 남음`;
+    return `${hours}시간 남음`
   } else if (minutes > 0) {
-    return `${minutes}분 남음`;
+    return `${minutes}분 남음`
   } else {
-    return `${seconds}초 남음`;
+    return `${seconds}초 남음`
   }
 }
 
 export default function HomePage() {
   const router = useRouter()
   const supabase = createClient()
+  const { appState, fetchLocation } = useAppContext()
+  const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } = appState.location
 
-  const [location, setLocation] = useState("현재 위치를 가져오는 중...")
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
   const [allStores, setAllStores] = useState<StoreData[]>([])
   const [filteredStores, setFilteredStores] = useState<StoreData[]>([])
@@ -108,7 +111,7 @@ export default function HomePage() {
     checkOnboarding()
   }, [router, supabase])
 
-  // ✅ 온보딩 체크 후 스토어 불러오기 + 위치 설정
+  // 스토어 정보 불러오기 및 거리 계산
   useEffect(() => {
     if (!onboardingChecked) return
 
@@ -122,20 +125,19 @@ export default function HomePage() {
         console.error("Error fetching stores from DB:", error)
         setAllStores([])
       } else {
-        const userLat = 37.4979; // 예시: 강남역
-        const userLng = 127.0276;
+        const userLat = coordinates?.lat
+        const userLng = coordinates?.lng
 
         const transformedStores: StoreData[] = (data || []).map((store: any) => {
-          const discount = store.discounts?.[0] || null;
-          const menu = discount?.store_menus || null;
-          const originalPrice = menu?.price ?? 0;
-          const discountRate = discount?.discount_rate ?? 0;
-          const discountPrice = originalPrice * (1 - discountRate / 100);
+          const discount = store.discounts?.[0] || null
+          const menu = discount?.store_menus || null
+          const originalPrice = menu?.price ?? 0
+          const discountRate = discount?.discount_rate ?? 0
+          const discountPrice = originalPrice * (1 - discountRate / 100)
 
-          // 안전하게 값 할당
-          const storeLat = store.lat ?? 0;
-          const storeLng = store.lng ?? 0;
-          const endTime = discount?.end_time ?? "";
+          const storeLat = store.lat ?? 0
+          const storeLng = store.lng ?? 0
+          const endTime = discount?.end_time ?? ""
 
           return {
             id: store.id,
@@ -150,58 +152,20 @@ export default function HomePage() {
             timeLeft: endTime ? formatTimeLeft(endTime) : "정보 없음",
             lat: storeLat,
             lng: storeLng,
-          };
+          }
         }).sort((a, b) => a.distance - b.distance)
 
         setAllStores(transformedStores)
       }
-
       setLoadingStores(false)
     }
 
-    fetchStores()
-
-    // ✅ 위치 정보 요청
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-            )
-            const data = await response.json()
-            const address = data.address
-            const locationString = `${address.city || ""} ${address.road || address.suburb || address.neighbourhood || ""}`.trim()
-            setLocation(locationString || "위치를 찾을 수 없습니다.")
-          } catch (error) {
-            console.error("Error fetching address: ", error)
-            setLocation("주소를 가져오는 데 실패했습니다.")
-          }
-        },
-        (error) => {
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              setLocation("위치 정보 제공에 동의해주세요.")
-              break
-            case error.POSITION_UNAVAILABLE:
-              setLocation("현재 위치를 가져올 수 없습니다.")
-              break
-            case error.TIMEOUT:
-              setLocation("위치 정보를 가져오는 데 시간이 초과되었습니다.")
-              break
-            default:
-              setLocation("알 수 없는 오류가 발생했습니다.")
-              break
-          }
-        }
-      )
-    } else {
-      setLocation("이 브라우저에서는 위치 정보를 지원하지 않습니다.")
+    if (coordinates) {
+      fetchStores()
     }
-  }, [onboardingChecked])
+  }, [onboardingChecked, coordinates, supabase])
 
-  // ✅ 카테고리 필터링
+  // 카테고리 필터링
   useEffect(() => {
     if (!onboardingChecked) return
 
@@ -212,38 +176,41 @@ export default function HomePage() {
     }
   }, [selectedCategory, allStores, onboardingChecked])
 
-  if (!onboardingChecked || loadingStores) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex flex-col items-center justify-center p-4">
-        <p>가게 정보를 불러오는 중...</p>
-      </div>
-    )
-  }
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto relative">
-      
-
       {/* 헤더 */}
-      <header className="bg-white shadow-sm border-b border-teal-100">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
+      <header className="bg-white shadow-sm border-b border-teal-100 sticky top-0 z-10">
+        <div className="px-4 pt-4 pb-3">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-bold text-teal-600">해피아워</h1>
-              <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                <MapPin className="w-4 h-4" />
-                <span>{location}</span>
+              <div className="flex items-center gap-1 text-sm text-gray-600 mt-1 truncate">
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{locationLoading ? "위치 찾는 중..." : address || locationError}</span>
               </div>
             </div>
-            <Link href="/map">
-              <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
-                <Map className="w-4 h-4 mr-1" />
-                지도
-              </Button>
-            </Link>
+            <div className="flex flex-col items-end ml-2">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => fetchLocation()} disabled={locationLoading}>
+                  {locationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                </Button>
+              </div>
+              {lastUpdated && (
+                <div className="text-xs text-gray-400 mt-1 whitespace-nowrap">
+                  마지막 업데이트: {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              )}
+            </div>
           </div>
 
-          <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
-        </div>
+      {/* 카테고리 필터 */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <CategoryFilter
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+        />
+      </div>
+    </div>
       </header>
 
       {/* 가게 리스트 */}
@@ -257,7 +224,9 @@ export default function HomePage() {
           </Badge>
         </div>
 
-        {filteredStores.length === 0 ? (
+        {loadingStores ? (
+          Array.from({ length: 5 }).map((_, index) => <StoreCardSkeleton key={index} />)
+        ) : filteredStores.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">해당 카테고리의 할인 가게가 없습니다</h3>
@@ -302,11 +271,9 @@ export default function HomePage() {
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-400 line-through">
-                            {/* 원가: store_menus.price */}
                             {store.originalPrice?.toLocaleString()}원
                           </div>
                           <div className="text-sm font-bold text-teal-600">
-                            {/* 할인가: 원가 * (1 - 할인율/100) */}
                             {(store.originalPrice && store.discount)
                               ? (store.originalPrice * (1 - store.discount / 100)).toLocaleString()
                               : store.discountPrice.toLocaleString()
