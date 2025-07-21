@@ -105,7 +105,7 @@ export default function ProfilePage() {
             </Card>
           </Link>
 
-          <Link href="/support">
+          <Link href="https://docs.google.com/forms/d/e/1FAIpQLSfTTfAocL37kA5gMaWD-DhltIz4P2zT3t8xYIB8UsLGJQtuBA/viewform?usp=dialog" target="_blank" rel="noopener noreferrer">
             <Card className="border-teal-100 hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">

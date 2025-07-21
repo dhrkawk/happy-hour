@@ -120,6 +120,7 @@ export default function HomePage() {
       const { data, error } = await supabase
         .from("stores")
         .select("*, discounts(*, store_menus(*))")
+        .eq('activated', true) //activated == true 인 가게만 home page에 표시
 
       if (error) {
         console.error("Error fetching stores from DB:", error)
