@@ -9,6 +9,8 @@ export async function POST(req: NextRequest) {
   const name = formData.get('name') as string;
   const category = formData.get('category') as string;
   const address = formData.get('address') as string;
+  const lat = Number(formData.get('lat'));
+  const lng = Number(formData.get('lng'));
 
   // 2. 메뉴 정보
   const menu_name = formData.get('menu_name') as string;
@@ -52,8 +54,8 @@ export async function POST(req: NextRequest) {
         name,
         category,
         address,
-        lat: 0, // 실제 위치 정보 필요시 수정
-        lng: 0,
+        lat,
+        lng,
       },
     ])
     .select()
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
         store_id: store.id,
         name: menu_name,
         price: menu_price,
+        thumbnail: menuThumbnailUrl,
       },
     ])
     .select()
