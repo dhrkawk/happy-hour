@@ -11,6 +11,7 @@ import CategoryFilter from "@/components/category-filter"
 import { createClient } from "@/lib/supabase/client"
 import KakaoMap from "@/components/map/kakao-map"
 import { useAppContext } from "@/contexts/app-context"
+import {LocationErrorBanner} from "@/components/location-error-banner"
 
 export default function MapPage() {
   const { appState, fetchLocation } = useAppContext()
@@ -126,11 +127,7 @@ export default function MapPage() {
       </header>
 
       {/* 위치 오류 메시지 */}
-      {locationError && (
-        <div className="px-4 py-3 bg-red-50 border-b border-red-200">
-          <p className="text-sm text-red-600">{locationError}</p>
-        </div>
-      )}
+      {locationError && (<LocationErrorBanner></LocationErrorBanner>)}
 
       {/* 지도 영역 */}
       <div className="relative h-[60vh] bg-gray-200">
