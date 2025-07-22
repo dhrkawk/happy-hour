@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
@@ -17,13 +17,38 @@ export default function OnboardingPage() {
 
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [isCodeSent, setIsCodeSent] = useState(false)
+  const [verificationCode, setVerificationCode] = useState('')
+  const [isCodeVerified, setIsCodeVerified] = useState(false)
   const [agreedTerms, setAgreedTerms] = useState(false)
   const [agreedPrivacy, setAgreedPrivacy] = useState(false)
   const [agreedLocation, setAgreedLocation] = useState(false)
   const [agreedMarketing, setAgreedMarketing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const isFormValid = name && phone && agreedTerms && agreedPrivacy && agreedLocation
+  const [timer, setTimer] = useState(0)
+
+  const isFormValid = name && phone && agreedTerms && agreedPrivacy && agreedLocation && isCodeVerified
+
+  const handleSendCode = () => {
+    if (!phone) {
+      alert('전화번호를 입력해주세요.')
+      return
+    }
+    setIsCodeSent(true)
+    setIsCodeVerified(false)
+    setTimer(60) // 60초 카운트다운 시작
+    // 실제 API 호출은 추후 구현 예정
+  }
+
+  useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => {
+        setTimer((prev) => prev - 1)
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [timer])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +70,6 @@ export default function OnboardingPage() {
       phone_number: phone,
       total_bookings: 0,
       total_savings: 0,
-      agreed_marketing: agreedMarketing,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -73,79 +97,64 @@ export default function OnboardingPage() {
               <Label htmlFor="name">이름</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="phone">전화번호</Label>
-              <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+              <div className="flex flex-col gap-1">
+                {isCodeSent && timer > 0 && (
+                  <div className="text-xs text-gray-500 text-right">{timer}초 후 재발송 가능  </div>
+                )}
+                <div className="flex gap-2">
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                    placeholder="01012345678"
+                    required
+                  />
+                  <Button type="button" onClick={handleSendCode} variant="outline" disabled={timer > 0}>
+                    인증번호 발송
+                  </Button>
+                </div>
+              </div>
             </div>
 
+            {isCodeSent && (
+              <div className="space-y-2">
+                <Label htmlFor="code">인증번호</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="code"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    placeholder="인증번호 입력"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (!verificationCode) {
+                        alert('인증번호를 입력해주세요.')
+                      } else {
+                        // 실제 인증번호 확인 로직은 추후 구현 예정
+                        alert('인증번호 확인 완료!')
+                        setIsCodeVerified(true)
+                      }
+                    }}
+                  >
+                    인증번호 확인
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
-              {/* 서비스 이용약관 동의 */}
-              <div className="flex items-center space-x-2">
-                <Checkbox id="terms" checked={agreedTerms} onCheckedChange={() => setAgreedTerms(!agreedTerms)} />
-                <Label htmlFor="terms" className="text-sm">서비스 이용약관 동의 (필수)</Label>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="link" className="p-0 text-xs text-teal-500">보기</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogTitle className="font-bold">서비스 이용약관</DialogTitle>
-                    <p className="text-sm text-gray-600 overflow-auto max-h-60">
-                      여기에 서비스 이용약관 내용을 입력하세요...
-                    </p>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              {/* 개인정보 수집 및 이용 동의 */}
-              <div className="flex items-center space-x-2">
-                <Checkbox id="privacy" checked={agreedPrivacy} onCheckedChange={() => setAgreedPrivacy(!agreedPrivacy)} />
-                <Label htmlFor="privacy" className="text-sm">개인정보 수집 및 이용 동의 (필수)</Label>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="link" className="p-0 text-xs text-teal-500">보기</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogTitle className="font-bold">개인정보 처리방침</DialogTitle>
-                    <p className="text-sm text-gray-600 overflow-auto max-h-60">
-                      여기에 개인정보 처리방침 내용을 입력하세요...
-                    </p>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              {/* 위치정보 수집 및 이용 동의 */}
-              <div className="flex items-center space-x-2">
-                <Checkbox id="location" checked={agreedLocation} onCheckedChange={() => setAgreedLocation(!agreedLocation)} />
-                <Label htmlFor="location" className="text-sm">위치 정보 수집 및 이용 동의 (선택)</Label>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="link" className="p-0 text-xs text-teal-500">보기</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogTitle className="font-bold">위치정보 이용약관</DialogTitle>
-                    <p className="text-sm text-gray-600 overflow-auto max-h-60">
-                      여기에 위치정보 이용약관 내용을 입력하세요...
-                    </p>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              {/* 마케팅 정보 수신 동의 (선택) */}
-              <div className="flex items-center space-x-2">
-                <Checkbox id="marketing" checked={agreedMarketing} onCheckedChange={() => setAgreedMarketing(!agreedMarketing)} />
-                <Label htmlFor="marketing" className="text-sm">마케팅 정보 수신 동의 (선택)</Label>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="link" className="p-0 text-xs text-teal-500">보기</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogTitle className="font-bold">마케팅 정보 수신 동의</DialogTitle>
-                    <p className="text-sm text-gray-600 overflow-auto max-h-60">
-                      여기에 마케팅 정보 수신 동의 내용을 입력하세요...
-                    </p>
-                  </DialogContent>
-                </Dialog>
-              </div>
+              <AgreementCheckbox id="terms" checked={agreedTerms} setChecked={setAgreedTerms} title="서비스 이용약관 동의 (필수)" dialogTitle="서비스 이용약관" />
+              <AgreementCheckbox id="privacy" checked={agreedPrivacy} setChecked={setAgreedPrivacy} title="개인정보 수집 및 이용 동의 (필수)" dialogTitle="개인정보 처리방침" />
+              <AgreementCheckbox id="location" checked={agreedLocation} setChecked={setAgreedLocation} title="위치 정보 수집 및 이용 동의 (필수)" dialogTitle="위치정보 이용약관" />
+              <AgreementCheckbox id="marketing" checked={agreedMarketing} setChecked={setAgreedMarketing} title="마케팅 정보 수신 동의 (선택)" dialogTitle="마케팅 정보 수신 동의" />
             </div>
 
             <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600 text-white" disabled={!isFormValid || isLoading}>
@@ -154,6 +163,26 @@ export default function OnboardingPage() {
           </form>
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+function AgreementCheckbox({ id, checked, setChecked, title, dialogTitle }: { id: string, checked: boolean, setChecked: (v: boolean) => void, title: string, dialogTitle: string }) {
+  return (
+    <div className="flex items-center space-x-2">
+      <Checkbox id={id} checked={checked} onCheckedChange={() => setChecked(!checked)} />
+      <Label htmlFor={id} className="text-sm">{title}</Label>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="link" className="p-0 text-xs text-teal-500">보기</Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-md">
+          <DialogTitle className="font-bold">{dialogTitle}</DialogTitle>
+          <p className="text-sm text-gray-600 overflow-auto max-h-60">
+            여기에 내용을 입력하세요...
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
