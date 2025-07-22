@@ -24,3 +24,5 @@ venv/
 
 frontend/.next
 backend/
+gemini.txt
+.gitignore

@@ -1,32 +1,177 @@
 "use client"
 
-import { useState } from "react"
-import React from "react"
-import { ArrowLeft, MapPin, Clock, Heart, Share2, Phone, Plus, Minus, ShoppingCart } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ArrowLeft, MapPin, Clock, Heart, Share2, Phone, Plus, Minus, ShoppingCart, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { getStoreById } from "@/lib/store-data"
+import { createClient } from "@/lib/supabase/client"
+import { notFound } from "next/navigation"
+import { useAppContext } from "@/contexts/app-context"
+import { calculateDistance } from "@/lib/utils"
 
-interface CartItem {
+interface StoreMenu {
   id: number
   name: string
-  price: number
-  quantity: number
+  originalPrice: number
+  discountPrice: number
+  description: string
+  thumbnail?: string
+}
+
+interface StoreData {
+  id: string
+  name: string
+  category: string
+  address: string
+  phone: string
+  description: string
+  thumbnail: string
+  images: string[]
+  distance: number
+  discount: number
+  timeLeft: string
+  lat: number
+  lng: number
+  menu?: StoreMenu[]
+}
+
+// 남은 시간을 계산하여 보기 좋은 형식으로 반환
+function formatTimeLeft(endTime: string): string {
+  const now = new Date()
+  const end = new Date(endTime)
+  const diff = end.getTime() - now.getTime()
+
+  if (diff <= 0) {
+    return "할인 종료"
+  }
+
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0) {
+    return `${days}일 남음`
+  } else if (hours > 0) {
+    return `${hours}시간 남음`
+  } else if (minutes > 0) {
+    return `${minutes}분 남음`
+  } else {
+    return `${seconds}초 남음`
+  }
 }
 
 export default function StorePage({ params }: { params: { id: string } }) {
-  const unwrappedParams = React.use(Promise.resolve(params)); // Ensure params is a Promise
-  const storeId = Number.parseInt(unwrappedParams.id)
-  const storeData = getStoreById(storeId)
+  const supabase = createClient()
+  const storeId = params.id
+  const { appState } = useAppContext()
+  const { coordinates } = appState.location
+
+  const [storeData, setStoreData] = useState<StoreData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [selectedImage, setSelectedImage] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
-  const [activeTab, setActiveTab] = useState("menu") // 기본값을 "menu"로 변경
+  const [activeTab, setActiveTab] = useState("menu")
   const [cart, setCart] = useState<CartItem[]>([])
 
-  // 가게 데이터가 없으면 404 처리
+  interface CartItem {
+    id: number
+    name: string
+    price: number
+    quantity: number
+  }
+
+  useEffect(() => {
+    async function fetchStore() {
+      setLoading(true)
+      setError(null)
+      try {
+        const { data, error } = await supabase
+          .from("stores")
+          .select("*, discounts(*, store_menus(*))")
+          .eq("id", storeId)
+          .single()
+
+        if (error) {
+          console.error("Error fetching store:", error)
+          setError("가게 정보를 불러오는 데 실패했습니다.")
+          setLoading(false)
+          return
+        }
+
+        if (!data) {
+          notFound()
+        }
+
+        const discount = data.discounts?.[0] || null
+        const menuItems = Array.isArray(discount?.store_menus) ? discount.store_menus : (discount?.store_menus ? [discount.store_menus] : []);
+        const discountRate = discount?.discount_rate ?? 0
+        const endTime = discount?.end_time ?? ""
+
+        const storeLat = data.lat ?? 0
+        const storeLng = data.lng ?? 0
+        const calculatedDistance = coordinates ? calculateDistance(coordinates.lat, coordinates.lng, storeLat, storeLng) : 0
+
+        setStoreData({
+          id: data.id,
+          name: data.name,
+          category: data.category,
+          address: data.address,
+          phone: data.phone,
+          description: data.description,
+          thumbnail: data.thumbnail || "/no-image.jpg",
+          images: data.images || [],
+          distance: calculatedDistance,
+          discount: discountRate,
+          timeLeft: endTime ? formatTimeLeft(endTime) : "정보 없음",
+          lat: data.lat,
+          lng: data.lng,
+          menu: menuItems.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            originalPrice: item.price,
+            discountPrice: item.price * (1 - discountRate / 100),
+            description: item.description,
+            thumbnail: item.thumbnail,
+          })),
+        })
+      } catch (err) {
+        console.error("Unexpected error:", err)
+        setError("알 수 없는 오류가 발생했습니다.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStore()
+  }, [storeId, supabase, coordinates])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+        <p className="ml-2 text-teal-600">가게 정보를 불러오는 중...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">{error}</h1>
+          <Link href="/">
+            <Button className="bg-teal-500 hover:bg-teal-600 text-white">홈으로 돌아가기</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   if (!storeData) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -41,7 +186,7 @@ export default function StorePage({ params }: { params: { id: string } }) {
   }
 
   // 장바구니에 메뉴 추가
-  const addToCart = (menuItem: any) => {
+  const addToCart = (menuItem: StoreMenu) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === menuItem.id)
       if (existingItem) {
@@ -105,7 +250,7 @@ export default function StorePage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white max-w-xl mx-auto">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-teal-100 relative z-10">
         <div className="px-4 py-4">
@@ -132,7 +277,7 @@ export default function StorePage({ params }: { params: { id: string } }) {
 
       {/* 이미지 갤러리 */}
       <div className="relative">
-        <div className="h-48 bg-gray-200">
+        <div className="h-64 bg-gray-200">
           <img
             src={storeData.images[selectedImage] || storeData.thumbnail || "/placeholder.svg"}
             alt={storeData.name}
@@ -144,7 +289,7 @@ export default function StorePage({ params }: { params: { id: string } }) {
             {storeData.images.map((image, index) => (
               <button
                 key={index}
-                className={`w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border-2 ${
+                className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 ${
                   selectedImage === index ? "border-white" : "border-transparent"
                 }`}
                 onClick={() => setSelectedImage(index)}
@@ -160,17 +305,16 @@ export default function StorePage({ params }: { params: { id: string } }) {
       <div className="px-4 py-4 border-b border-gray-100">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-gray-800 mb-2">{storeData.name}</h1>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex items-center gap-1 text-gray-500">
-                <MapPin className="w-4 h-4" />
-                <span>{storeData.distance}km</span>
-              </div>
-              <span className="text-gray-500">{storeData.category}</span>
+            <h1 className="text-2xl font-bold text-gray-800 mb-1">{storeData.name}</h1>
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+              <MapPin className="w-4 h-4" />
+              <span>{storeData.distance.toFixed(1)}km</span>
+              <span>•</span>
+              <span>{storeData.category}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="bg-orange-500 text-white">{storeData.discount}% 할인</Badge>
-              <div className="flex items-center gap-1 text-red-500 font-medium">
+              <Badge className="bg-orange-500 text-white text-sm">{storeData.discount}% 할인</Badge>
+              <div className="flex items-center gap-1 text-red-500 font-medium text-sm">
                 <Clock className="w-4 h-4" />
                 <span>{storeData.timeLeft} 남음</span>
               </div>
@@ -216,15 +360,22 @@ export default function StorePage({ params }: { params: { id: string } }) {
                 </div>
               )}
             </div>
-            {storeData.menu.map((item) => {
-              const quantity = getCartQuantity(item.id)
-              return (
-                <Card key={item.id} className="border-teal-100">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
+            {(storeData?.menu ?? []).length > 0 ? (
+              (storeData?.menu ?? []).map((item) => {
+                const quantity = getCartQuantity(item.id)
+                return (
+                  <Card key={item.id} className="border-teal-100">
+                    <CardContent className="p-4 flex items-center">
+                      <div className="w-20 h-20 flex-shrink-0 mr-4">
+                        <img
+                          src={item.thumbnail || "/no-image.jpg"}
+                          alt={item.name}
+                          className="w-full h-full object-cover rounded-md"
+                        />
+                      </div>
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-800">{item.name}</h4>
-                        <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
                         <div className="flex items-center gap-2 mt-2">
                           <span className="text-sm text-gray-400 line-through">
                             {item.originalPrice.toLocaleString()}원
@@ -268,11 +419,17 @@ export default function StorePage({ params }: { params: { id: string } }) {
                           </Button>
                         )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+                    </CardContent>
+                  </Card>
+                )
+              })
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">😅</div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">아직 등록된 할인 메뉴가 없습니다.</h3>
+                <p className="text-gray-600">새로운 메뉴가 곧 추가될 예정입니다!</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -306,7 +463,7 @@ export default function StorePage({ params }: { params: { id: string } }) {
       </div>
 
       {/* 하단 고정 예약 버튼 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-teal-100 p-4 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-teal-100 p-4 shadow-lg max-w-xl mx-auto">
         {cart.length > 0 ? (
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
