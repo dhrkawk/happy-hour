@@ -1,110 +1,103 @@
-정확히 짚어줘서 고마워요.
-그럼 Edge Function 제거된 기준으로 다시 정리한 README는 아래와 같습니다.
+# 🕒 Happy Hour
 
-⸻
+Happy Hour는 소상공인의 유휴 시간을 실시간 할인으로 전환하여 수익을 증대시키고, 소비자에게는 주변 가게의 즉석 할인 혜택을 제공하는 위치 기반 서비스입니다.
 
-Happy Hour
+## ✨ Core Features
 
-🚀 프로젝트 개요
+- **사장님 (Store Owners)**
+  - 간편한 할인 등록: 몇 번의 클릭만으로 할인율, 수량, 유효 시간을 설정하여 '해피아워'를 등록할 수 있습니다.
+  - 브랜드 가치 보호: 하루에 등록할 수 있는 횟수를 제한하여 무분별한 할인을 방지합니다.
+- **고객 (Customers)**
+  - 실시간 주변 할인 검색: 지도를 통해 내 주변에서 진행 중인 해피아워를 실시간으로 찾아볼 수 있습니다.
+  - 다양한 필터 옵션: 카테고리, 거리, 가격 등 원하는 조건으로 가게를 필터링합니다.
+  - 즉각적인 혜택: 남은 시간과 수량을 확인하고 즉시 할인을 이용할 수 있습니다.
 
-Happy Hour는 소상공인의 유휴 시간을 실시간 할인으로 수익화하고,
-소비자에게는 즉시 할인 혜택을 제공하는 위치 기반 모바일/웹 플랫폼입니다.
-FOMO(Fear of Missing Out)와 전략적 타임세일을 모두 만족시키는 것을 목표로 합니다.
+## 🛠️ Tech Stack
 
-⸻
+### Frontend
 
-✨ 주요 기능
-	•	실시간 할인 검색 (소비자)
-지도와 리스트를 통해 주변 할인 가게 탐색
-거리순 / 카테고리 / 가격 필터 지원
-남은 시간과 할인율을 실시간으로 확인 가능
-	•	할인 슬롯 등록 (사업자)
-서비스명, 할인율, 유효시간, 노출 대상(전체/단골), 수량 설정 가능
-하루 2회 슬롯 제한으로 브랜드 가치 보호
-	•	회원가입 및 온보딩
-Supabase Auth 기반의 소셜 로그인 및 이메일 가입
-최초 로그인 시 온보딩 페이지에서 사용자 정보 입력
-프로필 정보는 클라이언트 사이드에서 Supabase로 직접 등록
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **UI**: [React](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/), [Shadcn/ui](https://ui.shadcn.com/)
+- **Forms**: [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/)
+- **State Management**: Next.js RSC, Server Actions, and Client-side fetching
+- **Icons**: [Lucide React](https://lucide.dev/)
 
-⸻
+### Backend & Platform
 
-🛠️ 기술 스택
+- **Platform**: [Supabase](https://supabase.com/)
+- **Database**: Supabase Postgres with RLS
+- **Authentication**: Supabase Auth
+- **Storage**: Supabase Storage
 
-프론트엔드
-	•	Next.js App Router — 서버 컴포넌트 기반 React 프레임워크
-	•	React Query (TanStack Query) — 클라이언트 API 데이터 관리
-	•	Tailwind CSS — 유틸리티 기반 CSS 프레임워크
-	•	Supabase JS Client — 인증 및 데이터 관리
+## 🚀 Getting Started
 
-백엔드 / 데이터 관리
-	•	Supabase Postgres — RLS 기반 데이터베이스
-	•	Supabase Auth — JWT 기반 인증 및 세션 관리
-	•	Supabase Storage — 이미지 등 정적 자산 저장
+### Prerequisites
 
-⸻
+- Node.js (v22.x or higher)
+- pnpm
 
-🗂️ 프로젝트 구조
+### 1. Clone the repository
 
-happy-hour/
-├── app/                 # Next.js App Router 디렉토리
-├── components/          # 재사용 가능한 컴포넌트
-├── hooks/               # 커스텀 훅 모음
-├── lib/                 # Supabase 클라이언트 및 유틸리티
-├── public/              # 정적 자산
-├── styles/              # 글로벌 스타일
-├── supabase/            # Supabase 관련 설정
-├── package.json
-├── README.md
-└── ...
+```bash
+git clone https://github.com/your-repo/happy-hour.git
+cd happy-hour/frontend
+```
 
+### 2. Install dependencies
 
-⸻
+```bash
+pnpm install
+```
 
-⚙️ 환경 변수 설정
+### 3. Set up environment variables
 
-루트 디렉토리 .env.local
+프로젝트 루트의 `frontend` 디렉토리에 `.env.local` 파일을 생성하고 Supabase 프로젝트의 키를 추가하세요.
+
+```plaintext
+# .env.local
 
 NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
 
+### 4. Run the development server
 
-⸻
+```bash
+pnpm run dev
+```
 
-✅ 실행 방법
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-npm install
-npm run dev
+## 🗂️ Project Structure
 
+```
+happy-hour/
+├── frontend/
+│   ├── app/
+│   │   ├── (auth)/         # Auth pages (Login, Signup)
+│   │   ├── (protected)/    # Pages requiring authentication
+│   │   ├── api/            # API Routes
+│   │   ├── layout.tsx      # Root layout
+│   │   └── page.tsx        # Main landing page
+│   ├── components/
+│   │   ├── ui/             # Reusable UI components from Shadcn/ui
+│   │   └── ...             # Custom components
+│   ├── contexts/           # React contexts
+│   ├── hooks/              # Custom React hooks
+│   ├── lib/
+│   │   ├── supabase/       # Supabase client instances (client, server, middleware)
+│   │   └── utils.ts        # Utility functions
+│   ├── public/             # Static assets
+│   ├── styles/             # Global styles
+│   ├── middleware.ts       # Next.js middleware for auth redirection
+│   ├── next.config.mjs     # Next.js configuration
+│   ├── package.json
+│   └── tsconfig.json
+└── ...
+```
 
-⸻
+## 🔐 Authentication
 
-🔒 인증 및 보안 정책
-	•	로그인 후 세션은 Supabase Auth로 자동 관리
-	•	온보딩 페이지에서 프로필 정보 수집 후 DB에 직접 등록
-	•	(Protected) 레이아웃에서 세션 및 프로필 유무 확인 후 접근 제어
-	•	Row Level Security (RLS) 적용된 Supabase 테이블
-
-⸻
-
-📊 비용 최적화를 위한 전략
-	•	Edge Function 사용 안함
-	•	인증 요청 최소화 (SSR + 클라이언트 온보딩 체크 조합)
-	•	Supabase API 호출 최적화
-
-⸻
-
-📈 향후 계획
-	•	예약 시스템
-	•	사업주 대시보드 기능
-	•	클라이언트 사이드 캐싱 전략 보강
-
-⸻
-
-📝 참고사항
-
-본 프로젝트는 Supabase 기반 BaaS로 운영됩니다.
-클라이언트와 서버를 명확히 분리하여 관리하며,
-Edge Function 없이 RLS + 온보딩 프로세스를 통해
-인증과 사용자 데이터를 안전하게 처리합니다.
-
-⸻
+- **Session Management**: 인증은 `@supabase/ssr` 패키지를 사용하여 서버 사이드와 클라이언트 사이드에서 안전하게 처리됩니다.
+- **Protected Routes**: `middleware.ts` 파일은 사용자가 로그인하지 않았을 경우 보호된 페이지(`(protected)` 레이아웃) 접근을 막고 로그인 페이지로 리디렉션합니다.
+- **Row Level Security (RLS)**: 데이터베이스는 RLS 정책을 통해 보호됩니다. 사용자는 자신의 데이터에만 접근할 수 있으며, 정책은 Supabase 대시보드에서 관리됩니다.
