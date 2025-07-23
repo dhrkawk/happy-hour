@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
   const address = formData.get('address') as string;
   const lat = Number(formData.get('lat'));
   const lng = Number(formData.get('lng'));
+  const storeThumbnailFile = formData.get('store_thumbnail') as File | null;
 
   // 2. 메뉴 정보
   const menu_name = formData.get('menu_name') as string;
@@ -46,6 +47,27 @@ export async function POST(req: NextRequest) {
     menuThumbnailUrl = publicUrlData.publicUrl;
   }
 
+  // 가게 썸네일 업로드
+  let storeThumbnailUrl: string | null = null;
+  if (storeThumbnailFile) {
+    const fileExtension = storeThumbnailFile.name.split('.').pop();
+    const fileName = `${uuidv4()}.${fileExtension}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('thumbnails')
+      .upload(fileName, storeThumbnailFile, { cacheControl: '3600', upsert: false });
+
+    if (uploadError) {
+      console.error("Supabase store thumbnail upload error:", uploadError);
+      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('thumbnails')
+      .getPublicUrl(fileName);
+
+    storeThumbnailUrl = publicUrlData.publicUrl;
+  }
+
   // 1. stores 테이블에 insert
   const { data: store, error: storeError } = await supabase
     .from('stores')
@@ -56,6 +78,8 @@ export async function POST(req: NextRequest) {
         address,
         lat,
         lng,
+        store_thumbnail: storeThumbnailUrl,
+        activated: true,
       },
     ])
     .select()
