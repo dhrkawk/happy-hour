@@ -30,6 +30,7 @@ export default function CreateStorePage() {
     quantity: "",
   });
   const [menuThumbnail, setMenuThumbnail] = useState<File | null>(null);
+  const [storeThumbnail, setStoreThumbnail] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,6 +45,12 @@ export default function CreateStorePage() {
   const handleMenuThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setMenuThumbnail(e.target.files[0]);
+    }
+  };
+
+  const handleStoreThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setStoreThumbnail(e.target.files[0]);
     }
   };
 
@@ -66,6 +73,9 @@ export default function CreateStorePage() {
     formData.append("quantity", form.quantity);
     if (menuThumbnail) {
       formData.append("menu_thumbnail", menuThumbnail);
+    }
+    if (storeThumbnail) {
+      formData.append("store_thumbnail", storeThumbnail);
     }
 
     try {
@@ -111,6 +121,26 @@ export default function CreateStorePage() {
                 <Input id="address" name="address" placeholder="지도에서 주소를 검색하거나 클릭하세요." value={form.address} onChange={handleChange} required readOnly />
                 <input type="hidden" name="lat" value={form.lat} />
                 <input type="hidden" name="lng" value={form.lng} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="store_thumbnail">가게 이미지</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="store_thumbnail"
+                    name="store_thumbnail"
+                    type="file"
+                    onChange={handleStoreThumbnailChange}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => document.getElementById('store_thumbnail')?.click()}
+                    className="bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  >
+                    파일 선택
+                  </Button>
+                  {storeThumbnail && <span className="text-sm text-gray-600">{storeThumbnail.name}</span>}
+                </div>
               </div>
               <Separator />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

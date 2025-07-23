@@ -1,85 +1,242 @@
 "use client"
 
-import { useState } from "react"
-import { ArrowLeft, MapPin, Hash, Clock, Phone } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ArrowLeft, MapPin, Hash, Clock, Phone, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import BottomNavigation from "@/components/bottom-navigation"
+import { createClient } from "@/lib/supabase/client"
 
-// 현재 예약된 식당만 (진행중인 예약)
-const initialBookings = [
-  {
-    id: 1,
-    bookingNumber: "12345678",
-    storeName: "맛있는 김치찌개",
-    address: "서울시 강남구 역삼동 123-45",
-    phone: "02-1234-5678",
-    bookingDate: "2024-01-15",
-    visitTime: "14:30",
-    peopleCount: 2,
-    totalAmount: 16800,
-    status: "confirmed", // confirmed, ready
-    timeLeft: "1시간 30분",
-    discount: 30,
-  },
-  {
-    id: 2,
-    bookingNumber: "87654321",
-    storeName: "카페 브루잉",
-    address: "서울시 강남구 역삼동 456-78",
-    phone: "02-2345-6789",
-    bookingDate: "2024-01-15",
-    visitTime: "16:00",
-    peopleCount: 1,
-    totalAmount: 7500,
-    status: "ready",
-    timeLeft: "30분",
-    discount: 25,
-  },
-]
+interface BookingData {
+  id: string;
+  bookingNumber: string;
+  storeName: string;
+  address: string;
+  phone: string;
+  reserved_at: string;
+  visitTime: string;
+  menuName: string;
+  totalAmount: number;
+  status: string;
+  timeLeft: string;
+  discountRate: number;
+}
 
 const getStatusInfo = (status: string) => {
   switch (status) {
-    case "confirmed":
+    case "active":
       return {
         label: "예약확정",
         color: "bg-blue-500 text-white",
         description: "예약이 확정되었습니다",
         icon: "✅",
-      }
-    case "ready":
+      };
+    case "used":
       return {
-        label: "방문가능",
+        label: "방문완료",
         color: "bg-green-500 text-white",
-        description: "지금 방문하시면 됩니다",
+        description: "방문이 완료되었습니다",
         icon: "🎉",
-      }
+      };
+    case "cancelled":
+      return {
+        label: "예약취소",
+        color: "bg-red-500 text-white",
+        description: "예약이 취소되었습니다",
+        icon: "❌",
+      };
     default:
       return {
         label: "알 수 없음",
         color: "bg-gray-500 text-white",
         description: "",
         icon: "❓",
-      }
+      };
+  }
+};
+
+function formatTimeLeft(endTime: string): string {
+  const now = new Date();
+  const end = new Date(endTime);
+  const diff = end.getTime() - now.getTime();
+
+  if (diff <= 0) {
+    return "할인 종료";
+  }
+
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days}일 남음`;
+  } else if (hours > 0) {
+    return `${hours}시간 남음`;
+  } else if (minutes > 0) {
+    return `${minutes}분 남음`;
+  } else {
+    return `${seconds}초 남음`;
   }
 }
 
 export default function BookingsPage() {
-  const [currentBookings, setCurrentBookings] = useState(initialBookings)
-  const [cancelingBookingId, setCancelingBookingId] = useState<number | null>(null)
+  const supabase = createClient();
+  const [bookings, setBookings] = useState<BookingData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cancelingBookingId, setCancelingBookingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      setLoading(true);
+      setError(null);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        setError("로그인이 필요합니다.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('reservations')
+          .select(
+            `
+            id,
+            reserved_at,
+            status,
+            discounts (
+              id,
+              discount_rate,
+              start_time,
+              end_time,
+              stores (
+                name,
+                address,
+                phone
+              ),
+              store_menus (
+                name,
+                price
+              )
+            )
+            `
+          )
+          .eq('user_id', user.id)
+          .order('reserved_at', { ascending: false });
+
+        if (error) {
+          console.error("Error fetching bookings:", error);
+          setError("예약 정보를 불러오는 데 실패했습니다.");
+          setLoading(false);
+          return;
+        }
+
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+
+        const formattedBookings: BookingData[] = data
+          .filter(booking => {
+            // Filter out cancelled bookings older than 24 hours
+            if (booking.status === 'cancelled') {
+              const reservedAt = new Date(booking.reserved_at);
+              return reservedAt > twentyFourHoursAgo;
+            }
+            return true;
+          })
+          .map((booking: any) => {
+            const discount = booking.discounts;
+            const store = discount?.stores;
+            const menu = discount?.store_menus;
+
+            const originalPrice = menu?.price || 0;
+            const discountRate = discount?.discount_rate || 0;
+            const discountPrice = originalPrice * (1 - discountRate / 100);
+
+            return {
+              id: booking.id,
+              bookingNumber: booking.id.substring(0, 8), // 예약번호는 예약 ID의 앞 8자리 사용
+              storeName: store?.name || "",
+              address: store?.address || "",
+              phone: store?.phone || "",
+              reserved_at: booking.reserved_at,
+              visitTime: new Date(discount?.start_time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) || "",
+              menuName: menu?.name || "",
+              totalAmount: discountPrice,
+              status: booking.status,
+              timeLeft: formatTimeLeft(discount?.end_time || ""),
+              discountRate: discountRate,
+            };
+          });
+
+        setBookings(formattedBookings);
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        setError("알 수 없는 오류가 발생했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
 
   // 예약 취소 함수
-  const handleCancelBooking = async (bookingId: number) => {
-    setCancelingBookingId(bookingId)
+  const handleCancelBooking = async (bookingId: string) => {
+    setCancelingBookingId(bookingId);
+    try {
+      const res = await fetch('/api/reservations/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reservation_id: bookingId }),
+      });
 
-    // 실제로는 서버에 취소 요청을 보내야 합니다
-    // 여기서는 시뮬레이션으로 1초 후 삭제
-    setTimeout(() => {
-      setCurrentBookings((prevBookings) => prevBookings.filter((booking) => booking.id !== bookingId))
-      setCancelingBookingId(null)
-    }, 1000)
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || '예약 취소에 실패했습니다.');
+      }
+
+      // UI 업데이트: 취소된 예약의 상태를 변경
+      setBookings((prevBookings) =>
+        prevBookings.map((booking) =>
+          booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking
+        )
+      );
+      alert('예약이 취소되었습니다.');
+    } catch (error: any) {
+      console.error('Failed to cancel booking:', error);
+      alert(`예약 취소 실패: ${error.message}`);
+    } finally {
+      setCancelingBookingId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+        <p className="ml-2 text-teal-600">예약 정보를 불러오는 중...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">{error}</h1>
+          <Link href="/home">
+            <Button className="bg-teal-500 hover:bg-teal-600 text-white">홈으로 돌아가기</Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -101,7 +258,7 @@ export default function BookingsPage() {
       <div className="px-4 py-4">
         {/* 현재 예약 현황 */}
         <div className="space-y-4 pb-24">
-          {currentBookings.length === 0 ? (
+          {bookings.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">📅</div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">현재 예약된 식당이 없습니다</h3>
@@ -113,13 +270,13 @@ export default function BookingsPage() {
           ) : (
             <>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">예약된 식당 ({currentBookings.length})</h2>
+                <h2 className="text-lg font-semibold text-gray-800">예약된 식당 ({bookings.length})</h2>
                 <div className="text-sm text-gray-500">오늘 방문 예정</div>
               </div>
 
-              {currentBookings.map((booking) => {
-                const statusInfo = getStatusInfo(booking.status)
-                const isCanceling = cancelingBookingId === booking.id
+              {bookings.map((booking) => {
+                const statusInfo = getStatusInfo(booking.status);
+                const isCanceling = cancelingBookingId === booking.id;
 
                 return (
                   <Card
@@ -140,10 +297,10 @@ export default function BookingsPage() {
                             <span className="text-sm">{booking.address}</span>
                           </div>
                           <p className="text-sm text-gray-500">{statusInfo.description}</p>
-                          {booking.status === "ready" && (
+                          {booking.status === "active" && (
                             <div className="flex items-center gap-1 text-orange-600 font-medium mt-1">
                               <Clock className="w-4 h-4" />
-                              <span className="text-sm">할인 시간 {booking.timeLeft} 남음</span>
+                              <span className="text-sm">할인 시간 {booking.timeLeft}</span>
                             </div>
                           )}
                         </div>
@@ -168,8 +325,8 @@ export default function BookingsPage() {
                           <p className="font-medium">{booking.visitTime}</p>
                         </div>
                         <div>
-                          <span className="text-gray-600">인원 수</span>
-                          <p className="font-medium">{booking.peopleCount}명</p>
+                          <span className="text-gray-600">메뉴명</span>
+                          <p className="font-medium">{booking.menuName}</p>
                         </div>
                       </div>
 
@@ -177,7 +334,7 @@ export default function BookingsPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-gray-600">할인 적용 금액</span>
-                            <Badge className="bg-orange-500 text-white text-xs">{booking.discount}% 할인</Badge>
+                            <Badge className="bg-orange-500 text-white text-xs">{booking.discountRate}% 할인</Badge>
                           </div>
                           <span className="text-xl font-bold text-teal-600">
                             {booking.totalAmount.toLocaleString()}원
@@ -187,23 +344,23 @@ export default function BookingsPage() {
 
                       {/* 액션 버튼 */}
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1 bg-transparent" disabled={isCanceling}>
+                        <Button variant="outline" size="sm" className="flex-1 bg-transparent" disabled={isCanceling || booking.status === 'cancelled'}>
                           <Phone className="w-4 h-4 mr-1" />
                           가게 전화
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 text-red-600 border-red-300 bg-transparent hover:bg-red-50"
+                          className={`flex-1 ${booking.status === 'cancelled' ? 'text-gray-500 border-gray-300' : 'text-red-600 border-red-300 bg-transparent hover:bg-red-50'}`}
                           onClick={() => handleCancelBooking(booking.id)}
-                          disabled={isCanceling}
+                          disabled={isCanceling || booking.status === 'cancelled'}
                         >
-                          {isCanceling ? "취소 중..." : "예약 취소"}
+                          {isCanceling ? "취소 중..." : (booking.status === 'cancelled' ? "예약 취소됨" : "예약 취소")}
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
-                )
+                );
               })}
 
               {/* 안내 메시지 */}
@@ -226,5 +383,5 @@ export default function BookingsPage() {
       {/* 하단 네비게이션 */}
       <BottomNavigation />
     </div>
-  )
+  );
 }

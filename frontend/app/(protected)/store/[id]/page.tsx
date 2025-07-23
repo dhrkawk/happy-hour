@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { ArrowLeft, MapPin, Clock, Heart, Share2, Phone, Plus, Minus, ShoppingCart, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/lib/supabase/client"
@@ -27,8 +28,7 @@ interface StoreData {
   address: string
   phone: string
   description: string
-  thumbnail: string
-  images: string[]
+  storeThumbnail: string
   distance: number
   discount: number
   timeLeft: string
@@ -68,12 +68,12 @@ export default function StorePage({ params }: { params: { id: string } }) {
   const storeId = params.id
   const { appState } = useAppContext()
   const { coordinates } = appState.location
+  const router = useRouter();
 
   const [storeData, setStoreData] = useState<StoreData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [selectedImage, setSelectedImage] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
   const [activeTab, setActiveTab] = useState("menu")
   const [cart, setCart] = useState<CartItem[]>([])
@@ -106,6 +106,7 @@ export default function StorePage({ params }: { params: { id: string } }) {
         if (!data) {
           notFound()
         }
+        console.log("Fetched store data:", data);
 
         const discount = data.discounts?.[0] || null
         const menuItems = Array.isArray(discount?.store_menus) ? discount.store_menus : (discount?.store_menus ? [discount.store_menus] : []);
@@ -123,8 +124,7 @@ export default function StorePage({ params }: { params: { id: string } }) {
           address: data.address,
           phone: data.phone,
           description: data.description,
-          thumbnail: data.thumbnail || "/no-image.jpg",
-          images: data.images || [],
+          storeThumbnail: data.store_thumbnail || "/no-image.jpg",
           distance: calculatedDistance,
           discount: discountRate,
           timeLeft: endTime ? formatTimeLeft(endTime) : "정보 없음",
@@ -234,20 +234,35 @@ export default function StorePage({ params }: { params: { id: string } }) {
   }
 
   // 예약하기 버튼 클릭 시 장바구니 정보를 localStorage에 저장
-  const handleReservation = () => {
-    if (cart.length > 0) {
-      localStorage.setItem("cartItems", JSON.stringify(cart))
-      localStorage.setItem(
-        "storeInfo",
-        JSON.stringify({
-          id: storeData.id,
-          name: storeData.name,
-          address: storeData.address,
-          discount: storeData.discount,
-        }),
-      )
+  const handleReservation = async () => {
+    if (cart.length === 0) {
+      return; // No items in cart
     }
-  }
+
+    try {
+      const res = await fetch('/api/reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cartItems: cart, storeId: storeData.id }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || '예약에 실패했습니다.');
+      }
+
+      // 예약 성공 후 처리 (예: 장바구니 비우기, 성공 메시지 표시, 페이지 이동 등)
+      setCart([]); // 장바구니 비우기
+      alert('예약이 완료되었습니다!');
+      router.push('/bookings');
+
+    } catch (error: any) {
+      console.error('Reservation failed:', error);
+      alert(`예약 실패: ${error.message}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto">
@@ -275,29 +290,14 @@ export default function StorePage({ params }: { params: { id: string } }) {
         </div>
       </header>
 
-      {/* 이미지 갤러리 */}
+      {/* 가게 썸네일 */}
       <div className="relative">
         <div className="h-64 bg-gray-200">
           <img
-            src={storeData.images[selectedImage] || storeData.thumbnail || "/placeholder.svg"}
+            src={storeData.storeThumbnail}
             alt={storeData.name}
             className="w-full h-full object-cover"
           />
-        </div>
-        <div className="absolute bottom-4 left-4 right-4">
-          <div className="flex gap-2 overflow-x-auto">
-            {storeData.images.map((image, index) => (
-              <button
-                key={index}
-                className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 ${
-                  selectedImage === index ? "border-white" : "border-transparent"
-                }`}
-                onClick={() => setSelectedImage(index)}
-              >
-                <img src={image || "/placeholder.svg"} alt="" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -316,7 +316,7 @@ export default function StorePage({ params }: { params: { id: string } }) {
               <Badge className="bg-orange-500 text-white text-sm">{storeData.discount}% 할인</Badge>
               <div className="flex items-center gap-1 text-red-500 font-medium text-sm">
                 <Clock className="w-4 h-4" />
-                <span>{storeData.timeLeft} 남음</span>
+                <span>{storeData.timeLeft}</span>
               </div>
             </div>
           </div>
@@ -470,11 +470,9 @@ export default function StorePage({ params }: { params: { id: string } }) {
               <span className="text-gray-600">선택한 메뉴 {getTotalQuantity()}개</span>
               <span className="font-bold text-lg text-teal-600">{getTotalAmount().toLocaleString()}원</span>
             </div>
-            <Link href={`/booking/${storeId}`} onClick={handleReservation}>
-              <Button className="w-full bg-teal-500 hover:bg-teal-600 text-white py-4 text-lg font-semibold">
-                {getTotalAmount().toLocaleString()}원으로 예약하기
-              </Button>
-            </Link>
+            <Button className="w-full bg-teal-500 hover:bg-teal-600 text-white py-4 text-lg font-semibold" onClick={handleReservation}>
+              {getTotalAmount().toLocaleString()}원으로 예약하기
+            </Button>
           </div>
         ) : (
           <div className="text-center">
