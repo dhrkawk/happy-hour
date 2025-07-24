@@ -2,9 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
 
 declare global {
   interface Window {
@@ -17,13 +14,14 @@ interface StoreData {
   name: string
   category: string
   address: string
-  thumbnail: string
+  store_thumbnail: string
   discount: number
   originalPrice: number
   discountPrice: number
   timeLeft: string
   lat: number
   lng: number
+  image_thumbnails?: string[]
 }
 
 interface KakaoMapProps {
@@ -32,17 +30,16 @@ interface KakaoMapProps {
     lng: number
   } | null
   stores: StoreData[]
+  selectedStoreId: string | null
+  onSelectStore: (storeId: string | null) => void
 }
 
-export default function KakaoMap({ userLocation, stores }: KakaoMapProps) {
+export default function KakaoMap({ userLocation, stores, selectedStoreId, onSelectStore }: KakaoMapProps) {
   const router = useRouter()
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const userMarkerInstance = useRef<any>(null)
   const storeMarkersInstance = useRef<any[]>([])
-
-  const [selectedStore, setSelectedStore] = useState<StoreData | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const initMap = (lat: number, lng: number) => {
     if (!mapContainer.current) return
@@ -132,14 +129,13 @@ export default function KakaoMap({ userLocation, stores }: KakaoMapProps) {
         })
 
         window.kakao.maps.event.addListener(marker, 'click', function() {
-          setSelectedStore(store);
-          setIsModalOpen(true);
+          onSelectStore(store.id);
         })
 
         storeMarkersInstance.current.push(marker)
       }
     })
-  }, [stores, mapInstance.current, router])
+  }, [stores, mapInstance.current, onSelectStore])
 
   if (!userLocation) {
     return (
@@ -152,33 +148,6 @@ export default function KakaoMap({ userLocation, stores }: KakaoMapProps) {
   return (
     <>
       <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
-
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{selectedStore?.name}</DialogTitle>
-            <DialogDescription>
-              {selectedStore?.category} - {selectedStore?.address}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {selectedStore?.thumbnail && (
-              <img src={selectedStore.thumbnail} alt={selectedStore.name} className="w-full h-48 object-cover rounded-md" />
-            )}
-            <p className="text-sm text-gray-600">
-              할인율: {selectedStore?.discount}% / 원래 가격: {selectedStore?.originalPrice?.toLocaleString()}원 / 할인 가격: {selectedStore?.discountPrice?.toLocaleString()}원
-            </p>
-            <p className="text-sm text-gray-600">
-              남은 시간: {selectedStore?.timeLeft}
-            </p>
-          </div>
-          <div className="flex justify-end">
-            <Link href={`/store/${selectedStore?.id}`}>
-              <Button>자세히 보기</Button>
-            </Link>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }
