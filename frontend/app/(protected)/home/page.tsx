@@ -133,7 +133,7 @@ export default function HomePage() {
             name: store.name,
             category: store.category,
             address: store.address,
-            thumbnail: menu?.thumbnail || "/no-image.jpg",
+            thumbnail: store.store_thumbnail || "/no-image.jpg",
             distance: coordinates ? calculateDistance(coordinates.lat, coordinates.lng, storeLat, storeLng) : 0,
             discount: discountRate,
             originalPrice: originalPrice,

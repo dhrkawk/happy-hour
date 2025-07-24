@@ -11,13 +11,40 @@ import CategoryFilter from "@/components/category-filter"
 import { createClient } from "@/lib/supabase/client"
 import KakaoMap from "@/components/map/kakao-map"
 import { useAppContext } from "@/contexts/app-context"
-import {LocationErrorBanner} from "@/components/location-error-banner"
+import { LocationErrorBanner } from "@/components/location-error-banner"
+import { motion, AnimatePresence } from "framer-motion"
+
+// 남은 시간을 계산하여 보기 좋은 형식으로 반환
+function formatTimeLeft(endTime: string): string {
+  const now = new Date()
+  const end = new Date(endTime)
+  const diff = end.getTime() - now.getTime()
+
+  if (diff <= 0) {
+    return "할인 종료"
+  }
+
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0) {
+    return `${days}일 남음`
+  } else if (hours > 0) {
+    return `${hours}시간 남음`
+  } else if (minutes > 0) {
+    return `${minutes}분 남음`
+  } else {
+    return `${seconds}초 남음`
+  }
+}
 
 export default function MapPage() {
   const { appState, fetchLocation } = useAppContext()
   const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } = appState.location
 
-  const [selectedStore, setSelectedStore] = useState<number | null>(null)
+  const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
   const [allFetchedStores, setAllFetchedStores] = useState<any[]>([])
   const [filteredStores, setFilteredStores] = useState<any[]>([])
@@ -26,26 +53,38 @@ export default function MapPage() {
   useEffect(() => {
     const fetchStores = async () => {
       const supabase = createClient()
-      const { data, error } = await supabase.from("stores").select("*")
+      const { data, error } = await supabase.from("stores").select("*, discounts(*, store_menus(*))")
 
       if (error) {
         console.error("Error fetching stores:", error)
-        const { storesData } = await import("@/lib/store-data")
-        const dummyStores = Object.values(storesData)
-          .map((store) => ({
-            ...store,
-            lat: 37.5665 + (Math.random() - 0.5) * 0.01,
-            lng: 126.978 + (Math.random() - 0.5) * 0.01,
-          }))
-          .sort((a, b) => a.distance - b.distance)
-        setAllFetchedStores(dummyStores.filter((store: any) => store.activated))
       } else {
-        const formattedData = data.map(store => ({
-          ...store,
-          lat: parseFloat(store.lat),
-          lng: parseFloat(store.lng),
-        }))
-        setAllFetchedStores(formattedData.filter((store: any) => store.activated))
+        const formattedData = data
+          .map(store => {
+            const discount = store.discounts?.[0] || null
+            const menu = discount?.store_menus || null
+            const originalPrice = menu?.price ?? 0
+            const discountRate = discount?.discount_rate ?? 0
+            const discountPrice = originalPrice * (1 - discountRate / 100)
+            const endTime = discount?.end_time ?? ""
+
+            const menuThumbnails = store.discounts
+              ? store.discounts.map((d: any) => d.store_menus?.thumbnail).filter(Boolean)
+              : []
+            const imageThumbnails = [store.store_thumbnail, ...menuThumbnails].filter(Boolean)
+
+            return {
+              ...store,
+              lat: parseFloat(store.lat),
+              lng: parseFloat(store.lng),
+              discount: discountRate,
+              originalPrice: originalPrice,
+              discountPrice: discountPrice,
+              timeLeft: endTime ? formatTimeLeft(endTime) : "정보 없음",
+              image_thumbnails: imageThumbnails,
+            }
+          })
+          .filter(store => store.activated)
+        setAllFetchedStores(formattedData)
       }
     }
 
@@ -59,7 +98,7 @@ export default function MapPage() {
     } else {
       setFilteredStores(allFetchedStores.filter((store: any) => store.category === selectedCategory))
     }
-    setSelectedStore(null)
+    setSelectedStoreId(null)
   }, [selectedCategory, allFetchedStores])
 
   // 거리 계산 함수 (하버사인 공식)
@@ -79,10 +118,8 @@ export default function MapPage() {
 
   // 실제 위치 기반으로 거리 업데이트
   const storesWithRealDistance = filteredStores
-    .map((store) => {
-      const distance = coordinates
-        ? calculateDistance(coordinates.lat, coordinates.lng, store.lat, store.lng)
-        : NaN
+    .map(store => {
+      const distance = coordinates ? calculateDistance(coordinates.lat, coordinates.lng, store.lat, store.lng) : NaN
       return {
         ...store,
         distance: distance,
@@ -90,8 +127,10 @@ export default function MapPage() {
     })
     .sort((a, b) => a.distance - b.distance)
 
+  const selectedStore = storesWithRealDistance.find(store => store.id === selectedStoreId)
+
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto">
+    <div className="min-h-screen bg-white max-w-xl mx-auto relative overflow-hidden">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-teal-100 relative z-10 safe-area-top">
         <div className="px-4 py-4">
@@ -115,7 +154,7 @@ export default function MapPage() {
               </Button>
               {lastUpdated && (
                 <div className="text-xs text-gray-400 mt-1 whitespace-nowrap">
-                  마지막 업데이트: {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  마지막 업데이트: {new Date(lastUpdated).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </div>
               )}
             </div>
@@ -127,57 +166,17 @@ export default function MapPage() {
       </header>
 
       {/* 위치 오류 메시지 */}
-      {locationError && (<LocationErrorBanner></LocationErrorBanner>)}
+      {locationError && <LocationErrorBanner></LocationErrorBanner>}
 
       {/* 지도 영역 */}
       <div className="relative h-[60vh] bg-gray-200">
-        <KakaoMap userLocation={coordinates} stores={storesWithRealDistance} />
-
-        
-
-        
+        <KakaoMap
+          userLocation={coordinates}
+          stores={storesWithRealDistance}
+          selectedStoreId={selectedStoreId}
+          onSelectStore={setSelectedStoreId}
+        />
       </div>
-
-      {/* 선택된 가게 정보 */}
-      {selectedStore && (
-        <div className="absolute bottom-24 left-4 right-4 z-10">
-          <div className="mobile-container mx-auto px-4">
-            {storesWithRealDistance
-              .filter((store) => store.id === selectedStore)
-              .map((store) => (
-                <Card key={store.id} className="border-teal-200 shadow-lg">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800">{store.name}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
-                            <MapPin className="w-4 h-4" />
-                            {store.distance.toFixed(1)}km
-                          </div>
-                          <span className="text-sm text-gray-400">{store.category}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge className="bg-orange-500 hover:bg-orange-600 text-white">{store.discount}% 할인</Badge>
-                          <span className="text-sm text-gray-500">{store.timeLeft} 남음</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm text-gray-400 line-through">
-                          {store.originalPrice.toLocaleString()}원
-                        </div>
-                        <div className="text-lg font-bold text-teal-600">{store.discountPrice.toLocaleString()}원</div>
-                      </div>
-                    </div>
-                    <Link href={`/store/${store.id}`}>
-                      <Button className="w-full mt-3 bg-teal-500 hover:bg-teal-600 text-white">자세히 보기</Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-          </div>
-        </div>
-      )}
 
       {/* 가게 리스트 */}
       <div className="px-4 py-4 space-y-3 pb-24">
@@ -201,9 +200,14 @@ export default function MapPage() {
             </Button>
           </div>
         ) : (
-          storesWithRealDistance.map((store) => (
+          storesWithRealDistance.map(store => (
             <Link key={store.id} href={`/store/${store.id}`}>
-              <Card className="border-teal-100 hover:shadow-md transition-shadow card-touch">
+              <Card
+                className={`border-teal-100 hover:shadow-md transition-shadow card-touch ${
+                  selectedStoreId === store.id ? "ring-2 ring-teal-400" : ""
+                }`}
+                onClick={() => setSelectedStoreId(store.id)}
+              >
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -211,16 +215,16 @@ export default function MapPage() {
                       <div className="flex items-center gap-2 mt-1">
                         <Badge className="bg-orange-500 text-white text-xs">{store.discount}% 할인</Badge>
                         <span className="text-sm text-gray-500">
-                          {typeof store.distance === 'number' && !isNaN(store.distance)
+                          {typeof store.distance === "number" && !isNaN(store.distance)
                             ? `${store.distance.toFixed(1)}km`
-                            : '거리 계산 중...'}
+                            : "거리 계산 중..."}
                         </span>
                         <span className="text-xs text-gray-400">{store.category}</span>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold text-teal-600">
-                        {store.discountPrice ? store.discountPrice.toLocaleString() : '-'}원
+                        {store.discountPrice ? `${store.discountPrice.toLocaleString()}원` : "-"}
                       </div>
                     </div>
                   </div>
@@ -233,6 +237,70 @@ export default function MapPage() {
 
       {/* 하단 네비게이션 */}
       <BottomNavigation />
+
+      {/* 선택된 가게 정보 (슬라이딩 모달) */}
+      <AnimatePresence>
+        {selectedStore && (
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: "0%" }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-lg shadow-lg max-w-xl mx-auto"
+          >
+            <div className="relative z-50 p-4 pb-24">
+              <Card key={selectedStore.id} className="border-none shadow-none">
+                <CardContent className="p-0">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-800">{selectedStore.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <MapPin className="w-4 h-4" />
+                          {selectedStore.distance.toFixed(1)}km
+                        </div>
+                        <span className="text-sm text-gray-400">{selectedStore.category}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge className="bg-orange-500 hover:bg-orange-600 text-white">
+                          {selectedStore.discount}% 할인
+                        </Badge>
+                        <span className="text-sm text-gray-500">{selectedStore.timeLeft}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-gray-400 line-through">
+                        {selectedStore.originalPrice.toLocaleString()}원
+                      </div>
+                      <div className="text-lg font-bold text-teal-600">
+                        {selectedStore.discountPrice.toLocaleString()}원
+                      </div>
+                    </div>
+                  </div>
+                  {/* Image Gallery */}
+                  {selectedStore.image_thumbnails && selectedStore.image_thumbnails.length > 0 && (
+                    <div className="flex overflow-x-auto space-x-2 p-2 -mx-2 mt-4">
+                      {selectedStore.image_thumbnails.map((imageUrl: string, index: number) => (
+                        <img
+                          key={index}
+                          src={imageUrl}
+                          alt={`${selectedStore.name} image ${index + 1}`}
+                          className="w-40 h-32 object-cover rounded-md flex-shrink-0"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <Link href={`/store/${selectedStore.id}`}>
+                    <Button className="w-full mt-3 bg-teal-500 hover:bg-teal-600 text-white">
+                      자세히 보기
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
