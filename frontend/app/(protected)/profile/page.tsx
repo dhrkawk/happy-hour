@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, Settings, LogOut, ChevronRight, ShoppingBag, MessageCircle } from "lucide-react"
+import { ArrowLeft, Settings, LogOut, ChevronRight, ShoppingBag, MessageCircle, Store } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,9 +32,14 @@ export default function ProfilePage() {
   const userData = {
     name: user.user_metadata?.name || user.email,
     email: user.email,
-    totalBookings: 0,
-    totalSavings: 0,
+    totalBookings: user.profile?.total_bookings || 0,
+    totalSavings: user.profile?.total_savings || 0,
+    role: user.profile?.role || 'customer',
   }
+
+  const isStoreOwnerOrAdmin = userData.role === 'store_owner' || userData.role === 'admin'
+  const storeManagementLink = user.storeData?.id ? `/store-management/${user.storeData.id}` : '#'
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto">
       {/* 헤더 */}
@@ -120,6 +125,24 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </Link>
+
+          {isStoreOwnerOrAdmin && user.storeData?.id && (
+            <Link href={storeManagementLink}>
+              <Card className="border-teal-100 hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <Store className="w-5 h-5 text-green-600" />
+                      </div>
+                      <span className="font-medium text-gray-800">가게 관리</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
 
           <Card
             className="border-red-100 hover:shadow-md transition-shadow cursor-pointer"

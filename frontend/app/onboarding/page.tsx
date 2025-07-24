@@ -68,6 +68,7 @@ export default function OnboardingPage() {
       provider_id: user.app_metadata?.provider_id ?? null,
       name,
       phone_number: phone,
+      role: 'customer', // Default role for all new users
       total_bookings: 0,
       total_savings: 0,
       created_at: new Date().toISOString(),
