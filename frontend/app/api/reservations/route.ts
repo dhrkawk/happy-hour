@@ -1,69 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+// 프론트엔드에서 보낼 예약 아이템의 타입 정의
+type ReservationItem = {
+  menu_id: string;
+  discount_id: string | null;
+  quantity: number;
+};
+
 export async function POST(req: NextRequest) {
-  const { cartItems, storeId } = await req.json();
+  // 요청 본문에서 예약 정보 추출
+  const { store_id, reserved_time, items }: { store_id: string; reserved_time: string; items: ReservationItem[] } = await req.json();
+  
   const supabase = await createClient();
 
+  // 사용자 인증 확인
   const { data: { user } } = await supabase.auth.getUser();
-
   if (!user) {
     return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
   }
 
-  const userId = user.id;
+  // 필수 필드 검증
+  if (!store_id || !reserved_time || !items || items.length === 0) {
+    return NextResponse.json({ error: 'store_id, reserved_time, items are required.' }, { status: 400 });
+  }
 
   try {
-    for (const item of cartItems) {
-      // Find the discount_id for the current menu item and store
-      const { data: discountData, error: discountError } = await supabase
-        .from('discounts')
-        .select('id, quantity')
-        .eq('store_id', storeId)
-        .eq('menu_id', item.id) // item.id is actually menu_id
-        .single();
+    // Supabase 데이터베이스에 생성한 RPC(Remote Procedure Call) 함수 호출
+    const { data, error } = await supabase.rpc('create_reservation_with_items', {
+      p_user_id: user.id,
+      p_store_id: store_id,
+      p_reserved_time: reserved_time,
+      p_items: items, // 배열 형태의 아이템 직접 전달
+    });
 
-      if (discountError || !discountData) {
-        console.error(`Error finding discount for menu_id ${item.id}:`, discountError);
-        throw new Error(`Discount not found for menu item ${item.name}`);
+    if (error) {
+      console.error('Supabase RPC error:', error);
+      // 데이터베이스 함수에서 발생한 특정 오류 메시지 처리 (예: 재고 부족)
+      if (error.message.includes('Not enough quantity')) {
+        return NextResponse.json({ error: '선택한 메뉴의 재고가 부족합니다.' }, { status: 409 });
       }
-
-      if (discountData.quantity !== null && discountData.quantity < item.quantity) {
-        throw new Error(`Not enough quantity for ${item.name}. Available: ${discountData.quantity}`);
-      }
-
-      // Insert into reservations table
-      const { error: reservationError } = await supabase
-        .from('reservations')
-        .insert({
-          user_id: userId,
-          discount_id: discountData.id,
-          reserved_at: new Date().toISOString(),
-          status: 'active',
-        });
-
-      if (reservationError) {
-        console.error("Supabase reservation insert error:", reservationError);
-        throw new Error("Failed to create reservation.");
-      }
-
-      // Decrement discount quantity if applicable
-      if (discountData.quantity !== null) {
-        const { error: updateError } = await supabase
-          .from('discounts')
-          .update({ quantity: discountData.quantity - item.quantity })
-          .eq('id', discountData.id);
-
-        if (updateError) {
-          console.error("Supabase discount quantity update error:", updateError);
-          // Consider rolling back reservation if quantity update fails
-          throw new Error("Failed to update discount quantity.");
-        }
-      }
+      return NextResponse.json({ error: '예약 생성에 실패했습니다.', details: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    // 성공 시, 생성된 예약 ID와 함께 201 Created 상태 코드 반환
+    return NextResponse.json({ success: true, reservation_id: data }, { status: 201 });
+
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('API route error:', error);
+    return NextResponse.json({ error: 'An unexpected error occurred.', details: error.message }, { status: 500 });
   }
 }
