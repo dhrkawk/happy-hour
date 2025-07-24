@@ -26,6 +26,7 @@
 | 컬럼명     | 타입         | 제약조건           | 설명                       |
 | ---------- | ------------ | ------------------ | -------------------------- |
 | id         | uuid         | PK, NOT NULL       | 가게 고유 ID               |
+| owner_id   | uuid         | FK(user_profiles.user_id) | 가게 소유자 ID             |
 | name       | varchar      | NOT NULL           | 가게명                     |
 | address    | varchar      | NOT NULL           | 주소                       |
 | lat        | float8       | NOT NULL           | 위도                       |
