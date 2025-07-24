@@ -3,6 +3,15 @@ import { createClient } from '@/lib/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const formData = await req.formData();
 
   // 1. 가게 정보
@@ -23,8 +32,6 @@ export async function POST(req: NextRequest) {
   const start_time = formData.get('start_time') as string;
   const end_time = formData.get('end_time') as string;
   const quantity = formData.get('quantity') ? Number(formData.get('quantity')) : null;
-
-  const supabase = await createClient();
 
   // 메뉴 썸네일 업로드
   let menuThumbnailUrl: string | null = null;
@@ -80,6 +87,7 @@ export async function POST(req: NextRequest) {
         lng,
         store_thumbnail: storeThumbnailUrl,
         activated: true,
+        owner_id: user.id,
       },
     ])
     .select()
