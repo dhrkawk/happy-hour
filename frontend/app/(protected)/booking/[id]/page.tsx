@@ -1,260 +1,205 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Check, Clock, MapPin, ShoppingCart } from "lucide-react"
+import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft, MapPin, Clock, ShoppingCart, Loader2, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/components/ui/use-toast"
 
+// 타입 정의
 interface CartItem {
-  id: number
+  id: string // menu_id
   name: string
   price: number
   quantity: number
+  discount_id: string | null // 할인 ID 추가
 }
 
 interface StoreInfo {
-  id: number
+  id: string // store_id
   name: string
   address: string
-  discount: number
 }
 
-// 8자리 예약번호 생성 함수
-const generateBookingNumber = () => {
-  return Math.floor(10000000 + Math.random() * 90000000).toString()
-}
+export default function BookingCreationPage() {
+  const router = useRouter();
+  const params = useParams();
+  const { toast } = useToast();
+  const storeId = params.id as string;
 
-export default function BookingPage({ params }: { params: { id: string } }) {
-  const [isBooked, setIsBooked] = useState(false)
+  // 상태 관리
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null)
-  const [bookingNumber, setBookingNumber] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // localStorage에서 장바구니 정보와 가게 정보 가져오기
-    const savedCartItems = localStorage.getItem("cartItems")
-    const savedStoreInfo = localStorage.getItem("storeInfo")
+    const loadData = () => {
+      try {
+        const savedCartItems = localStorage.getItem('cartItems');
+        const savedStoreInfo = localStorage.getItem('storeInfo');
 
-    if (savedCartItems) {
-      setCartItems(JSON.parse(savedCartItems))
+        if (savedCartItems && savedStoreInfo) {
+          const cart = JSON.parse(savedCartItems);
+          const store = JSON.parse(savedStoreInfo);
+
+          // 데이터 형식 및 유효성 검증 강화
+          if (!store || typeof store !== 'object' || !store.id) {
+            setError("가게 정보가 올바르지 않습니다. 다시 시도해주세요.");
+            return;
+          }
+          if (!Array.isArray(cart)) {
+            setError("장바구니 정보가 올바르지 않습니다. 다시 시도해주세요.");
+            return;
+          }
+
+          // 현재 페이지의 storeId와 localStorage의 store.id가 일치하는지 확인
+          if (store.id !== storeId) {
+            setError("장바구니 정보가 현재 가게와 일치하지 않습니다. 장바구니를 비우고 다시 시도해주세요.");
+            setCartItems([]);
+            setStoreInfo(null);
+          } else {
+            setError(null); // 데이터가 유효하면 기존 에러 메시지 제거
+            setCartItems(cart);
+            setStoreInfo(store);
+          }
+        } else {
+          setError("장바구니에 담긴 메뉴가 없습니다. 가게 페이지로 돌아가 메뉴를 담아주세요.");
+        }
+      } catch (e) {
+        setError("예약 정보를 불러오는 중 오류가 발생했습니다. 장바구니를 비워주세요.");
+        console.error("Failed to parse localStorage data:", e);
+      }
+    };
+
+    loadData();
+
+    // 다른 탭/창에서의 localStorage 변경 감지
+    window.addEventListener('storage', loadData);
+
+    return () => {
+      window.removeEventListener('storage', loadData);
+    };
+  }, [storeId]);
+
+  // 총 결제 금액 및 수량 계산
+  const getTotalAmount = () => cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
+  const getTotalQuantity = () => cartItems.reduce((total, item) => total + item.quantity, 0)
+
+  // 예약 확정 핸들러
+  const handleBooking = async () => {
+    if (!storeInfo || cartItems.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "오류",
+        description: "가게 정보 또는 장바구니에 담긴 메뉴가 없습니다.",
+      })
+      return
     }
 
-    if (savedStoreInfo) {
-      setStoreInfo(JSON.parse(savedStoreInfo))
+    setIsLoading(true)
+    setError(null)
+
+    // API에 보낼 데이터 구성
+    const payload = {
+      store_id: storeInfo.id,
+      reserved_time: new Date().toISOString(), // 현재 시간을 예약 시간으로 설정
+      items: cartItems.map(item => ({
+        menu_id: item.id,
+        discount_id: item.discount_id || null, // item.discount_id가 없으면 null을 전달
+        quantity: item.quantity,
+      })),
     }
 
-    // 예약번호 생성
-    setBookingNumber(generateBookingNumber())
-  }, [])
+    try {
+      const response = await fetch('/api/reservations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
 
-  const getTotalAmount = () => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "알 수 없는 오류로 예약에 실패했습니다.")
+      }
+
+      // 예약 성공 시 localStorage 정리 및 상세 페이지로 이동
+      localStorage.removeItem('cartItems');
+      localStorage.removeItem('storeInfo');
+
+      toast({
+        title: "예약 완료!",
+        description: "예약이 성공적으로 완료되었습니다. 상세 페이지로 이동합니다.",
+        className: "bg-green-500 text-white",
+      })
+
+      router.push(`/bookings/${result.reservation_id}`)
+
+    } catch (err: any) {
+      setError(err.message)
+      toast({
+        variant: "destructive",
+        title: "예약 실패",
+        description: err.message,
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const getTotalQuantity = () => {
-    return cartItems.reduce((total, item) => total + item.quantity, 0)
-  }
-
-  const bookingData = {
-    visitTime: "2024-01-15 14:30",
-  }
-
-  const handleBooking = () => {
-    setIsBooked(true)
-    // 예약 완료 후 localStorage 정리
-    localStorage.removeItem("cartItems")
-    localStorage.removeItem("storeInfo")
-  }
-
-  if (isBooked) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-mint-50 to-white">
-        {/* 헤더 */}
-        <header className="bg-white shadow-sm border-b border-mint-100">
-          <div className="px-4 py-4">
-            <div className="flex items-center gap-3">
-              <Link href="/">
-                <Button variant="ghost" size="sm" className="p-2">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <h1 className="text-lg font-semibold text-gray-800">예약 완료</h1>
-            </div>
-          </div>
-        </header>
-
-        <div className="px-4 py-8">
-          {/* 성공 메시지 */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-mint-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">예약이 완료되었습니다!</h2>
-            <p className="text-gray-600">가게에서 확인 후 최종 승인됩니다.</p>
-          </div>
-
-          {/* 예약번호 카드 */}
-          <Card className="border-mint-200 mb-6 bg-mint-50">
-            <CardContent className="p-6 text-center">
-              <h3 className="font-semibold text-mint-700 mb-4">예약번호</h3>
-              <div className="text-4xl font-bold text-mint-600 mb-4 tracking-wider">{bookingNumber}</div>
-              <p className="text-sm text-gray-600">가게에서 이 번호를 말씀해주세요</p>
-            </CardContent>
-          </Card>
-
-          {/* 예약 정보 */}
-          <Card className="border-mint-200 mb-6">
-            <CardHeader className="bg-mint-50">
-              <CardTitle className="text-lg text-mint-700">예약 정보</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-2">{storeInfo?.name}</h3>
-                <div className="flex items-center gap-1 text-gray-600 mb-1">
-                  <MapPin className="w-4 h-4" />
-                  <span className="text-sm">{storeInfo?.address}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-orange-500 text-white">{storeInfo?.discount}% 할인</Badge>
-                  <span className="text-lg font-bold text-mint-600">{getTotalAmount().toLocaleString()}원</span>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">예약번호</p>
-                    <p className="font-semibold">{bookingNumber}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">방문 예정 시간</p>
-                    <p className="font-semibold">{bookingData.visitTime}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 주문 메뉴 */}
-          <Card className="border-mint-200 mb-6">
-            <CardHeader className="bg-mint-50">
-              <CardTitle className="text-lg text-mint-700 flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5" />
-                주문 메뉴
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-800">{item.name}</h4>
-                      <p className="text-sm text-gray-500">
-                        {item.price.toLocaleString()}원 × {item.quantity}개
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-semibold text-mint-600">
-                        {(item.price * item.quantity).toLocaleString()}원
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                <div className="border-t pt-3 mt-3">
-                  <div className="flex items-center justify-between font-bold">
-                    <span>총 {getTotalQuantity()}개</span>
-                    <span className="text-lg text-mint-600">{getTotalAmount().toLocaleString()}원</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 안내사항 */}
-          <Card className="border-mint-200">
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-gray-800 mb-3">이용 안내</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start gap-2">
-                  <span className="text-mint-500">•</span>
-                  <span>할인 시간이 종료되기 전에 방문해주세요</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-mint-500">•</span>
-                  <span>방문 시 예약번호를 직원에게 말씀해주세요</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-mint-500">•</span>
-                  <span>예약 취소는 방문 30분 전까지 가능합니다</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          {/* 버튼들 */}
-          <div className="flex gap-3 mt-6">
-            <Link href="/" className="flex-1">
-              <Button variant="outline" className="w-full bg-transparent">
-                홈으로
-              </Button>
-            </Link>
-            <Link href="/bookings" className="flex-1">
-              <Button className="w-full bg-mint-500 hover:bg-mint-600 text-white">예약 현황 보기</Button>
-            </Link>
-          </div>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">오류 발생</h2>
+        <p className="text-gray-600 text-center mb-6">{error}</p>
+        <Link href="/home">
+          <Button>홈으로 돌아가기</Button>
+        </Link>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-mint-50 to-white">
-      {/* 헤더 */}
-      <header className="bg-white shadow-sm border-b border-mint-100">
-        <div className="px-4 py-4">
+    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
+      <header className="bg-white shadow-sm border-b border-teal-100">
+        <div className="px-4 py-4 max-w-xl mx-auto">
           <div className="flex items-center gap-3">
-            <Link href={`/store/${params.id}`}>
-              <Button variant="ghost" size="sm" className="p-2">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
+            <Button variant="ghost" size="sm" className="p-2" onClick={() => router.back()}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <h1 className="text-lg font-semibold text-gray-800">예약 확인</h1>
           </div>
         </div>
       </header>
 
-      <div className="px-4 py-6">
+      <main className="px-4 py-6 max-w-xl mx-auto">
         {/* 가게 정보 */}
-        <Card className="border-mint-200 mb-6">
+        <Card className="border-teal-200 mb-6">
           <CardContent className="p-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">{storeInfo?.name}</h2>
-            <div className="flex items-center gap-1 text-gray-600 mb-2">
+            <h2 className="text-xl font-semibold text-gray-800 mb-3">{storeInfo?.name}</h2>
+            <div className="flex items-center gap-1.5 text-gray-600">
               <MapPin className="w-4 h-4" />
               <span className="text-sm">{storeInfo?.address}</span>
-            </div>
-            <div className="flex items-center gap-2 mb-3">
-              <Badge className="bg-orange-500 text-white">{storeInfo?.discount}% 할인</Badge>
-              <div className="flex items-center gap-1 text-red-500 font-medium">
-                <Clock className="w-4 h-4" />
-                <span>2시간 15분 남음</span>
-              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* 주문 메뉴 */}
-        <Card className="border-mint-200 mb-6">
+        <Card className="border-teal-200 mb-6">
           <CardHeader>
             <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
+              <ShoppingCart className="w-5 h-5 text-teal-600" />
               주문 메뉴
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {cartItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 bg-mint-50 rounded-lg">
+              <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-800">{item.name}</h4>
                   <p className="text-sm text-gray-500">
@@ -262,50 +207,14 @@ export default function BookingPage({ params }: { params: { id: string } }) {
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="font-semibold text-mint-600">{(item.price * item.quantity).toLocaleString()}원</span>
+                  <span className="font-semibold text-teal-600">{(item.price * item.quantity).toLocaleString()}원</span>
                 </div>
               </div>
             ))}
             <div className="border-t pt-3 mt-3">
               <div className="flex items-center justify-between font-bold text-lg">
                 <span>총 {getTotalQuantity()}개</span>
-                <span className="text-mint-600">{getTotalAmount().toLocaleString()}원</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 방문 안내 */}
-        <Card className="border-mint-200 mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg text-gray-800">방문 안내</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-mint-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-mint-700 mb-2">지금 바로 방문</h3>
-              <p className="text-sm text-gray-600">
-                할인 시간 내에 가게에 방문하여 할인 혜택을 받으세요. 방문 시 예약번호를 직원에게 말씀해주시면 됩니다.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-mint-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  1
-                </div>
-                <span className="text-gray-700">가게에 도착 후 직원에게 할인 이용 의사를 전달</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-mint-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  2
-                </div>
-                <span className="text-gray-700">예약번호를 직원에게 알려주세요</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-mint-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  3
-                </div>
-                <span className="text-gray-700">주문한 메뉴를 할인된 가격으로 결제 완료</span>
+                <span className="text-teal-600">{getTotalAmount().toLocaleString()}원</span>
               </div>
             </div>
           </CardContent>
@@ -315,22 +224,27 @@ export default function BookingPage({ params }: { params: { id: string } }) {
         <Card className="border-orange-200 bg-orange-50 mb-6">
           <CardContent className="p-4">
             <h3 className="font-semibold text-orange-700 mb-2">주의사항</h3>
-            <ul className="space-y-1 text-sm text-orange-600">
-              <li>• 할인 시간이 종료되면 할인 혜택을 받을 수 없습니다</li>
-              <li>• 주문한 메뉴 외 추가 주문 시 할인이 적용되지 않을 수 있습니다</li>
-              <li>• 가게 사정에 따라 할인이 조기 종료될 수 있습니다</li>
+            <ul className="space-y-1 text-sm text-orange-600 list-disc list-inside">
+              <li>예약 시간은 현재 시간으로 자동 설정됩니다.</li>
+              <li>방문 시 가게에 예약 내역을 보여주세요.</li>
+              <li>할인 메뉴의 경우, 재고가 소진되면 예약이 취소될 수 있습니다.</li>
             </ul>
           </CardContent>
         </Card>
 
-        {/* 확인 버튼 */}
+        {/* 예약 확정 버튼 */}
         <Button
           onClick={handleBooking}
-          className="w-full bg-mint-500 hover:bg-mint-600 text-white py-3 text-lg font-semibold"
+          disabled={isLoading || cartItems.length === 0}
+          className="w-full bg-teal-500 hover:bg-teal-600 text-white py-3 text-lg font-semibold"
         >
-          {getTotalAmount().toLocaleString()}원으로 예약 확정하기
+          {isLoading ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            `${getTotalAmount().toLocaleString()}원 예약 확정하기`
+          )}
         </Button>
-      </div>
+      </main>
     </div>
   )
 }

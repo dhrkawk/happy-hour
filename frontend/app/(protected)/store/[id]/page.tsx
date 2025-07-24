@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { ArrowLeft, MapPin, Clock, Heart, Share2, Phone, Plus, Minus, ShoppingCart, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +19,7 @@ interface StoreMenu {
   discountPrice: number
   description: string
   thumbnail?: string
+  discountId: string | null; // 추가된 필드
 }
 
 interface StoreData {
@@ -63,12 +64,13 @@ function formatTimeLeft(endTime: string): string {
   }
 }
 
-export default function StorePage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
-  const storeId = params.id
+export default function StorePage() {
+  const supabase = createClient();
+  const params = useParams();
+  const router = useRouter();
+  const storeId = params.id as string;
   const { appState } = useAppContext()
   const { coordinates } = appState.location
-  const router = useRouter();
 
   const [storeData, setStoreData] = useState<StoreData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -108,14 +110,44 @@ export default function StorePage({ params }: { params: { id: string } }) {
         }
         console.log("Fetched store data:", data);
 
-        const discount = data.discounts?.[0] || null
-        const menuItems = Array.isArray(discount?.store_menus) ? discount.store_menus : (discount?.store_menus ? [discount.store_menus] : []);
-        const discountRate = discount?.discount_rate ?? 0
-        const endTime = discount?.end_time ?? ""
-
         const storeLat = data.lat ?? 0
         const storeLng = data.lng ?? 0
         const calculatedDistance = coordinates ? calculateDistance(coordinates.lat, coordinates.lng, storeLat, storeLng) : 0
+
+        // Process menus and apply discounts
+        const processedMenus: StoreMenu[] = [];
+        const menuMap = new Map<string, any>();
+
+        // First, add all store_menus that are directly associated with the store (if any, though schema implies via discount)
+        // This part might need adjustment based on how store_menus are directly linked to stores if not via discounts
+        // For now, assuming menus are primarily fetched via discounts as per the select query
+        
+        // Iterate through discounts to get menu information and apply discount rates
+        data.discounts.forEach((discount: any) => {
+          if (discount.store_menus) {
+            const menu = discount.store_menus;
+            const discountRate = discount.discount_rate ?? 0;
+            const endTime = discount.end_time ?? "";
+
+            processedMenus.push({
+              id: menu.id,
+              name: menu.name,
+              originalPrice: menu.price,
+              discountPrice: menu.price * (1 - discountRate / 100),
+              description: menu.description, // Assuming description exists on store_menus
+              thumbnail: menu.thumbnail,
+              discountId: discount.id, // discount_id 추가
+              discountRate: discountRate,
+              discountEndTime: endTime,
+            });
+          }
+        });
+
+        // Determine overall store discount and time left for display purposes (e.g., for a banner)
+        // This could be the highest discount, or the discount with the earliest end time, etc.
+        // For simplicity, let's take the first discount's rate and end time for the store-level display
+        const overallDiscount = data.discounts?.[0]?.discount_rate ?? 0;
+        const overallEndTime = data.discounts?.[0]?.end_time ?? "";
 
         setStoreData({
           id: data.id,
@@ -126,18 +158,11 @@ export default function StorePage({ params }: { params: { id: string } }) {
           description: data.description,
           storeThumbnail: data.store_thumbnail || "/no-image.jpg",
           distance: calculatedDistance,
-          discount: discountRate,
-          timeLeft: endTime ? formatTimeLeft(endTime) : "정보 없음",
+          discount: overallDiscount, // Using overall discount for store-level display
+          timeLeft: overallEndTime ? formatTimeLeft(overallEndTime) : "정보 없음",
           lat: data.lat,
           lng: data.lng,
-          menu: menuItems.map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            originalPrice: item.price,
-            discountPrice: item.price * (1 - discountRate / 100),
-            description: item.description,
-            thumbnail: item.thumbnail,
-          })),
+          menu: processedMenus, // Use the processed menus with individual discounts
         })
       } catch (err) {
         console.error("Unexpected error:", err)
@@ -233,35 +258,32 @@ export default function StorePage({ params }: { params: { id: string } }) {
     return cart.reduce((total, item) => total + item.quantity, 0)
   }
 
-  // 예약하기 버튼 클릭 시 장바구니 정보를 localStorage에 저장
-  const handleReservation = async () => {
-    if (cart.length === 0) {
-      return; // No items in cart
+  // 예약하기 버튼 클릭 시 장바구니 정보를 localStorage에 저장하고 예약 페이지로 이동
+  const handleReservation = () => {
+    if (cart.length === 0 || !storeData) {
+      // 장바구니가 비었거나 가게 정보가 없으면 아무것도 하지 않음
+      return;
     }
 
-    try {
-      const res = await fetch('/api/reservations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ cartItems: cart, storeId: storeData.id }),
-      });
+    // localStorage에 저장할 데이터 준비
+    const cartToSave = cart.map(item => ({
+      ...item,
+      // 각 메뉴에 대한 할인 ID를 찾아서 추가
+      discount_id: storeData.menu?.find(m => m.id === item.id)?.discountId || null,
+    }));
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || '예약에 실패했습니다.');
-      }
+    const storeInfoToSave = {
+      id: storeData.id,
+      name: storeData.name,
+      address: storeData.address,
+    };
 
-      // 예약 성공 후 처리 (예: 장바구니 비우기, 성공 메시지 표시, 페이지 이동 등)
-      setCart([]); // 장바구니 비우기
-      alert('예약이 완료되었습니다!');
-      router.push('/bookings');
+    // localStorage에 데이터 저장
+    localStorage.setItem('cartItems', JSON.stringify(cartToSave));
+    localStorage.setItem('storeInfo', JSON.stringify(storeInfoToSave));
 
-    } catch (error: any) {
-      console.error('Reservation failed:', error);
-      alert(`예약 실패: ${error.message}`);
-    }
+    // 예약 생성 페이지로 이동
+    router.push(`/booking/${storeData.id}`);
   };
 
   return (
