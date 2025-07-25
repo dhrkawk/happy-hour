@@ -14,7 +14,6 @@ const categories = [
   { id: "중식", label: "중식", emoji: "🥟" },
   { id: "일식", label: "일식", emoji: "🍣" },
   { id: "카페", label: "카페", emoji: "☕" },
-  { id: "뷰티", label: "뷰티", emoji: "💄" },
 ]
 
 export default function CategoryFilter({ selectedCategory, onCategoryChange }: CategoryFilterProps) {

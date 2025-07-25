@@ -103,9 +103,9 @@ export default function BookingsPage() {
           return {
             id: booking.id,
             bookingNumber: booking.id.substring(0, 8),
-            storeName: store?.name || "알 수 없는 가게",
-            address: store?.address || "",
-            phone: store?.phone || "",
+            storeName: booking.stores?.[0]?.name || "알 수 없는 가게",
+            address: booking.stores?.[0]?.address || "",
+            phone: booking.stores?.[0]?.phone || "",
             reserved_time: booking.reserved_time,
             visitTime: new Date(booking.reserved_time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
             status: booking.status,
