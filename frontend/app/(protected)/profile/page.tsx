@@ -38,7 +38,7 @@ export default function ProfilePage() {
   }
 
   const isStoreOwnerOrAdmin = userData.role === 'store_owner' || userData.role === 'admin'
-  const storeManagementLink = user.storeData?.id ? `/store-management/${user.storeData.id}` : '#'
+  const storeManagementLink = user.storeData?.id ? `/profile/store-management/${user.storeData.id}` : '#'
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto">
@@ -126,22 +126,40 @@ export default function ProfilePage() {
             </Card>
           </Link>
 
-          {isStoreOwnerOrAdmin && user.storeData?.id && (
-            <Link href={storeManagementLink}>
-              <Card className="border-teal-100 hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <Store className="w-5 h-5 text-green-600" />
+          {isStoreOwnerOrAdmin && (
+            user.storeData?.id ? (
+              <Link href={storeManagementLink}>
+                <Card className="border-teal-100 hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Store className="w-5 h-5 text-green-600" />
+                        </div>
+                        <span className="font-medium text-gray-800">가게 관리</span>
                       </div>
-                      <span className="font-medium text-gray-800">가게 관리</span>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+            ) : (
+              <Link href="/profile/store-registration">
+                <Card className="border-blue-100 hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Store className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <span className="font-medium text-gray-800">나의 가게 등록하기</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            )
           )}
 
           <Card

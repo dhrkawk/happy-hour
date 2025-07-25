@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, memo } from 'react'
 
 declare global {
   interface Window {
@@ -20,7 +20,7 @@ interface Place {
   x: number
 }
 
-export default function AddressSearchMap({ onAddressSelect }: AddressSearchMapProps) {
+const AddressSearchMap = memo(({ onAddressSelect }: AddressSearchMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const markerInstance = useRef<any>(null)
@@ -160,4 +160,6 @@ export default function AddressSearchMap({ onAddressSelect }: AddressSearchMapPr
       <div ref={mapContainer} style={{ width: '100%', height: '350px', marginTop: '8px' }} />
     </div>
   )
-}
+})
+
+export default AddressSearchMap
