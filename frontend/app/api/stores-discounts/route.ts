@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const fileExtension = storeThumbnailFile.name.split('.').pop();
     const fileName = `${uuidv4()}.${fileExtension}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('thumbnails')
+      .from('storethumbnail')
       .upload(fileName, storeThumbnailFile, { cacheControl: '3600', upsert: false });
 
     if (uploadError) {
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: publicUrlData } = supabase.storage
-      .from('thumbnails')
+      .from('storethumbnail')
       .getPublicUrl(fileName);
 
     storeThumbnailUrl = publicUrlData.publicUrl;
