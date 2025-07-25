@@ -106,6 +106,7 @@ export default function BookingsPage() {
             storeName: storeInfo?.name || "알 수 없는 가게",
             address: storeInfo?.address || "",
             phone: storeInfo?.phone || "",
+
             reserved_time: booking.reserved_time,
             visitTime: new Date(booking.reserved_time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
             status: booking.status,
