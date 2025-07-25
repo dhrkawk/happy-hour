@@ -98,7 +98,7 @@ export default function BookingsPage() {
         // 데이터를 프론트엔드에서 사용하기 편한 형태로 가공
         const formattedBookings: BookingData[] = data.map((booking: Booking) => {
           const totalItems = booking.reservation_items.reduce((sum, item) => sum + item.quantity, 0);
-          const storeInfo = booking.stores?.[0];
+          const storeInfo = booking.stores
           
           return {
             id: booking.id,
