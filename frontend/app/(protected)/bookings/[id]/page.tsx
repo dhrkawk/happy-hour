@@ -106,7 +106,7 @@ export default function BookingDetailPage() {
           bookingNumber: data.id.substring(0, 8),
           reserved_time: data.reserved_time,
           status: data.status,
-          store: data.stores,
+          store: data.stores ? data.stores[0] : null, // Access the first element of the array
           items: data.reservation_items.map((item: any) => ({
             quantity: item.quantity,
             menu: item.store_menus,

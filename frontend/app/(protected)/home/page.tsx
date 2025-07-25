@@ -48,7 +48,8 @@ function formatTimeLeft(endTime: string): string {
   if (days > 0) {
     return `${days}일 남음`
   } else if (hours > 0) {
-    return `${hours}시간 남음`
+    const remainingMinutes = minutes % 60;
+    return `${hours}시간 ${remainingMinutes}분 남음`
   } else if (minutes > 0) {
     return `${minutes}분 남음`
   } else {
@@ -107,8 +108,25 @@ export default function HomePage() {
       setLoadingStores(true)
       const { data, error } = await supabase
         .from("stores")
-        .select("*, discounts(*, store_menus(*))")
+        .select(`
+          id,
+          name,
+          category,
+          address,
+          store_thumbnail,
+          lat,
+          lng,
+          discounts(
+            discount_rate,
+            start_time,
+            end_time,
+            store_menus(price)
+          )
+        `)
         .eq('activated', true) //activated == true 인 가게만 home page에 표시
+        .order('end_time', { foreignTable: 'discounts', ascending: true })
+        .filter('discounts.start_time', 'lte', new Date().toISOString())
+        .filter('discounts.end_time', 'gte', new Date().toISOString())
 
       if (error) {
         console.error("Error fetching stores from DB:", error)
@@ -118,15 +136,17 @@ export default function HomePage() {
         const userLng = coordinates?.lng
 
         const transformedStores: StoreData[] = (data || []).map((store: any) => {
-          const discount = store.discounts?.[0] || null
-          const menu = discount?.store_menus || null
-          const originalPrice = menu?.price ?? 0
-          const discountRate = discount?.discount_rate ?? 0
-          const discountPrice = originalPrice * (1 - discountRate / 100)
+          // Find the most relevant active discount (already ordered by end_time ascending in query)
+          const activeDiscount = store.discounts?.[0] || null;
+          const menu = activeDiscount?.store_menus || null;
+          
+          const originalPrice = menu?.price ?? 0;
+          const discountRate = activeDiscount?.discount_rate ?? 0;
+          const discountPrice = originalPrice * (1 - discountRate / 100);
 
-          const storeLat = store.lat ?? 0
-          const storeLng = store.lng ?? 0
-          const endTime = discount?.end_time ?? ""
+          const storeLat = store.lat ?? 0;
+          const storeLng = store.lng ?? 0;
+          const endTime = activeDiscount?.end_time ?? "";
 
           return {
             id: store.id,
@@ -141,8 +161,8 @@ export default function HomePage() {
             timeLeft: endTime ? formatTimeLeft(endTime) : "정보 없음",
             lat: storeLat,
             lng: storeLng,
-          }
-        }).sort((a, b) => a.distance - b.distance)
+          };
+        }).sort((a, b) => a.distance - b.distance);
 
         setAllStores(transformedStores)
       }
