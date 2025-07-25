@@ -117,13 +117,8 @@ export default function StorePage() {
         const calculatedDistance = coordinates ? calculateDistance(coordinates.lat, coordinates.lng, storeLat, storeLng) : 0
 
         // Process menus and apply discounts
-        const processedMenus: StoreMenu[] = [];
-        const menuMap = new Map<string, any>();
+        const uniqueMenusMap = new Map<string, StoreMenu>();
 
-        // First, add all store_menus that are directly associated with the store (if any, though schema implies via discount)
-        // This part might need adjustment based on how store_menus are directly linked to stores if not via discounts
-        // For now, assuming menus are primarily fetched via discounts as per the select query
-        
         // Iterate through discounts to get menu information and apply discount rates
         data.discounts.forEach((discount: any) => {
           if (discount.store_menus) {
@@ -131,19 +126,25 @@ export default function StorePage() {
             const discountRate = discount.discount_rate ?? 0;
             const endTime = discount.end_time ?? "";
 
-            processedMenus.push({
-              id: menu.id,
-              name: menu.name,
-              originalPrice: menu.price,
-              discountPrice: menu.price * (1 - discountRate / 100),
-              description: menu.description, // Assuming description exists on store_menus
-              thumbnail: menu.thumbnail,
-              discountId: discount.id, // discount_id 추가
-              discountRate: discountRate,
-              discountEndTime: endTime,
-            });
+            // Only add if not already processed, or if you want to prioritize a specific discount (e.g., highest)
+            // For now, we'll just ensure uniqueness by menu.id
+            if (!uniqueMenusMap.has(menu.id)) {
+              uniqueMenusMap.set(menu.id, {
+                id: menu.id,
+                name: menu.name,
+                originalPrice: menu.price,
+                discountPrice: menu.price * (1 - discountRate / 100),
+                description: menu.description, // Assuming description exists on store_menus
+                thumbnail: menu.thumbnail,
+                discountId: discount.id, // discount_id 추가
+                discountRate: discountRate,
+                discountEndTime: endTime,
+              });
+            }
           }
         });
+
+        const processedMenus = Array.from(uniqueMenusMap.values());
 
         // Determine overall store discount and time left for display purposes (e.g., for a banner)
         // This could be the highest discount, or the discount with the earliest end time, etc.
