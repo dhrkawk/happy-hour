@@ -302,14 +302,7 @@ export default function HomePage() {
       {/* 하단 네비게이션 */}
       <BottomNavigation />
 
-      {/* 등록 버튼 (플로팅) */}
-      <Link href="/home/create">
-        <Button
-          className="absolute bottom-24 right-4 w-14 h-14 rounded-full bg-teal-500 hover:bg-teal-600 text-white shadow-lg flex items-center justify-center"
-        >
-          <Plus className="w-6 h-6" />
-        </Button>
-      </Link>
+      
     </div>
   )
 }

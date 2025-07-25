@@ -20,6 +20,8 @@ interface StoreMenu {
   description: string
   thumbnail?: string
   discountId: string | null; // 추가된 필드
+  discountRate: number;
+  discountEndTime: string;
 }
 
 interface StoreData {

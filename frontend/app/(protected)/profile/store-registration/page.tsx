@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,10 +11,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import AddressSearchMap from "@/components/map/address-search-map";
 
-export default function CreateStorePage() {
+export default function StoreRegistrationPage() {
   const router = useRouter();
   const [form, setForm] = useState({
     name: "",
@@ -22,14 +21,7 @@ export default function CreateStorePage() {
     address: "",
     lat: 0,
     lng: 0,
-    menu_name: "",
-    menu_price: "",
-    discount_rate: "",
-    start_time: "",
-    end_time: "",
-    quantity: "",
   });
-  const [menuThumbnail, setMenuThumbnail] = useState<File | null>(null);
   const [storeThumbnail, setStoreThumbnail] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,15 +30,9 @@ export default function CreateStorePage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleAddressSelect = (address: string, lat: number, lng: number) => {
-    setForm({ ...form, address, lat, lng });
-  };
-
-  const handleMenuThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setMenuThumbnail(e.target.files[0]);
-    }
-  };
+  const handleAddressSelect = useCallback((address: string, lat: number, lng: number) => {
+    setForm((prevForm) => ({ ...prevForm, address, lat, lng }));
+  }, []);
 
   const handleStoreThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -65,15 +51,6 @@ export default function CreateStorePage() {
     formData.append("address", form.address);
     formData.append("lat", form.lat.toString());
     formData.append("lng", form.lng.toString());
-    formData.append("menu_name", form.menu_name);
-    formData.append("menu_price", form.menu_price);
-    formData.append("discount_rate", form.discount_rate);
-    formData.append("start_time", form.start_time);
-    formData.append("end_time", form.end_time);
-    formData.append("quantity", form.quantity);
-    if (menuThumbnail) {
-      formData.append("menu_thumbnail", menuThumbnail);
-    }
     if (storeThumbnail) {
       formData.append("store_thumbnail", storeThumbnail);
     }
@@ -85,9 +62,9 @@ export default function CreateStorePage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "등록에 실패했습니다.");
+        throw new Error(data.error || "가게 등록에 실패했습니다.");
       }
-      router.push("/home");
+      router.push("/profile");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -100,8 +77,8 @@ export default function CreateStorePage() {
       <div className="w-full max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl font-bold text-center text-teal-600">가게 및 할인 등록</CardTitle>
-            <CardDescription className="text-center text-gray-500">새로운 가게와 할인 정보를 등록해주세요.</CardDescription>
+            <CardTitle className="text-3xl font-bold text-center text-teal-600">나의 가게 등록하기</CardTitle>
+            <CardDescription className="text-center text-gray-500">가게 정보를 입력해주세요.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -140,58 +117,6 @@ export default function CreateStorePage() {
                     파일 선택
                   </Button>
                   {storeThumbnail && <span className="text-sm text-gray-600">{storeThumbnail.name}</span>}
-                </div>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="menu_name">메뉴명</Label>
-                  <Input id="menu_name" name="menu_name" placeholder="예: 소금빵" value={form.menu_name} onChange={handleChange} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="menu_price">메뉴 가격</Label>
-                  <Input id="menu_price" name="menu_price" type="number" placeholder="예: 3500" value={form.menu_price} onChange={handleChange} required />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="menu_thumbnail">메뉴 이미지</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="menu_thumbnail"
-                    name="menu_thumbnail"
-                    type="file"
-                    onChange={handleMenuThumbnailChange}
-                    className="hidden" // Hide the default file input
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => document.getElementById('menu_thumbnail')?.click()}
-                    className="bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  >
-                    파일 선택
-                  </Button>
-                  {menuThumbnail && <span className="text-sm text-gray-600">{menuThumbnail.name}</span>}
-                </div>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="discount_rate">할인율 (%)</Label>
-                  <Input id="discount_rate" name="discount_rate" type="number" placeholder="예: 30" value={form.discount_rate} onChange={handleChange} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">할인 수량</Label>
-                  <Input id="quantity" name="quantity" type="number" placeholder="선택 사항" value={form.quantity} onChange={handleChange} />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="start_time">할인 시작일시</Label>
-                  <Input id="start_time" name="start_time" type="datetime-local" value={form.start_time} onChange={handleChange} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="end_time">할인 종료일시</Label>
-                  <Input id="end_time" name="end_time" type="datetime-local" value={form.end_time} onChange={handleChange} required />
                 </div>
               </div>
               {error && <div className="text-red-500 text-sm font-medium text-center">{error}</div>}
