@@ -32,7 +32,8 @@ function formatTimeLeft(endTime: string): string {
   if (days > 0) {
     return `${days}일 남음`
   } else if (hours > 0) {
-    return `${hours}시간 남음`
+    const remainingMinutes = minutes % 60;
+    return `${hours}시간 ${remainingMinutes}분 남음`
   } else if (minutes > 0) {
     return `${minutes}분 남음`
   } else {
@@ -53,23 +54,44 @@ export default function MapPage() {
   useEffect(() => {
     const fetchStores = async () => {
       const supabase = createClient()
-      const { data, error } = await supabase.from("stores").select("*, discounts(*, store_menus(*))")
+      const { data, error } = await supabase
+        .from("stores")
+        .select(`
+          id,
+          name,
+          category,
+          address,
+          store_thumbnail,
+          lat,
+          lng,
+          discounts(
+            discount_rate,
+            start_time,
+            end_time,
+            store_menus(price)
+          )
+        `)
+        .eq('activated', true) /* activated == true 인 가게만 표시 */
+        .filter('discounts.start_time', 'lte', new Date().toISOString())
+        .filter('discounts.end_time', 'gte', new Date().toISOString())
+        .order('end_time', { foreignTable: 'discounts', ascending: true })
 
       if (error) {
         console.error("Error fetching stores:", error)
       } else {
         const formattedData = data
           .map(store => {
-            const discount = store.discounts?.[0] || null
-            const menu = discount?.store_menus || null
+            const activeDiscount = store.discounts?.[0] || null
+            const menu = activeDiscount?.store_menus || null
             const originalPrice = menu?.price ?? 0
-            const discountRate = discount?.discount_rate ?? 0
+            const discountRate = activeDiscount?.discount_rate ?? 0
             const discountPrice = originalPrice * (1 - discountRate / 100)
-            const endTime = discount?.end_time ?? ""
+            const endTime = activeDiscount?.end_time ?? ""
 
-            const menuThumbnails = store.discounts
-              ? store.discounts.map((d: any) => d.store_menus?.thumbnail).filter(Boolean)
-              : []
+            // Removed menuThumbnails as thumbnail is no longer selected
+            const menuThumbnails = Array.isArray(activeDiscount?.store_menus)
+              ? activeDiscount.store_menus.map((menu: any) => menu.thumbnail).filter(Boolean)
+              : (activeDiscount?.store_menus?.thumbnail ? [activeDiscount.store_menus.thumbnail] : []);
             const imageThumbnails = [store.store_thumbnail, ...menuThumbnails].filter(Boolean)
 
             return {
@@ -83,7 +105,6 @@ export default function MapPage() {
               image_thumbnails: imageThumbnails,
             }
           })
-          .filter(store => store.activated)
         setAllFetchedStores(formattedData)
       }
     }

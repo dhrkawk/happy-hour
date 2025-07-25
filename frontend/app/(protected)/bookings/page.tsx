@@ -18,7 +18,7 @@ interface Booking {
     name: string;
     address: string;
     phone: string;
-  } | null;
+  }[];
   reservation_items: {
     quantity: number;
   }[];
@@ -98,13 +98,14 @@ export default function BookingsPage() {
         // 데이터를 프론트엔드에서 사용하기 편한 형태로 가공
         const formattedBookings: BookingData[] = data.map((booking: Booking) => {
           const totalItems = booking.reservation_items.reduce((sum, item) => sum + item.quantity, 0);
+          const store = booking.stores?.[0]; // Access the first store in the array
           
           return {
             id: booking.id,
             bookingNumber: booking.id.substring(0, 8),
-            storeName: booking.stores?.name || "알 수 없는 가게",
-            address: booking.stores?.address || "",
-            phone: booking.stores?.phone || "",
+            storeName: store?.name || "알 수 없는 가게",
+            address: store?.address || "",
+            phone: store?.phone || "",
             reserved_time: booking.reserved_time,
             visitTime: new Date(booking.reserved_time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
             status: booking.status,
