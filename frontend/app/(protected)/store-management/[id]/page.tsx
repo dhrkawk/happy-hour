@@ -106,14 +106,20 @@ export default function StoreManagementPage({ params }: { params: { id: string }
       return
     }
 
+    const startDateTime = new Date(startTime);
+    const endDateTime = new Date(new Date(endTime).setSeconds(59)); // Ensure end time includes the full minute
+
+    const utcStartTime = startDateTime.toISOString();
+    const utcEndTime = endDateTime.toISOString();
+
     setIsApplyingDiscount(true)
     try {
       const discountsToInsert = selectedMenus.map((menu) => ({
         store_id: storeId,
         menu_id: menu.id,
         discount_rate: menu.rate,
-        start_time: startTime,
-        end_time: endTime,
+        start_time: utcStartTime,
+        end_time: utcEndTime,
         quantity: 9999, // Default quantity, adjust as needed
       }))
 
