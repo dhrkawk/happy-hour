@@ -11,7 +11,9 @@ const mapRawToReservationEntity = (raw: any): ReservationEntity => ({
   status: raw.status,
   storeName: raw.stores?.name || '',
   storeThumbnail: raw.stores?.store_thumbnail || '',
-  itemCount: raw.reservation_items?.length || 0,
+  storeAddress: raw.stores?.address || '',
+  storePhone: raw.stores?.phone || '',
+  reservationItems: raw.reservation_items?.map((item: any) => ({ quantity: item.quantity })) || [],
 });
 
 export class ReservationService {
@@ -35,10 +37,10 @@ export class ReservationService {
         .select(`
           id, store_id, user_id, reserved_time, status,
           stores (
-            name, store_thumbnail
+            name, address, phone, store_thumbnail
           ),
           reservation_items (
-            id
+            quantity
           )
         `)
         .eq('user_id', userId)

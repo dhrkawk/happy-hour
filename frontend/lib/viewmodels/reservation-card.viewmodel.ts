@@ -1,3 +1,5 @@
+import { ReservationEntity } from "@/lib/entities/reservation.entity";
+
 export interface BookingCardViewModel {
     id: string;
     bookingNumber: string;
@@ -10,22 +12,22 @@ export interface BookingCardViewModel {
     totalItems: number;
   }
   
-  export function createBookingCardViewModel(raw: any): BookingCardViewModel {
-    const totalItems = raw.reservation_items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+  export function createBookingCardViewModel(entity: ReservationEntity): BookingCardViewModel {
+    const totalItems = entity.reservationItems?.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0) || 0;
   
     return {
-      id: raw.id,
-      bookingNumber: raw.id.substring(0, 8),
-      storeName: raw.stores?.name || "알 수 없는 가게",
-      address: raw.stores?.address || "",
-      phone: raw.stores?.phone || "",
-      reservedTime: raw.reserved_time,
-      visitTime: new Date(raw.reserved_time).toLocaleTimeString('ko-KR', {
+      id: entity.id,
+      bookingNumber: entity.id.substring(0, 8),
+      storeName: entity.storeName || "알 수 없는 가게",
+      address: entity.storeAddress || "",
+      phone: entity.storePhone || "",
+      reservedTime: entity.reservedTime,
+      visitTime: new Date(entity.reservedTime).toLocaleTimeString('ko-KR', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
       }),
-      status: raw.status,
+      status: entity.status,
       totalItems,
     };
   }

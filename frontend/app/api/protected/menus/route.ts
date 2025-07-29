@@ -1,21 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 
-export async function POST(req: NextRequest) {
-  const supabase = await createClient()
+export async function POST(request: Request) {
+  const cookieStore = cookies()
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+        },
+      },
+    }
+  )
 
-  if (userError || !user) {
-    console.error('Authentication error or no user:', userError?.message)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const formData = await req.formData()
+  const formData = await request.formData()
   const store_id = formData.get('store_id') as string
   const name = formData.get('name') as string
   const price = formData.get('price') as string
@@ -33,7 +43,6 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (storeError) {
-    console.error('Error fetching store data:', storeError.message)
     return NextResponse.json({ error: 'Database error fetching store data' }, { status: 500 })
   }
 
@@ -55,7 +64,6 @@ export async function POST(req: NextRequest) {
       .upload(fileName, thumbnail)
 
     if (imageError) {
-      console.error('Error uploading thumbnail:', imageError.message)
       return NextResponse.json({ error: imageError.message }, { status: 500 })
     }
     const { data: urlData } = supabase.storage.from('thumbnails').getPublicUrl(fileName)
@@ -68,7 +76,6 @@ export async function POST(req: NextRequest) {
     .select()
 
   if (error) {
-    console.error('Error inserting menu:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 

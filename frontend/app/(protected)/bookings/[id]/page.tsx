@@ -81,16 +81,22 @@ export default function BookingDetailPage() {
             stores (name, address, phone),
             reservation_items (
               quantity,
+              menu_id,
               store_menus (name, price),
               discounts (discount_rate)
             )
           `)
           .eq('id', id)
           .eq('user_id', user.id)
-          .single();
+          .limit(1)
+          .maybeSingle();
 
-        if (error || !data) {
-          throw new Error("예약 정보를 불러오지 못했습니다. 해당 예약이 없거나 접근 권한이 없습니다.")
+        if (error) {
+          throw new Error(error.message || "예약 정보를 불러오지 못했습니다.")
+        }
+
+        if (!data) {
+          throw new Error("해당 예약이 없거나 접근 권한이 없습니다.")
         }
 
         let totalAmount = 0;

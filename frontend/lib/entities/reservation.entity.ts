@@ -9,5 +9,7 @@ export interface ReservationEntity {
     // 확장: 함께 가져올 수 있는 정보들
     storeName?: string;
     storeThumbnail?: string;
-    itemCount?: number;
+    storeAddress?: string; // 추가
+    storePhone?: string; // 추가
+    reservationItems?: { quantity: number; }[]; // 추가: 뷰모델에서 totalItems 계산용
   }
