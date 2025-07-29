@@ -18,7 +18,7 @@ interface Booking {
     name: string;
     address: string;
     phone: string;
-  }[] | null;
+  } | null;
   reservation_items: {
     quantity: number;
   }[];
