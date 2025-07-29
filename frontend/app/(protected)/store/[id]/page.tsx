@@ -1,5 +1,5 @@
 "use client"
-
+import useSWR from "swr"
 import React, { useState, useEffect } from "react"
 import { ArrowLeft, MapPin, Clock, Heart, Share2, Phone, Plus, Minus, ShoppingCart, Loader2 } from "lucide-react"
 import Link from "next/link"
@@ -7,13 +7,13 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { createClient } from "@/lib/supabase/client"
 import { notFound } from "next/navigation"
 import { useAppContext } from "@/contexts/app-context"
-import { calculateDistance } from "@/lib/utils"
+import type { StoreDetailEntity } from "@/lib/entities/store-detail.entity";
+import { StoreDetailViewModel, createStoreDetailViewModel } from "@/lib/viewmodels/store-detail.viewmodel"; 
 
 interface StoreMenu {
-  id: number
+  id: string
   name: string
   originalPrice: number
   discountPrice: number
@@ -23,162 +23,49 @@ interface StoreMenu {
   discountRate: number;
   discountEndTime: string;
 }
-
-interface StoreData {
-  id: string
-  name: string
-  category: string
-  address: string
-  phone: string
-  description: string
-  storeThumbnail: string
-  distance: number
-  discount: number
-  timeLeft: string
-  lat: number
-  lng: number
-  menu?: StoreMenu[]
-}
-
-// 남은 시간을 계산하여 보기 좋은 형식으로 반환
-function formatTimeLeft(endTime: string): string {
-  const now = new Date()
-  const end = new Date(endTime)
-  const diff = end.getTime() - now.getTime()
-
-  if (diff <= 0) {
-    return "할인 종료"
-  }
-
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-
-  if (days > 0) {
-    return `${days}일 남음`
-  } else if (hours > 0) {
-    return `${hours}시간 남음`
-  } else if (minutes > 0) {
-    return `${minutes}분 남음`
-  } else {
-    return `${seconds}초 남음`
-  }
-}
-
-export default function StorePage() {
-  const supabase = createClient();
-  const params = useParams();
-  const router = useRouter();
-  const storeId = params.id as string;
-  const { appState } = useAppContext()
-  const { coordinates } = appState.location
-
-  const [storeData, setStoreData] = useState<StoreData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const [isLiked, setIsLiked] = useState(false)
-  const [activeTab, setActiveTab] = useState("menu")
-  const [cart, setCart] = useState<CartItem[]>([])
-
   interface CartItem {
-    id: number
+    id: string
     name: string
     price: number
     quantity: number
   }
 
-  useEffect(() => {
-    async function fetchStore() {
-      setLoading(true)
-      setError(null)
-      try {
-        const { data, error } = await supabase
-          .from("stores")
-          .select("*, discounts(*, store_menus(*))")
-          .eq("id", storeId)
-          .single()
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-        if (error) {
-          console.error("Error fetching store:", error)
-          setError("가게 정보를 불러오는 데 실패했습니다.")
-          setLoading(false)
-          return
-        }
+export default function StorePage() {
+  const router = useRouter();
+  const params = useParams();
+  const storeId = params.id as string;
+  const { coordinates } = useAppContext().appState.location;
 
-        if (!data) {
-          notFound()
-        }
-        console.log("Fetched store data:", data);
+  const [viewmodel, setViewModel] = useState<StoreDetailViewModel>();
+  const [error, setError] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [activeTab, setActiveTab] = useState("menu");
+  const [isLiked, setIsLiked] = useState(false);
 
-        const storeLat = data.lat ?? 0
-        const storeLng = data.lng ?? 0
-        const calculatedDistance = coordinates ? calculateDistance(coordinates.lat, coordinates.lng, storeLat, storeLng) : 0
-
-        // Process menus and apply discounts
-        const uniqueMenusMap = new Map<string, StoreMenu>();
-
-        // Iterate through discounts to get menu information and apply discount rates
-        data.discounts.forEach((discount: any) => {
-          if (discount.store_menus) {
-            const menu = discount.store_menus;
-            const discountRate = discount.discount_rate ?? 0;
-            const endTime = discount.end_time ?? "";
-
-            // Only add if not already processed, or if you want to prioritize a specific discount (e.g., highest)
-            // For now, we'll just ensure uniqueness by menu.id
-            if (!uniqueMenusMap.has(menu.id)) {
-              uniqueMenusMap.set(menu.id, {
-                id: menu.id,
-                name: menu.name,
-                originalPrice: menu.price,
-                discountPrice: menu.price * (1 - discountRate / 100),
-                description: menu.description, // Assuming description exists on store_menus
-                thumbnail: menu.thumbnail,
-                discountId: discount.id, // discount_id 추가
-                discountRate: discountRate,
-                discountEndTime: endTime,
-              });
-            }
-          }
-        });
-
-        const processedMenus = Array.from(uniqueMenusMap.values());
-
-        // Determine overall store discount and time left for display purposes (e.g., for a banner)
-        // This could be the highest discount, or the discount with the earliest end time, etc.
-        // For simplicity, let's take the first discount's rate and end time for the store-level display
-        const overallDiscount = data.discounts?.[0]?.discount_rate ?? 0;
-        const overallEndTime = data.discounts?.[0]?.end_time ?? "";
-
-        setStoreData({
-          id: data.id,
-          name: data.name,
-          category: data.category,
-          address: data.address,
-          phone: data.phone,
-          description: data.description,
-          storeThumbnail: data.store_thumbnail || "/no-image.jpg",
-          distance: calculatedDistance,
-          discount: overallDiscount, // Using overall discount for store-level display
-          timeLeft: overallEndTime ? formatTimeLeft(overallEndTime) : "정보 없음",
-          lat: data.lat,
-          lng: data.lng,
-          menu: processedMenus, // Use the processed menus with individual discounts
-        })
-      } catch (err) {
-        console.error("Unexpected error:", err)
-        setError("알 수 없는 오류가 발생했습니다.")
-      } finally {
-        setLoading(false)
-      }
+  const { data: storeData, error: swrError, isValidating } = useSWR<StoreDetailEntity>(
+    `/api/store/${storeId}`,
+    fetcher,
+    {
+      onSuccess: (data) => {
+        const vm = createStoreDetailViewModel(data, coordinates);
+        setViewModel(vm);
+      },
+      onError: () => {
+        setError("가게 정보를 불러오는 데 실패했습니다.");
+      },
     }
+  );
 
-    fetchStore()
-  }, [storeId, supabase, coordinates])
+  useEffect(() => {
+    if (storeData) {
+      const viewModel = createStoreDetailViewModel(storeData, coordinates)
+      setViewModel(viewModel)
+    }
+  }, [storeData, coordinates])
 
-  if (loading) {
+  if (!viewmodel) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
@@ -188,19 +75,6 @@ export default function StorePage() {
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">{error}</h1>
-          <Link href="/">
-            <Button className="bg-teal-500 hover:bg-teal-600 text-white">홈으로 돌아가기</Button>
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (!storeData) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -234,7 +108,7 @@ export default function StorePage() {
   }
 
   // 장바구니에서 메뉴 제거
-  const removeFromCart = (menuId: number) => {
+  const removeFromCart = (menuId: string) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === menuId)
       if (existingItem && existingItem.quantity > 1) {
@@ -246,7 +120,7 @@ export default function StorePage() {
   }
 
   // 장바구니에서 특정 메뉴의 수량 가져오기
-  const getCartQuantity = (menuId: number) => {
+  const getCartQuantity = (menuId: string) => {
     const item = cart.find((item) => item.id === menuId)
     return item ? item.quantity : 0
   }
@@ -272,7 +146,7 @@ export default function StorePage() {
     const cartToSave = cart.map(item => ({
       ...item,
       // 각 메뉴에 대한 할인 ID를 찾아서 추가
-      discount_id: storeData.menu?.find(m => m.id === item.id)?.discountId || null,
+      discount_id: viewmodel.menu?.find(m => m.id === item.id)?.discountId || null,
     }));
 
     const storeInfoToSave = {
@@ -319,8 +193,8 @@ export default function StorePage() {
       <div className="relative">
         <div className="h-64 bg-gray-200">
           <img
-            src={storeData.storeThumbnail}
-            alt={storeData.name}
+            src={viewmodel.storeThumbnail || "/no-image.jpg"}
+            alt={viewmodel.name}
             className="w-full h-full object-cover"
           />
         </div>
@@ -330,24 +204,24 @@ export default function StorePage() {
       <div className="px-4 py-4 border-b border-gray-100">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">{storeData.name}</h1>
+            <h1 className="text-2xl font-bold text-gray-800 mb-1">{viewmodel.name}</h1>
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
               <MapPin className="w-4 h-4" />
-              <span>{storeData.distance.toFixed(1)}km</span>
+              <span>{viewmodel.distance}</span>
               <span>•</span>
-              <span>{storeData.category}</span>
+              <span>{viewmodel.category}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="bg-orange-500 text-white text-sm">{storeData.discount}% 할인</Badge>
+              <Badge className="bg-orange-500 text-white text-sm">{viewmodel.discount}% 할인</Badge>
               <div className="flex items-center gap-1 text-red-500 font-medium text-sm">
                 <Clock className="w-4 h-4" />
-                <span>{storeData.timeLeft}</span>
+                <span>{viewmodel.timeLeft}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <p className="text-gray-600 text-sm leading-relaxed">{storeData.description}</p>
+        <p className="text-gray-600 text-sm leading-relaxed">{viewmodel.description}</p>
       </div>
 
       {/* 탭 메뉴 */}
@@ -385,8 +259,8 @@ export default function StorePage() {
                 </div>
               )}
             </div>
-            {(storeData?.menu ?? []).length > 0 ? (
-              (storeData?.menu ?? []).map((item) => {
+            {(viewmodel.menu ?? []).length > 0 ? (
+              (viewmodel.menu ?? []).map((item) => {
                 const quantity = getCartQuantity(item.id)
                 return (
                   <Card key={item.id} className="border-teal-100">
@@ -408,7 +282,7 @@ export default function StorePage() {
                           <span className="text-lg font-bold text-teal-600">
                             {item.discountPrice.toLocaleString()}원
                           </span>
-                          <Badge className="bg-orange-500 text-white text-xs">{storeData.discount}% 할인</Badge>
+                          <Badge className="bg-orange-500 text-white text-xs">{item.discountRate}% 할인</Badge>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
@@ -465,12 +339,12 @@ export default function StorePage() {
               <CardContent className="p-4 space-y-3">
                 <div>
                   <h3 className="font-medium text-gray-800 mb-1">주소</h3>
-                  <p className="text-gray-600">{storeData.address}</p>
+                  <p className="text-gray-600">{viewmodel.address}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-800 mb-1">전화번호</h3>
                   <div className="flex items-center gap-2">
-                    <p className="text-gray-600">{storeData.phone}</p>
+                    <p className="text-gray-600">{viewmodel.phone}</p>
                     <Button variant="outline" size="sm">
                       <Phone className="w-4 h-4 mr-1" />
                       전화
@@ -479,7 +353,7 @@ export default function StorePage() {
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-800 mb-1">카테고리</h3>
-                  <p className="text-gray-600">{storeData.category}</p>
+                  <p className="text-gray-600">{viewmodel.category}</p>
                 </div>
               </CardContent>
             </Card>

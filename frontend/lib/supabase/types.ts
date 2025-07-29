@@ -23,7 +23,6 @@ export type Database = {
           menu_id: string | null
           quantity: number | null
           start_time: string
-          store_id: string | null
         }
         Insert: {
           created_at?: string
@@ -33,7 +32,6 @@ export type Database = {
           menu_id?: string | null
           quantity?: number | null
           start_time: string
-          store_id?: string | null
         }
         Update: {
           created_at?: string
@@ -43,7 +41,6 @@ export type Database = {
           menu_id?: string | null
           quantity?: number | null
           start_time?: string
-          store_id?: string | null
         }
         Relationships: [
           {
@@ -53,52 +50,31 @@ export type Database = {
             referencedRelation: "store_menus"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "discounts_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
         ]
       }
       reservation_items: {
         Row: {
-          discount_id: string | null
+          discount_rate: number | null
           id: string
-          menu_id: string
+          price: number | null
           quantity: number
           reservation_id: string
         }
         Insert: {
-          discount_id?: string | null
+          discount_rate?: number | null
           id?: string
-          menu_id: string
+          price?: number | null
           quantity: number
           reservation_id: string
         }
         Update: {
-          discount_id?: string | null
+          discount_rate?: number | null
           id?: string
-          menu_id?: string
+          price?: number | null
           quantity?: number
           reservation_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "reservation_items_discount_id_fkey"
-            columns: ["discount_id"]
-            isOneToOne: false
-            referencedRelation: "discounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reservation_items_menu_id_fkey"
-            columns: ["menu_id"]
-            isOneToOne: false
-            referencedRelation: "store_menus"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "reservation_items_reservation_id_fkey"
             columns: ["reservation_id"]
@@ -113,7 +89,7 @@ export type Database = {
           created_at: string | null
           id: string
           reserved_time: string
-          status: string
+          status: Database["public"]["Enums"]["reservation_status"]
           store_id: string
           updated_at: string | null
           user_id: string
@@ -122,7 +98,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           reserved_time: string
-          status?: string
+          status?: Database["public"]["Enums"]["reservation_status"]
           store_id: string
           updated_at?: string | null
           user_id: string
@@ -131,7 +107,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           reserved_time?: string
-          status?: string
+          status?: Database["public"]["Enums"]["reservation_status"]
           store_id?: string
           updated_at?: string | null
           user_id?: string
@@ -149,6 +125,7 @@ export type Database = {
       store_menus: {
         Row: {
           created_at: string | null
+          description: string | null
           id: string
           name: string
           price: number
@@ -157,6 +134,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          description?: string | null
           id?: string
           name: string
           price: number
@@ -165,6 +143,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          description?: string | null
           id?: string
           name?: string
           price?: number
@@ -191,7 +170,7 @@ export type Database = {
           lat: number
           lng: number
           name: string
-          owner_id: string
+          owner_id: string | null
           phone: string | null
           store_thumbnail: string | null
         }
@@ -204,7 +183,7 @@ export type Database = {
           lat: number
           lng: number
           name: string
-          owner_id: string
+          owner_id?: string | null
           phone?: string | null
           store_thumbnail?: string | null
         }
@@ -217,7 +196,7 @@ export type Database = {
           lat?: number
           lng?: number
           name?: string
-          owner_id?: string
+          owner_id?: string | null
           phone?: string | null
           store_thumbnail?: string | null
         }
@@ -279,16 +258,9 @@ export type Database = {
         }
         Returns: string
       }
-      update_store_activated_status: {
-        Args: { p_store_id: string }
-        Returns: boolean
-      }
-      update_store_activated_status_function: {
-        Args: { p_store_id: string }
-        Returns: undefined
-      }
     }
     Enums: {
+      reservation_status: "pending" | "confirmed" | "cancelled"
       role: "admin" | "customer" | "store_owner"
     }
     CompositeTypes: {
@@ -421,6 +393,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      reservation_status: ["pending", "confirmed", "cancelled"],
       role: ["admin", "customer", "store_owner"],
     },
   },
