@@ -73,16 +73,21 @@ export default function HomePage() {
   // 3. 가져온 StoreEntity를 StoreCardViewModel로 변환합니다.
   useEffect(() => {
     if (storeEntities && coordinates) {
-      // 거리순으로 정렬 후 ViewModel로 변환
+      // 거리순으로 정렬
       const sortedEntities = [...storeEntities].sort((a, b) => {
         const distA = calculateDistance(coordinates.lat, coordinates.lng, a.lat, a.lng)
         const distB = calculateDistance(coordinates.lat, coordinates.lng, b.lat, b.lng)
         return distA - distB
       })
 
-      const viewModels = sortedEntities.map((entity) =>
+      const storeList = sortedEntities.map((entity) =>
         createStoreCardViewModel(entity, coordinates)
       )
+
+      // 할인순으로 정렬
+      const viewModels = [...storeList].sort((a, b) => {
+        return b.maxDiscountRate - a.maxDiscountRate
+      })
       setAllViewModels(viewModels)
     }
   }, [storeEntities, coordinates])
@@ -197,11 +202,11 @@ export default function HomePage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xs text-gray-400 line-through">
-                            {vm.originalPrice?.toLocaleString()}원
-                          </div>
+                          {vm.maxDiscountRate ? <div className="text-xs text-gray-400 line-through">
+                            {vm.originalPrice.toLocaleString()}원
+                          </div> : null}
                           <div className="text-sm font-bold text-teal-600">
-                            {vm.discountPrice?.toLocaleString()}원
+                            {vm.discountPrice.toLocaleString()}원
                           </div>
                         </div>
                       </div>

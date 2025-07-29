@@ -8,11 +8,11 @@ export interface StoreCardViewModel {
   name: string;
   category: string;
   thumbnailUrl: string;
-  maxDiscountRate: number | null;
+  maxDiscountRate: number;
   timeLeftText: string;
-  distance: string; // "500m" 또는 "1.2km"
-  originalPrice: number | null;
-  discountPrice: number | null;
+  distance: string;
+  originalPrice: number;
+  discountPrice: number;
 }
 
 // ViewModel을 생성하는 팩토리 함수 (로직 구현)
@@ -29,10 +29,10 @@ export function createStoreCardViewModel(
     name: entity.name,
     category: entity.category,
     thumbnailUrl: entity.storeThumbnail || '/no-image.jpg',
-    maxDiscountRate: entity.maxDiscountRate,
+    maxDiscountRate: entity.maxDiscountRate ? entity.maxDiscountRate : 0,
     timeLeftText: entity.maxDiscountEndTime ? formatTimeLeft(entity.maxDiscountEndTime) : "할인 종료",
     distance: distanceText,
-    originalPrice: entity.maxPrice, // 예시로 고정된 가격 사용
-    discountPrice: entity.maxPrice ? entity.maxPrice * (1 - entity.maxDiscountRate! / 100) : null,
+    originalPrice: entity.maxPrice ? entity.maxPrice : 0,
+    discountPrice: entity.maxPrice ? entity.maxPrice * (1 - entity.maxDiscountRate! / 100) : 0,
   };
 }
