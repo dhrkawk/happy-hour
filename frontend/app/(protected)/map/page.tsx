@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from "react"
 import { ArrowLeft, MapPin, Loader2, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import useSWR from "swr"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,6 +15,7 @@ import { LocationErrorBanner } from "@/components/location-error-banner"
 import { motion, AnimatePresence } from "framer-motion"
 import { StoreCardViewModel, createStoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
 import type { StoreEntity } from "@/lib/entities/store.entity"
+import { StoreCard } from "@/components/store-card"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -138,32 +138,7 @@ export default function MapPage() {
         ) : (
           finalViewModels.map(store => (
             <Link key={store.id} href={`/store/${store.id}`}>
-              <Card
-                className={`border-teal-100 hover:shadow-md transition-shadow card-touch ${
-                  selectedStoreId === store.id ? "ring-2 ring-teal-400" : ""
-                }`}
-                onClick={() => setSelectedStoreId(store.id)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-800">{store.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge className="bg-orange-500 text-white text-xs">{store.maxDiscountRate}% 할인</Badge>
-                        <span className="text-sm text-gray-500">
-                          {store.distanceText}
-                        </span>
-                        <span className="text-xs text-gray-400">{store.category}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-teal-600">
-                        {`${store.discountPrice.toLocaleString()}원`}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <StoreCard vm={store}></StoreCard>
             </Link>
           ))
         )}
@@ -183,48 +158,12 @@ export default function MapPage() {
             className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-lg shadow-lg max-w-xl mx-auto"
           >
             <div className="relative z-50 p-4 pb-24">
-              <Card key={selectedStore.id} className="border-none shadow-none">
-                <CardContent className="p-0">
-                  <div className="flex items-start justify-between">
-                  <div className="w-20 h-20 bg-gray-200 flex-shrink-0">
-                      <img
-                        src={selectedStore.thumbnailUrl}
-                        alt={selectedStore.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800">{selectedStore.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <MapPin className="w-4 h-4" />
-                          {selectedStore.distance.toFixed(1)}km
-                        </div>
-                        <span className="text-sm text-gray-400">{selectedStore.category}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge className="bg-orange-500 hover:bg-orange-600 text-white">
-                          {selectedStore.maxDiscountRate}% 할인
-                        </Badge>
-                        <span className="text-sm text-gray-500">{selectedStore.timeLeftText}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-400 line-through">
-                        {selectedStore.originalPrice.toLocaleString()}원
-                      </div>
-                      <div className="text-lg font-bold text-teal-600">
-                        {selectedStore.discountPrice.toLocaleString()}원
-                      </div>
-                    </div>
-                  </div>
-                  <Link href={`/store/${selectedStore.id}`}>
-                    <Button className="w-full mt-3 bg-teal-500 hover:bg-teal-600 text-white">
-                      자세히 보기
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+              <StoreCard vm={selectedStore} />
+              <Link href={`/store/${selectedStore.id}`}>
+                <Button className="w-full mt-3 bg-teal-500 hover:bg-teal-600 text-white">
+                  자세히 보기
+                </Button>
+              </Link>
             </div>
           </motion.div>
         )}
