@@ -27,9 +27,8 @@ export default function HomePage() {
   const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } = appState.location
   
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
-  const [selectedSorting, setSelectedSorting] = useState<"거리순"|"할인순">("거리순");
+  const [selectedSorting, setSelectedSorting] = useState<"거리순"|"할인순">("할인순");
   const [allViewModels, setAllViewModels] = useState<StoreCardViewModel[]>([])
-  const [filteredViewModels, setFilteredViewModels] = useState<StoreCardViewModel[]>([])
   const [onboardingChecked, setOnboardingChecked] = useState(false)
 
   // 1. 온보딩/로그인 여부 확인
@@ -145,7 +144,7 @@ export default function HomePage() {
       <main className="px-4 py-4 space-y-4 pb-24">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">
-            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} ({filteredViewModels.length})
+            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} ({finalViewModels.length})
           </h2>
           <div className="flex items-center gap-2">
             {(["거리순", "할인순"] as const).map((label) => (

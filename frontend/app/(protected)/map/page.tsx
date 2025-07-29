@@ -1,45 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { ArrowLeft, MapPin, Loader2, RefreshCw } from "lucide-react"
 import Link from "next/link"
+import useSWR from "swr"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
-import { createClient } from "@/lib/supabase/client"
 import KakaoMap from "@/components/map/kakao-map"
 import { useAppContext } from "@/contexts/app-context"
 import { LocationErrorBanner } from "@/components/location-error-banner"
 import { motion, AnimatePresence } from "framer-motion"
+import { StoreCardViewModel, createStoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
+import type { StoreEntity } from "@/lib/entities/store.entity"
 
-// 남은 시간을 계산하여 보기 좋은 형식으로 반환
-function formatTimeLeft(endTime: string): string {
-  const now = new Date()
-  const end = new Date(endTime)
-  const diff = end.getTime() - now.getTime()
-
-  if (diff <= 0) {
-    return "할인 종료"
-  }
-
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-
-  if (days > 0) {
-    return `${days}일 남음`
-  } else if (hours > 0) {
-    const remainingMinutes = minutes % 60;
-    return `${hours}시간 ${remainingMinutes}분 남음`
-  } else if (minutes > 0) {
-    return `${minutes}분 남음`
-  } else {
-    return `${seconds}초 남음`
-  }
-}
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function MapPage() {
   const { appState, fetchLocation } = useAppContext()
@@ -47,108 +25,45 @@ export default function MapPage() {
 
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
-  const [allFetchedStores, setAllFetchedStores] = useState<any[]>([])
-  const [filteredStores, setFilteredStores] = useState<any[]>([])
+  const [allViewModels, setAllViewModels] = useState<StoreCardViewModel[]>([])
 
   // Fetch stores from Supabase
-  useEffect(() => {
-    const fetchStores = async () => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from("stores")
-        .select(`
-          id,
-          name,
-          category,
-          address,
-          store_thumbnail,
-          lat,
-          lng,
-          discounts(
-            discount_rate,
-            start_time,
-            end_time,
-            store_menus(price)
-          )
-        `)
-        .eq('activated', true) /* activated == true 인 가게만 표시 */
-        .filter('discounts.start_time', 'lte', new Date().toISOString())
-        .filter('discounts.end_time', 'gte', new Date().toISOString())
-        .order('end_time', { foreignTable: 'discounts', ascending: true })
+  const shouldFetch = !!coordinates
+  const { data: storeEntities, isLoading: loadingStores } = useSWR<StoreEntity[]>(
+    shouldFetch ? "/api/store" : null,
+    fetcher
+  )
 
-      if (error) {
-        console.error("Error fetching stores:", error)
-      } else {
-        const formattedData = data
-          .map(store => {
-            const activeDiscount = store.discounts?.[0] || null
-            const menu = activeDiscount?.store_menus || null
-            const originalPrice = menu?.price ?? 0
-            const discountRate = activeDiscount?.discount_rate ?? 0
-            const discountPrice = originalPrice * (1 - discountRate / 100)
-            const endTime = activeDiscount?.end_time ?? ""
-
-            // Removed menuThumbnails as thumbnail is no longer selected
-            const menuThumbnails = Array.isArray(activeDiscount?.store_menus)
-              ? activeDiscount.store_menus.map((menu: any) => menu.thumbnail).filter(Boolean)
-              : (activeDiscount?.store_menus?.thumbnail ? [activeDiscount.store_menus.thumbnail] : []);
-            const imageThumbnails = [store.store_thumbnail, ...menuThumbnails].filter(Boolean)
-
-            return {
-              ...store,
-              lat: parseFloat(store.lat),
-              lng: parseFloat(store.lng),
-              discount: discountRate,
-              originalPrice: originalPrice,
-              discountPrice: discountPrice,
-              timeLeft: endTime ? formatTimeLeft(endTime) : "정보 없음",
-              image_thumbnails: imageThumbnails,
-            }
-          })
-        setAllFetchedStores(formattedData)
+    // 3. 가져온 StoreEntity를 StoreCardViewModel로 변환합니다.
+    useEffect(() => {
+      if (storeEntities && coordinates) {
+        const storeList = storeEntities.map((entity) =>
+          createStoreCardViewModel(entity, coordinates)
+        )
+        const viewModels_distance = StoreCardViewModel.sortByDistance(storeList)
+        const viewModels = StoreCardViewModel.sortByDiscount(viewModels_distance)
+        setAllViewModels(viewModels)
       }
-    }
+    }, [storeEntities, coordinates])
 
-    fetchStores()
-  }, [])
+    // 필터링 + 정렬을 통합 처리한 최종 ViewModel 리스트
+    const finalViewModels = useMemo(() => {
+    // 1. 카테고리 필터링
+    const categoryFiltered = StoreCardViewModel.filterByCategory(allViewModels, selectedCategory);
+    return categoryFiltered
 
-  // 카테고리 필터링
-  useEffect(() => {
-    if (selectedCategory === "전체") {
-      setFilteredStores(allFetchedStores)
-    } else {
-      setFilteredStores(allFetchedStores.filter((store: any) => store.category === selectedCategory))
-    }
-    setSelectedStoreId(null)
-  }, [selectedCategory, allFetchedStores])
+    // 2. 정렬
+    // if (selectedSorting === "거리순") {
+    //   return StoreCardViewModel.sortByDistance(categoryFiltered);
+    // } else if (selectedSorting === "할인순") {
+    //   return StoreCardViewModel.sortByDiscount(categoryFiltered);
+    // } else {
+    //   return categoryFiltered;
+    // }
+  // }, [selectedCategory, selectedSorting, allViewModels, coordinates]);
+  }, [selectedCategory, allViewModels, coordinates]);
 
-  // 거리 계산 함수 (하버사인 공식)
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) {
-      return NaN
-    }
-    const R = 6371 // 지구 반지름 (km)
-    const dLat = ((lat2 - lat1) * Math.PI) / 180
-    const dLng = ((lng2 - lng1) * Math.PI) / 180
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    return R * c
-  }
-
-  // 실제 위치 기반으로 거리 업데이트
-  const storesWithRealDistance = filteredStores
-    .map(store => {
-      const distance = coordinates ? calculateDistance(coordinates.lat, coordinates.lng, store.lat, store.lng) : NaN
-      return {
-        ...store,
-        distance: distance,
-      }
-    })
-    .sort((a, b) => a.distance - b.distance)
-
-  const selectedStore = storesWithRealDistance.find(store => store.id === selectedStoreId)
+  const selectedStore = finalViewModels.find(store => store.id === selectedStoreId)
 
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto relative overflow-hidden">
@@ -193,7 +108,7 @@ export default function MapPage() {
       <div className="relative h-[60vh] bg-gray-200">
         <KakaoMap
           userLocation={coordinates}
-          stores={storesWithRealDistance}
+          stores={finalViewModels}
           selectedStoreId={selectedStoreId}
           onSelectStore={setSelectedStoreId}
         />
@@ -204,14 +119,14 @@ export default function MapPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">
             {selectedCategory === "전체" ? "근처 할인 가게" : `근처 ${selectedCategory} 가게`} (
-            {storesWithRealDistance.length})
+            {finalViewModels.length})
           </h2>
           <Badge variant="secondary" className="bg-teal-100 text-teal-700">
             거리순
           </Badge>
         </div>
 
-        {storesWithRealDistance.length === 0 ? (
+        {finalViewModels.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">해당 카테고리의 할인 가게가 없습니다</h3>
@@ -221,7 +136,7 @@ export default function MapPage() {
             </Button>
           </div>
         ) : (
-          storesWithRealDistance.map(store => (
+          finalViewModels.map(store => (
             <Link key={store.id} href={`/store/${store.id}`}>
               <Card
                 className={`border-teal-100 hover:shadow-md transition-shadow card-touch ${
@@ -234,18 +149,16 @@ export default function MapPage() {
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-800">{store.name}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge className="bg-orange-500 text-white text-xs">{store.discount}% 할인</Badge>
+                        <Badge className="bg-orange-500 text-white text-xs">{store.maxDiscountRate}% 할인</Badge>
                         <span className="text-sm text-gray-500">
-                          {typeof store.distance === "number" && !isNaN(store.distance)
-                            ? `${store.distance.toFixed(1)}km`
-                            : "거리 계산 중..."}
+                          {store.distanceText}
                         </span>
                         <span className="text-xs text-gray-400">{store.category}</span>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold text-teal-600">
-                        {store.discountPrice ? `${store.discountPrice.toLocaleString()}원` : "-"}
+                        {`${store.discountPrice.toLocaleString()}원`}
                       </div>
                     </div>
                   </div>
@@ -273,6 +186,13 @@ export default function MapPage() {
               <Card key={selectedStore.id} className="border-none shadow-none">
                 <CardContent className="p-0">
                   <div className="flex items-start justify-between">
+                  <div className="w-20 h-20 bg-gray-200 flex-shrink-0">
+                      <img
+                        src={selectedStore.thumbnailUrl}
+                        alt={selectedStore.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-800">{selectedStore.name}</h3>
                       <div className="flex items-center gap-2 mt-1">
@@ -284,9 +204,9 @@ export default function MapPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-2">
                         <Badge className="bg-orange-500 hover:bg-orange-600 text-white">
-                          {selectedStore.discount}% 할인
+                          {selectedStore.maxDiscountRate}% 할인
                         </Badge>
-                        <span className="text-sm text-gray-500">{selectedStore.timeLeft}</span>
+                        <span className="text-sm text-gray-500">{selectedStore.timeLeftText}</span>
                       </div>
                     </div>
                     <div className="text-right">
@@ -298,19 +218,6 @@ export default function MapPage() {
                       </div>
                     </div>
                   </div>
-                  {/* Image Gallery */}
-                  {selectedStore.image_thumbnails && selectedStore.image_thumbnails.length > 0 && (
-                    <div className="flex overflow-x-auto space-x-2 p-2 -mx-2 mt-4">
-                      {selectedStore.image_thumbnails.map((imageUrl: string, index: number) => (
-                        <img
-                          key={index}
-                          src={imageUrl}
-                          alt={`${selectedStore.name} image ${index + 1}`}
-                          className="w-40 h-32 object-cover rounded-md flex-shrink-0"
-                        />
-                      ))}
-                    </div>
-                  )}
                   <Link href={`/store/${selectedStore.id}`}>
                     <Button className="w-full mt-3 bg-teal-500 hover:bg-teal-600 text-white">
                       자세히 보기

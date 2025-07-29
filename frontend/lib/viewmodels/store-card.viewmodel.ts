@@ -14,6 +14,8 @@ export class StoreCardViewModel {
   originalPrice: number;
   discountPrice: number;
   distanceText: string;
+  lat: number;
+  lng: number;
 
   constructor(props: {
     id: string;
@@ -26,6 +28,8 @@ export class StoreCardViewModel {
     originalPrice: number;
     discountPrice: number;
     distanceText: string;
+    lat: number;
+    lng: number;
   }) {
     this.id = props.id;
     this.name = props.name;
@@ -37,6 +41,8 @@ export class StoreCardViewModel {
     this.distanceText = props.distanceText;
     this.originalPrice = props.originalPrice;
     this.discountPrice = props.discountPrice;
+    this.lat = props.lat;
+    this.lng = props.lng;
   }
 
   // 카테고리로 필터링
@@ -85,5 +91,7 @@ export function createStoreCardViewModel(
     distanceText: distanceText,
     originalPrice: entity.maxPrice ? entity.maxPrice : 0,
     discountPrice: entity.maxPrice ? entity.maxPrice * (1 - entity.maxDiscountRate! / 100) : 0,
+    lat: entity.lat,
+    lng: entity.lng
   };
 }

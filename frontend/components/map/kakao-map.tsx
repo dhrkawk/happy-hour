@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { StoreCardViewModel } from '@/lib/viewmodels/store-card.viewmodel'
 
 declare global {
   interface Window {
@@ -29,7 +30,7 @@ interface KakaoMapProps {
     lat: number
     lng: number
   } | null
-  stores: StoreData[]
+  stores: StoreCardViewModel[]
   selectedStoreId: string | null
   onSelectStore: (storeId: string | null) => void
 }
