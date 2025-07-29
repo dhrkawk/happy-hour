@@ -8,38 +8,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import BottomNavigation from "@/components/bottom-navigation"
 import { createClient } from "@/lib/supabase/client"
+import useSWR from "swr"
+import { BookingCardViewModel, createBookingCardViewModel } from "@/lib/viewmodels/reservation-card.viewmodel"
 
-// 예약 데이터 타입 정의
-interface Booking {
-  id: string;
-  reserved_time: string;
-  status: string;
-  stores: {
-    name: string;
-    address: string;
-    phone: string;
-  } | null;
-  reservation_items: {
-    quantity: number;
-  }[];
-}
-
-// 컴포넌트에서 사용할 데이터 타입
-interface BookingData {
-  id: string;
-  bookingNumber: string;
-  storeName: string;
-  address: string;
-  phone: string;
-  reserved_time: string;
-  visitTime: string;
-  status: string;
-  totalItems: number;
-}
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const getStatusInfo = (status: string) => {
   switch (status) {
-    case "active":
+    case "confirmed":
       return { label: "예약확정", color: "bg-blue-500 text-white", description: "예약이 확정되었습니다." };
     case "used":
       return { label: "방문완료", color: "bg-green-500 text-white", description: "방문이 완료되었습니다." };
@@ -51,113 +27,48 @@ const getStatusInfo = (status: string) => {
 };
 
 export default function BookingsPage() {
-  const supabase = createClient();
-  const [bookings, setBookings] = useState<BookingData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, error, isLoading } = useSWR('/api/reservations', fetcher);
   const [cancelingBookingId, setCancelingBookingId] = useState<string | null>(null);
+  const bookings: BookingCardViewModel[] = data
+    ? data.map(createBookingCardViewModel)
+    : [];
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      setLoading(true);
-      setError(null);
-      const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
-        setError("로그인이 필요합니다.");
-        setLoading(false);
-        return;
-      }
-
+    const handleCancelBooking = async (bookingId: string) => {
+      if (!confirm("정말로 이 예약을 취소하시겠습니까?")) return;
+    
+      setCancelingBookingId(bookingId);
+    
       try {
-        // 예약 정보와 관련 스토어, 예약 아이템(수량만)을 함께 조회
-        const { data, error } = await supabase
-          .from('reservations')
-          .select(`
-            id,
-            reserved_time,
-            status,
-            stores (
-              name,
-              address,
-              phone
-            ),
-            reservation_items (
-              quantity
-            )
-          `)
-          .eq('user_id', user.id)
-          .order('reserved_time', { ascending: false });
-
-        if (error) {
-          console.error("Error fetching bookings:", error);
-          setError("예약 정보를 불러오는 데 실패했습니다.");
-          return;
-        }
-
-        // 데이터를 프론트엔드에서 사용하기 편한 형태로 가공
-        const formattedBookings: BookingData[] = data.map((booking: Booking) => {
-          const totalItems = booking.reservation_items.reduce((sum, item) => sum + item.quantity, 0);
-          const storeInfo = booking.stores
-          
-          return {
-            id: booking.id,
-            bookingNumber: booking.id.substring(0, 8),
-            storeName: storeInfo?.name || "알 수 없는 가게",
-            address: storeInfo?.address || "",
-            phone: storeInfo?.phone || "",
-
-            reserved_time: booking.reserved_time,
-            visitTime: new Date(booking.reserved_time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-            status: booking.status,
-            totalItems: totalItems,
-          };
+        const response = await fetch('/api/reservations/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reservation_id: bookingId }),
         });
-
-        setBookings(formattedBookings);
-      } catch (err) {
-        console.error("Unexpected error:", err);
-        setError("알 수 없는 오류가 발생했습니다.");
+    
+        const result = await response.json();
+    
+        if (!response.ok) {
+          throw new Error(result.error || '예약 취소에 실패했습니다.');
+        }
+    
+        // 상태 동기화
+        // setBookings((prev) =>
+        //   prev.map((booking) =>
+        //     booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking
+        //   )
+        // );
+    
+        alert('예약이 성공적으로 취소되었습니다.');
+      } catch (error: any) {
+        console.error('예약 취소 오류:', error);
+        alert(`예약 취소 실패: ${error.message}`);
       } finally {
-        setLoading(false);
+        setCancelingBookingId(null);
       }
     };
 
-    fetchBookings();
-  }, []);
-
-  const handleCancelBooking = async (bookingId: string) => {
-    setCancelingBookingId(bookingId);
-    try {
-      const res = await fetch('/api/reservations/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reservation_id: bookingId }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || '예약 취소에 실패했습니다.');
-      }
-
-      // UI 업데이트: 취소된 예약의 상태를 변경
-      setBookings((prevBookings) =>
-        prevBookings.map((booking) =>
-          booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking
-        )
-      );
-      alert('예약이 취소되었습니다.');
-    } catch (error: any) {
-      console.error('Failed to cancel booking:', error);
-      alert(`예약 취소 실패: ${error.message}`);
-    } finally {
-      setCancelingBookingId(null);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-teal-500" />

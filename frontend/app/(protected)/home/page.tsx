@@ -1,189 +1,109 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { MapPin, Clock, Map, Plus, RefreshCw, Loader2 } from "lucide-react"
+import { MapPin, Clock, RefreshCw, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import useSWR from "swr"
+
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
+import { StoreCardSkeleton } from "@/components/store-card-skeleton"
 import { useAppContext } from "@/contexts/app-context"
 import { createClient } from "@/lib/supabase/client"
-import { StoreCardSkeleton } from "@/components/store-card-skeleton"
-
 import { calculateDistance } from "@/lib/utils"
+import type { StoreEntity } from "@/lib/entities/store.entity"
+import { StoreCardViewModel, createStoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
 
-interface StoreData {
-  id: string
-  name: string
-  category: string
-  address: string
-  thumbnail: string
-  distance: number
-  discount: number
-  originalPrice: number
-  discountPrice: number
-  timeLeft: string
-  lat: number
-  lng: number
-}
-
-// 남은 시간을 계산하여 보기 좋은 형식으로 반환
-function formatTimeLeft(endTime: string): string {
-  const now = new Date()
-  const end = new Date(endTime)
-  const diff = end.getTime() - now.getTime()
-
-  if (diff <= 0) {
-    return "할인 종료"
-  }
-
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-
-  if (days > 0) {
-    return `${days}일 남음`
-  } else if (hours > 0) {
-    const remainingMinutes = minutes % 60;
-    return `${hours}시간 ${remainingMinutes}분 남음`
-  } else if (minutes > 0) {
-    return `${minutes}분 남음`
-  } else {
-    return `${seconds}초 남음`
-  }
-}
+// SWR을 위한 fetcher 함수
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function HomePage() {
   const router = useRouter()
   const supabase = createClient()
   const { appState, fetchLocation } = useAppContext()
   const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } = appState.location
-
+  
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
-  const [allStores, setAllStores] = useState<StoreData[]>([])
-  const [filteredStores, setFilteredStores] = useState<StoreData[]>([])
-  const [loadingStores, setLoadingStores] = useState(true)
+  const [allViewModels, setAllViewModels] = useState<StoreCardViewModel[]>([])
+  const [filteredViewModels, setFilteredViewModels] = useState<StoreCardViewModel[]>([])
   const [onboardingChecked, setOnboardingChecked] = useState(false)
 
+  // 1. 온보딩/로그인 여부 확인
   useEffect(() => {
     const checkOnboarding = async () => {
-      const cached = localStorage.getItem('onboardingChecked')
-      if (cached === 'true') {
+      if (localStorage.getItem("onboardingChecked") === "true") {
         setOnboardingChecked(true)
         return
       }
 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.push('/login')
+        router.push("/login")
         return
       }
 
       const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('user_id')
-        .eq('user_id', user.id)
+        .from("user_profiles")
+        .select("user_id")
+        .eq("user_id", user.id)
         .maybeSingle()
 
       if (!profile) {
-        router.push('/onboarding')
+        router.push("/onboarding")
       } else {
-        localStorage.setItem('onboardingChecked', 'true')
+        localStorage.setItem("onboardingChecked", "true")
         setOnboardingChecked(true)
       }
     }
-
     checkOnboarding()
   }, [router, supabase])
 
-  // 스토어 정보 불러오기 및 거리 계산
+  // 2. SWR을 사용하여 API로부터 StoreEntity 데이터를 가져옵니다.
+  // 온보딩이 확인되고, 사용자 위치가 있을 때만 데이터를 요청합니다.
+  const shouldFetch = onboardingChecked && !!coordinates
+  const { data: storeEntities, isLoading: loadingStores } = useSWR<StoreEntity[]>(
+    shouldFetch ? "/api/store" : null,
+    fetcher
+  )
+
+  // 3. 가져온 StoreEntity를 StoreCardViewModel로 변환합니다.
   useEffect(() => {
-    if (!onboardingChecked) return
+    if (storeEntities && coordinates) {
+      // 거리순으로 정렬 후 ViewModel로 변환
+      const sortedEntities = [...storeEntities].sort((a, b) => {
+        const distA = calculateDistance(coordinates.lat, coordinates.lng, a.lat, a.lng)
+        const distB = calculateDistance(coordinates.lat, coordinates.lng, b.lat, b.lng)
+        return distA - distB
+      })
 
-    const fetchStores = async () => {
-      setLoadingStores(true)
-      const { data, error } = await supabase
-        .from("stores")
-        .select(`
-          id,
-          name,
-          category,
-          address,
-          store_thumbnail,
-          lat,
-          lng,
-          discounts(
-            discount_rate,
-            start_time,
-            end_time,
-            store_menus(price)
-          )
-        `)
-        .eq('activated', true) //activated == true 인 가게만 home page에 표시
-        .order('end_time', { foreignTable: 'discounts', ascending: true })
-        .filter('discounts.start_time', 'lte', new Date().toISOString())
-        .filter('discounts.end_time', 'gte', new Date().toISOString())
-
-      if (error) {
-        console.error("Error fetching stores from DB:", error)
-        setAllStores([])
-      } else {
-        const userLat = coordinates?.lat
-        const userLng = coordinates?.lng
-
-        const transformedStores: StoreData[] = (data || []).map((store: any) => {
-          // Find the most relevant active discount (already ordered by end_time ascending in query)
-          const activeDiscount = store.discounts?.[0] || null;
-          const menu = activeDiscount?.store_menus || null;
-          
-          const originalPrice = menu?.price ?? 0;
-          const discountRate = activeDiscount?.discount_rate ?? 0;
-          const discountPrice = originalPrice * (1 - discountRate / 100);
-
-          const storeLat = store.lat ?? 0;
-          const storeLng = store.lng ?? 0;
-          const endTime = activeDiscount?.end_time ?? "";
-
-          return {
-            id: store.id,
-            name: store.name,
-            category: store.category,
-            address: store.address,
-            thumbnail: store.store_thumbnail || "/no-image.jpg",
-            distance: coordinates ? calculateDistance(coordinates.lat, coordinates.lng, storeLat, storeLng) : 0,
-            discount: discountRate,
-            originalPrice: originalPrice,
-            discountPrice: discountPrice,
-            timeLeft: endTime ? formatTimeLeft(endTime) : "정보 없음",
-            lat: storeLat,
-            lng: storeLng,
-          };
-        }).sort((a, b) => a.distance - b.distance);
-
-        setAllStores(transformedStores)
-      }
-      setLoadingStores(false)
+      const viewModels = sortedEntities.map((entity) =>
+        createStoreCardViewModel(entity, coordinates)
+      )
+      setAllViewModels(viewModels)
     }
+  }, [storeEntities, coordinates])
 
-    if (coordinates) {
-      fetchStores()
-    }
-  }, [onboardingChecked, coordinates, supabase])
-
-  // 카테고리 필터링
+  // 4. 카테고리에 따라 ViewModel을 필터링합니다.
   useEffect(() => {
-    if (!onboardingChecked) return
-
     if (selectedCategory === "전체") {
-      setFilteredStores(allStores)
+      setFilteredViewModels(allViewModels)
     } else {
-      setFilteredStores(allStores.filter((store) => store.category === selectedCategory))
+      setFilteredViewModels(
+        allViewModels.filter((vm) => vm.category === selectedCategory)
+      )
     }
-  }, [selectedCategory, allStores, onboardingChecked])
+  }, [selectedCategory, allViewModels])
+  
+  const isDataReady =
+  onboardingChecked &&
+  !locationLoading &&
+  !!coordinates &&
+  !!storeEntities &&
+  !loadingStores
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto relative">
@@ -212,30 +132,30 @@ export default function HomePage() {
             </div>
           </div>
 
-      {/* 카테고리 필터 */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <CategoryFilter
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-        />
-      </div>
-    </div>
+          {/* 카테고리 필터 */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <CategoryFilter
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+            />
+          </div>
+        </div>
       </header>
 
       {/* 가게 리스트 */}
-      <div className="px-4 py-4 space-y-4 pb-24">
+      <main className="px-4 py-4 space-y-4 pb-24">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">
-            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} ({filteredStores.length})
+            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} ({filteredViewModels.length})
           </h2>
           <Badge variant="secondary" className="bg-teal-100 text-teal-700">
             거리순
           </Badge>
         </div>
 
-        {loadingStores ? (
+        {!isDataReady ? (
           Array.from({ length: 5 }).map((_, index) => <StoreCardSkeleton key={index} />)
-        ) : filteredStores.length === 0 ? (
+        ) : filteredViewModels.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">해당 카테고리의 할인 가게가 없습니다</h3>
@@ -245,48 +165,43 @@ export default function HomePage() {
             </Button>
           </div>
         ) : (
-          filteredStores.map((store) => (
-            <Link key={store.id} href={`/store/${store.id}`}>
+          filteredViewModels.map((vm) => (
+            <Link key={vm.id} href={`/store/${vm.id}`}>
               <Card className="overflow-hidden hover:shadow-lg transition-shadow border-teal-100">
                 <CardContent className="p-0">
                   <div className="flex items-center">
                     <div className="w-20 h-20 bg-gray-200 flex-shrink-0">
                       <img
-                        src={store.thumbnail || "/no-image.jpg"}
-                        alt={store.name}
+                        src={vm.thumbnailUrl}
+                        alt={vm.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="flex-1 p-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-800 text-sm">{store.name}</h3>
+                          <h3 className="font-semibold text-gray-800 text-sm">{vm.name}</h3>
                           <div className="flex items-center gap-2 mt-1">
                             <div className="flex items-center gap-1 text-xs text-gray-500">
                               <MapPin className="w-3 h-3" />
-                              {store.distance.toFixed(1)}km
+                              {vm.distance}
                             </div>
-                            <span className="text-xs text-gray-400">{store.category}</span>
+                            <span className="text-xs text-gray-400">{vm.category}</span>
                           </div>
                           <div className="flex items-center gap-2 mt-2">
-                            <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs">
-                              {store.discount}% 할인
-                            </Badge>
+                              {vm.maxDiscountRate ? <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs">최대 {vm.maxDiscountRate}% 할인</Badge> : null}
                             <div className="flex items-center gap-1 text-xs text-gray-500">
                               <Clock className="w-3 h-3" />
-                              {store.timeLeft}
+                              {vm.timeLeftText}
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-400 line-through">
-                            {store.originalPrice?.toLocaleString()}원
+                            {vm.originalPrice?.toLocaleString()}원
                           </div>
                           <div className="text-sm font-bold text-teal-600">
-                            {(store.originalPrice && store.discount)
-                              ? (store.originalPrice * (1 - store.discount / 100)).toLocaleString()
-                              : store.discountPrice.toLocaleString()
-                            }원
+                            {vm.discountPrice?.toLocaleString()}원
                           </div>
                         </div>
                       </div>
@@ -297,12 +212,10 @@ export default function HomePage() {
             </Link>
           ))
         )}
-      </div>
+      </main>
 
       {/* 하단 네비게이션 */}
       <BottomNavigation />
-
-      
     </div>
   )
 }
