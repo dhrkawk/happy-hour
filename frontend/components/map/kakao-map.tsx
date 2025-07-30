@@ -24,6 +24,7 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
   const mapInstance = useRef<any>(null)
   const userMarkerInstance = useRef<any>(null)
   const storeMarkersInstance = useRef<any[]>([])
+  const [isMapReady, setIsMapReady] = useState(false)
 
   const initMap = (lat: number, lng: number) => {
     if (!mapContainer.current) return
@@ -34,6 +35,7 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
       level: 3,
     }
     mapInstance.current = new window.kakao.maps.Map(mapContainer.current, mapOption)
+    setIsMapReady(true)
   }
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
 
   // 사용자 위치 마커 업데이트
   useEffect(() => {
-    if (!mapInstance.current || !userLocation) return
+    if (!mapInstance.current || !userLocation || !isMapReady) return
 
     const userPosition = new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng)
 
@@ -86,11 +88,11 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
       marker.setMap(mapInstance.current)
       userMarkerInstance.current = marker
     }
-  }, [userLocation, mapInstance.current])
+  }, [userLocation, mapInstance.current, isMapReady])
 
   // 가게 마커 업데이트
   useEffect(() => {
-    if (!mapInstance.current || !stores) return
+    if (!mapInstance.current || !stores || !isMapReady) return
 
     // 기존 마커 제거
     storeMarkersInstance.current.forEach(marker => marker.setMap(null))
@@ -182,7 +184,7 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
         storeMarkersInstance.current.push(marker);
       }
     });
-  }, [stores, mapInstance.current, onSelectStore]); 
+  }, [stores, mapInstance.current, onSelectStore, isMapReady]); 
 
   if (!userLocation) {
     return (
