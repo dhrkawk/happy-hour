@@ -4,15 +4,14 @@ import React, { useState, useEffect } from "react"
 import { ArrowLeft, Loader2, ChevronRight, ShoppingBag, Percent } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/lib/supabase/client"
 import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
+import { Store } from "@/lib/entities/store.entity"
 
 export default function StoreManagementPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
-  const storeId = React.use(params).id
+  const storeId = params.id
 
-  const [storeData, setStoreData] = useState<any>(null)
+  const [storeData, setStoreData] = useState<Store | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -21,26 +20,18 @@ export default function StoreManagementPage({ params }: { params: { id: string }
       setLoading(true)
       setError(null)
       try {
-        const { data, error } = await supabase
-          .from("stores")
-          .select("name")
-          .eq("id", storeId)
-          .single()
-
-        if (error) {
-          console.error("Error fetching store:", error)
-          setError("가게 정보를 불러오는 데 실패했습니다.")
-          setLoading(false)
-          return
+        const response = await fetch(`/api/stores/${storeId}`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            notFound();
+          }
+          throw new Error('가게 정보를 불러오는데 실패했습니다.');
         }
-
-        if (!data) {
-          notFound()
-        }
+        const data = await response.json();
         setStoreData(data)
-      } catch (err) {
+      } catch (err: any) {
         console.error("Unexpected error:", err)
-        setError("알 수 없는 오류가 발생했습니다.")
+        setError(err.message)
       } finally {
         setLoading(false)
       }
@@ -49,7 +40,7 @@ export default function StoreManagementPage({ params }: { params: { id: string }
     if (storeId) {
       fetchStore()
     }
-  }, [storeId, supabase])
+  }, [storeId])
 
   if (loading) {
     return (

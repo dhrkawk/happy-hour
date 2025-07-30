@@ -49,8 +49,8 @@ export default function BookingDetailPage() {
         body: JSON.stringify({ id: booking.id }),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
+      if (!response.ok) {
+        const errorData = await response.json();
         throw new Error(errorData.error || '예약 취소에 실패했습니다.');
       }
 

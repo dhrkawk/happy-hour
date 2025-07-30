@@ -54,7 +54,6 @@ export class ReservationService {
         console.error('Error fetching reservations:', error);
         throw new Error('Failed to fetch reservations.');
       }
-      console.log(reservations)
       return reservations.map(mapRawToReservationEntity);
     }
 
