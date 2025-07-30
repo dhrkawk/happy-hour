@@ -11,21 +11,26 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MenuFormViewModel } from "@/lib/viewmodels/menus/menu.viewmodel";
+import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
 
 export default function MenuManagementPage() {
   const router = useRouter();
   const params = useParams();
   const storeId = params.id as string;
-  const [form, setForm] = useState({
+  const menuApiClient = new MenuApiClient(storeId);
+
+  const [form, setForm] = useState<MenuFormViewModel>({
     name: "",
-    price: "",
+    price: 0,
   });
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: name === "price" ? Number(value) : value });
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,23 +44,8 @@ export default function MenuManagementPage() {
     setLoading(true);
     setError("");
 
-    const formData = new FormData();
-    formData.append("store_id", storeId);
-    formData.append("name", form.name);
-    formData.append("price", form.price);
-    if (thumbnail) {
-      formData.append("thumbnail", thumbnail);
-    }
-
     try {
-      const res = await fetch("/api/menus", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "메뉴 등록에 실패했습니다.");
-      }
+      await menuApiClient.registerMenu(form, thumbnail);
       router.push(`/profile/store-management/${storeId}`);
     } catch (err: any) {
       setError(err.message);

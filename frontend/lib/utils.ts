@@ -45,3 +45,47 @@ export function formatTimeLeft(endTime: string): string {
     return `${seconds}초 남음`
   }
 }
+
+// 가격을 한국 통화 형식으로 포맷
+export function formatPrice(price: number): string {
+  return new Intl.NumberFormat('ko-KR').format(price);
+}
+
+// 현재 시간이 할인 기간 내에 있는지 확인
+export function isDiscountActive(startTime: string, endTime: string): boolean {
+  const now = new Date();
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  return now >= start && now <= end;
+}
+
+// Supabase Storage에서 이미지 URL 가져오기
+export function getPublicUrl(bucketName: string, path: string): string {
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!SUPABASE_URL) {
+    console.error("NEXT_PUBLIC_SUPABASE_URL is not defined");
+    return "";
+  }
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${path}`;
+}
+
+// 이미지 로딩 오류 처리
+export function handleImageError(event: React.SyntheticEvent<HTMLImageElement, Event>) {
+  event.currentTarget.src = '/no-image.jpg'; // 대체 이미지 경로
+  event.currentTarget.onerror = null; // 무한 루프 방지
+}
+
+export const getStatusInfo = (status: string) => {
+  switch (status) {
+    case "confirmed":
+      return { label: "예약확정", color: "bg-blue-500 text-white", description: "예약이 확정되었습니다." };
+    case "used":
+      return { label: "방문완료", color: "bg-green-500 text-white", description: "방문이 완료되었습니다." };
+    case "cancelled":
+      return { label: "예약취소", color: "bg-red-500 text-white", description: "예약이 취소되었습니다." };
+    case "active":
+      return { label: "예약확정", color: "bg-blue-500 text-white", description: "예약이 확정되었습니다." };
+    default:
+      return { label: "알 수 없음", color: "bg-gray-500 text-white", description: "" };
+  }
+};

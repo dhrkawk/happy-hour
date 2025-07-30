@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,44 +11,48 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient } from "@/lib/supabase/client";
+import { DiscountFormViewModel } from "@/lib/viewmodels/discounts/discount.viewmodel";
+import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
+import { DiscountApiClient } from "@/lib/services/discounts/discount.api-client";
+import { MenuListItemViewModel } from "@/lib/viewmodels/menus/menu.viewmodel";
 
 export default function DiscountManagementPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const storeId = params.id;
-  const supabase = createClient();
-  const [menus, setMenus] = useState<any[]>([]);
+  const menuApiClient = new MenuApiClient(storeId);
+  const discountApiClient = new DiscountApiClient();
+
+  const [menus, setMenus] = useState<MenuListItemViewModel[]>([]);
   const [selectedMenu, setSelectedMenu] = useState<string>("");
-  const [form, setForm] = useState({
-    discount_rate: "",
-    quantity: "",
+  const [form, setForm] = useState<DiscountFormViewModel>({
+    discount_rate: 0,
+    quantity: null,
     start_time: "",
     end_time: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // 메뉴 목록을 가져오는 훅 (Service Layer를 통해 API 호출)
   useEffect(() => {
     const fetchMenus = async () => {
-      const { data, error } = await supabase
-        .from("store_menus")
-        .select("id, name")
-        .eq("store_id", storeId);
-      if (error) {
-        console.error("Error fetching menus:", error);
-      } else {
+      try {
+        const data = await menuApiClient.getMenus();
         setMenus(data);
+      } catch (err: any) {
+        console.error("Error fetching menus:", err);
+        setError(err.message);
       }
     };
     fetchMenus();
-  }, [storeId, supabase]);
+  }, [storeId, menuApiClient]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === "menu") {
       setSelectedMenu(value);
     } else {
-      setForm({ ...form, [name]: value });
+      setForm({ ...form, [name]: name === "discount_rate" || name === "quantity" ? Number(value) : value });
     }
   };
 
@@ -63,23 +67,8 @@ export default function DiscountManagementPage({ params }: { params: { id: strin
       return;
     }
 
-    const formData = new FormData();
-    formData.append("store_id", storeId);
-    formData.append("menu_id", selectedMenu);
-    formData.append("discount_rate", form.discount_rate);
-    formData.append("quantity", form.quantity);
-    formData.append("start_time", form.start_time);
-    formData.append("end_time", form.end_time);
-
     try {
-      const res = await fetch("/api/discounts", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "할인 등록에 실패했습니다.");
-      }
+      await discountApiClient.registerDiscount(form, storeId, selectedMenu);
       router.push(`/profile/store-management/${storeId}`);
     } catch (err: any) {
       setError(err.message);
@@ -123,7 +112,7 @@ export default function DiscountManagementPage({ params }: { params: { id: strin
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="quantity">할인 수량</Label>
-                  <Input id="quantity" name="quantity" type="number" placeholder="선택 사항" value={form.quantity} onChange={handleChange} />
+                  <Input id="quantity" name="quantity" type="number" placeholder="선택 사항" value={form.quantity || ""} onChange={handleChange} />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

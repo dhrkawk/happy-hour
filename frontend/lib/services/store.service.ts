@@ -104,4 +104,37 @@ export class StoreService {
 
         return stores.map(mapRawToStoreEntity);
     }
+
+    async getStoreById(storeId: string): Promise<StoreEntity> {
+      const { data, error } = await this.supabase
+        .from("stores")
+        .select("name")
+        .eq("id", storeId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching store:", error);
+        throw new Error("가게 정보를 불러오는 데 실패했습니다.");
+      }
+
+      if (!data) {
+        throw new Error("가게를 찾을 수 없습니다.");
+      }
+      return data as StoreEntity;
+    }
+
+    async isStoreOwner(storeId: string, userId: string): Promise<boolean> {
+      const { data, error } = await this.supabase
+        .from('stores')
+        .select('owner_id')
+        .eq('id', storeId)
+        .single();
+
+      if (error) {
+        console.error('Error checking store ownership:', error);
+        return false;
+      }
+
+      return data?.owner_id === userId;
+    }
 }

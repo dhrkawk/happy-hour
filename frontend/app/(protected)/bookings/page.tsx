@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { ArrowLeft, MapPin, Hash, Clock, Phone, Loader2, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -10,63 +10,42 @@ import BottomNavigation from "@/components/bottom-navigation"
 import { createClient } from "@/lib/supabase/client"
 import useSWR from "swr"
 import { BookingCardViewModel, createBookingCardViewModel } from "@/lib/viewmodels/reservation-card.viewmodel"
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
-const getStatusInfo = (status: string) => {
-  switch (status) {
-    case "confirmed":
-      return { label: "예약확정", color: "bg-blue-500 text-white", description: "예약이 확정되었습니다." };
-    case "used":
-      return { label: "방문완료", color: "bg-green-500 text-white", description: "방문이 완료되었습니다." };
-    case "cancelled":
-      return { label: "예약취소", color: "bg-red-500 text-white", description: "예약이 취소되었습니다." };
-    default:
-      return { label: "알 수 없음", color: "bg-gray-500 text-white", description: "" };
-  }
-};
+import { ReservationService } from "@/lib/services/reservation.service"
+import { getStatusInfo } from "@/lib/utils"
 
 export default function BookingsPage() {
-  const { data, error, isLoading } = useSWR('/api/reservations', fetcher);
+  const supabase = createClient();
+  const reservationService = new ReservationService(supabase);
+
+  const fetcher = async (key: string) => {
+    if (key === '/api/reservations') {
+      return await reservationService.getMyReservations();
+    }
+    throw new Error('Unknown fetch key');
+  };
+
+  const { data, error, isLoading, mutate } = useSWR('/api/reservations', fetcher);
   const [cancelingBookingId, setCancelingBookingId] = useState<string | null>(null);
   const bookings: BookingCardViewModel[] = data
     ? data.map(createBookingCardViewModel)
     : [];
 
-
-    const handleCancelBooking = async (bookingId: string) => {
-      if (!confirm("정말로 이 예약을 취소하시겠습니까?")) return;
-    
-      setCancelingBookingId(bookingId);
-    
-      try {
-        const response = await fetch('/api/reservations/cancel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reservation_id: bookingId }),
-        });
-    
-        const result = await response.json();
-    
-        if (!response.ok) {
-          throw new Error(result.error || '예약 취소에 실패했습니다.');
-        }
-    
-        // 상태 동기화
-        // setBookings((prev) =>
-        //   prev.map((booking) =>
-        //     booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking
-        //   )
-        // );
-    
-        alert('예약이 성공적으로 취소되었습니다.');
-      } catch (error: any) {
-        console.error('예약 취소 오류:', error);
-        alert(`예약 취소 실패: ${error.message}`);
-      } finally {
-        setCancelingBookingId(null);
-      }
-    };
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!confirm("정말로 이 예약을 취소하시겠습니까?")) return;
+  
+    setCancelingBookingId(bookingId);
+  
+    try {
+      await reservationService.cancelReservation(bookingId);
+      alert('예약이 성공적으로 취소되었습니다.');
+      mutate(); // 데이터 갱신
+    } catch (error: any) {
+      console.error('예약 취소 오류:', error);
+      alert(`예약 취소 실패: ${error.message}`);
+    } finally {
+      setCancelingBookingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -81,7 +60,7 @@ export default function BookingsPage() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">{error}</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">{error.message}</h1>
           <Link href="/home">
             <Button className="bg-teal-500 hover:bg-teal-600 text-white">홈으로 돌아가기</Button>
           </Link>
