@@ -4,6 +4,7 @@ import { ReservationService } from '@/lib/services/reservation.service';
 
 // DB 스키마에 맞게 수정된 ReservationItem 타입
 type ReservationItem = {
+  menu_name: string;
   quantity: number;
   price: number;
   discount_rate: number;

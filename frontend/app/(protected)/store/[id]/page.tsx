@@ -9,26 +9,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { notFound } from "next/navigation"
 import { useAppContext } from "@/contexts/app-context"
+import { createCartItem } from "@/lib/viewmodels/cart-item.viewmodel";
 import type { StoreDetailEntity } from "@/lib/entities/store-detail.entity";
-import { StoreDetailViewModel, createStoreDetailViewModel } from "@/lib/viewmodels/store-detail.viewmodel"; 
-
-interface StoreMenu {
-  id: string
-  name: string
-  originalPrice: number
-  discountPrice: number
-  description: string
-  thumbnail?: string
-  discountId: string | null; // 추가된 필드
-  discountRate: number;
-  discountEndTime: string;
-}
-  interface CartItem {
-    id: string
-    name: string
-    price: number
-    quantity: number
-  }
+import { StoreDetailViewModel, createStoreDetailViewModel, StoreMenuViewModel } from "@/lib/viewmodels/store-detail.viewmodel";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -36,11 +19,13 @@ export default function StorePage() {
   const router = useRouter();
   const params = useParams();
   const storeId = params.id as string;
-  const { coordinates } = useAppContext().appState.location;
+  
+  const { appState, addToCart, updateItemQuantity, removeFromCart, getCartTotals } = useAppContext();
+  const { location, cart } = appState;
+  const { coordinates } = location;
 
   const [viewmodel, setViewModel] = useState<StoreDetailViewModel>();
   const [error, setError] = useState<string | null>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [activeTab, setActiveTab] = useState("menu");
   const [isLiked, setIsLiked] = useState(false);
 
@@ -65,7 +50,35 @@ export default function StorePage() {
     }
   }, [storeData, coordinates])
 
-  if (!viewmodel) {
+  const handleAddToCart = (menu: StoreMenuViewModel) => {
+    if (!viewmodel) return;
+    const cartItem = createCartItem(menu);
+    addToCart({ id: viewmodel.id, name: viewmodel.name }, cartItem);
+  };
+
+  const handleRemoveFromCart = (menuId: string) => {
+    const currentQuantity = getCartQuantity(menuId);
+    if (currentQuantity > 1) {
+      updateItemQuantity(menuId, currentQuantity - 1);
+    } else {
+      removeFromCart(menuId);
+    }
+  };
+
+  const getCartQuantity = (menuId: string) => {
+    return cart?.items.find(item => item.menuId === menuId)?.quantity ?? 0;
+  };
+
+  const { totalItems, totalPrice } = getCartTotals();
+
+  const handleReservation = () => {
+    if (!cart || cart.items.length === 0) {
+      return;
+    }
+    router.push(`/booking/${cart.storeId}`);
+  };
+
+  if (isValidating && !viewmodel) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
@@ -74,7 +87,7 @@ export default function StorePage() {
     )
   }
 
-  if (error) {
+  if (error || !viewmodel) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -87,85 +100,9 @@ export default function StorePage() {
     )
   }
 
-  // 장바구니에 메뉴 추가
-  const addToCart = (menuItem: StoreMenu) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.id === menuItem.id)
-      if (existingItem) {
-        return prevCart.map((item) => (item.id === menuItem.id ? { ...item, quantity: item.quantity + 1 } : item))
-      } else {
-        return [
-          ...prevCart,
-          {
-            id: menuItem.id,
-            name: menuItem.name,
-            price: menuItem.discountPrice,
-            quantity: 1,
-          },
-        ]
-      }
-    })
-  }
-
-  // 장바구니에서 메뉴 제거
-  const removeFromCart = (menuId: string) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.id === menuId)
-      if (existingItem && existingItem.quantity > 1) {
-        return prevCart.map((item) => (item.id === menuId ? { ...item, quantity: item.quantity - 1 } : item))
-      } else {
-        return prevCart.filter((item) => item.id !== menuId)
-      }
-    })
-  }
-
-  // 장바구니에서 특정 메뉴의 수량 가져오기
-  const getCartQuantity = (menuId: string) => {
-    const item = cart.find((item) => item.id === menuId)
-    return item ? item.quantity : 0
-  }
-
-  // 총 금액 계산
-  const getTotalAmount = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0)
-  }
-
-  // 총 수량 계산
-  const getTotalQuantity = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0)
-  }
-
-  // 예약하기 버튼 클릭 시 장바구니 정보를 localStorage에 저장하고 예약 페이지로 이동
-  const handleReservation = () => {
-    if (cart.length === 0 || !storeData) {
-      // 장바구니가 비었거나 가게 정보가 없으면 아무것도 하지 않음
-      return;
-    }
-
-    // localStorage에 저장할 데이터 준비
-    const cartToSave = cart.map(item => ({
-      ...item,
-      // 각 메뉴에 대한 할인 ID를 찾아서 추가
-      discount_id: viewmodel.menu?.find(m => m.id === item.id)?.discountId || null,
-    }));
-
-    const storeInfoToSave = {
-      id: storeData.id,
-      name: storeData.name,
-      address: storeData.address,
-    };
-
-    // localStorage에 데이터 저장
-    localStorage.setItem('cartItems', JSON.stringify(cartToSave));
-    localStorage.setItem('storeInfo', JSON.stringify(storeInfoToSave));
-
-    // 예약 생성 페이지로 이동
-    router.push(`/booking/${storeData.id}`);
-  };
-
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto">
-      {/* 헤더 */}
+      {/* Header */}
       <header className="bg-white shadow-sm border-b border-teal-100 relative z-10">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
@@ -189,7 +126,7 @@ export default function StorePage() {
         </div>
       </header>
 
-      {/* 가게 썸네일 */}
+      {/* Store Thumbnail */}
       <div className="relative">
         <div className="h-64 bg-gray-200">
           <img
@@ -200,7 +137,7 @@ export default function StorePage() {
         </div>
       </div>
 
-      {/* 가게 기본 정보 */}
+      {/* Store Info */}
       <div className="px-4 py-4 border-b border-gray-100">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
@@ -220,11 +157,10 @@ export default function StorePage() {
             </div>
           </div>
         </div>
-
         <p className="text-gray-600 text-sm leading-relaxed">{viewmodel.description}</p>
       </div>
 
-      {/* 탭 메뉴 */}
+      {/* Tabs */}
       <div className="px-4 py-4 bg-white border-b border-gray-100">
         <div className="flex bg-gray-100 rounded-lg p-1">
           <button
@@ -246,16 +182,16 @@ export default function StorePage() {
         </div>
       </div>
 
-      {/* 탭 콘텐츠 */}
+      {/* Tab Content */}
       <div className="px-4 py-4 pb-32">
         {activeTab === "menu" && (
           <div className="space-y-3">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800">할인 메뉴</h3>
-              {cart.length > 0 && (
+              {cart && cart.items.length > 0 && (
                 <div className="flex items-center gap-2 text-teal-600">
                   <ShoppingCart className="w-4 h-4" />
-                  <span className="text-sm font-medium">{getTotalQuantity()}개 선택</span>
+                  <span className="text-sm font-medium">{totalItems}개 선택</span>
                 </div>
               )}
             </div>
@@ -292,7 +228,7 @@ export default function StorePage() {
                               variant="outline"
                               size="sm"
                               className="w-8 h-8 p-0 bg-transparent"
-                              onClick={() => removeFromCart(item.id)}
+                              onClick={() => handleRemoveFromCart(item.id)}
                             >
                               <Minus className="w-4 h-4" />
                             </Button>
@@ -301,7 +237,7 @@ export default function StorePage() {
                               variant="outline"
                               size="sm"
                               className="w-8 h-8 p-0 bg-transparent"
-                              onClick={() => addToCart(item)}
+                              onClick={() => handleAddToCart(item)}
                             >
                               <Plus className="w-4 h-4" />
                             </Button>
@@ -310,7 +246,7 @@ export default function StorePage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => addToCart(item)}
+                            onClick={() => handleAddToCart(item)}
                             className="bg-teal-50 border-teal-200 text-teal-600 hover:bg-teal-100"
                           >
                             <Plus className="w-4 h-4 mr-1" />
@@ -361,16 +297,16 @@ export default function StorePage() {
         )}
       </div>
 
-      {/* 하단 고정 예약 버튼 */}
+      {/* Floating Reservation Button */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-teal-100 p-4 shadow-lg max-w-xl mx-auto">
-        {cart.length > 0 ? (
+        {cart && cart.items.length > 0 ? (
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">선택한 메뉴 {getTotalQuantity()}개</span>
-              <span className="font-bold text-lg text-teal-600">{getTotalAmount().toLocaleString()}원</span>
+              <span className="text-gray-600">선택한 메뉴 {totalItems}개</span>
+              <span className="font-bold text-lg text-teal-600">{totalPrice.toLocaleString()}원</span>
             </div>
             <Button className="w-full bg-teal-500 hover:bg-teal-600 text-white py-4 text-lg font-semibold" onClick={handleReservation}>
-              {getTotalAmount().toLocaleString()}원으로 예약하기
+              {totalPrice.toLocaleString()}원으로 예약하기
             </Button>
           </div>
         ) : (

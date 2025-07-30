@@ -9,5 +9,14 @@ export interface ReservationEntity {
     // 확장: 함께 가져올 수 있는 정보들
     storeName?: string;
     storeThumbnail?: string;
-    itemCount?: number;
+    storeAddress?: string;
+    storePhone?: string;
+    reservationItems?: ReservationItem[];
   }
+
+export interface ReservationItem {
+    menuName: string;
+    quantity: number;
+    price: number;
+    discountRate: number;
+}
