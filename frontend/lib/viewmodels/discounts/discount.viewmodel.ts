@@ -3,14 +3,15 @@ export interface DiscountFormViewModel {
   quantity: number | null;
   start_time: string;
   end_time: string;
+  menu_id: string;
 }
 
-export interface DiscountListItemViewModel {
+export interface DiscountViewModel {
   id: string;
-  discount_rate: number;
-  quantity: number | null;
-  start_time: string;
-  end_time: string;
-  menuName: string;
-  storeName: string;
+  name: string;
+  description: string;
+  discountType: string;
+  value: number;
+  startDate: string;
+  endDate: string;
 }

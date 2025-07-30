@@ -1,27 +1,39 @@
-import { DiscountFormViewModel } from '@/lib/viewmodels/discounts/discount.viewmodel';
+import { DiscountFormViewModel, DiscountListItemViewModel } from '@/lib/viewmodels/discounts/discount.viewmodel';
 import { DiscountEntity } from '@/lib/entities/discounts/discount.entity';
 
 export class DiscountApiClient {
   private baseUrl: string;
 
-  constructor() {
-    this.baseUrl = '/api/discounts';
+  constructor(storeId: string) {
+    this.baseUrl = `/api/stores/${storeId}/discounts`;
   }
 
-  async registerDiscount(discountData: DiscountFormViewModel, storeId: string, menuId: string): Promise<DiscountEntity> {
-    const formData = new FormData();
-    formData.append('store_id', storeId);
-    formData.append('menu_id', menuId);
-    formData.append('discount_rate', discountData.discount_rate.toString());
-    if (discountData.quantity !== null && discountData.quantity !== undefined) {
-      formData.append('quantity', discountData.quantity.toString());
+  async getDiscounts(): Promise<DiscountListItemViewModel[]> {
+    const response = await fetch(this.baseUrl);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch discounts');
     }
-    formData.append('start_time', discountData.start_time);
-    formData.append('end_time', discountData.end_time);
+    return response.json();
+  }
 
+  async getDiscountById(discountId: string): Promise<DiscountEntity> {
+    const response = await fetch(`${this.baseUrl}/${discountId}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch discount');
+    }
+    return response.json();
+  }
+
+  async registerDiscount(discountData: DiscountFormViewModel): Promise<DiscountEntity> {
     const response = await fetch(this.baseUrl, {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(discountData),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -31,5 +43,30 @@ export class DiscountApiClient {
     return response.json();
   }
 
-  // TODO: get, update, delete discount methods if needed
+  async updateDiscount(discountId: string, discountData: Partial<DiscountFormViewModel>): Promise<DiscountEntity> {
+    const response = await fetch(`${this.baseUrl}/${discountId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(discountData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update discount');
+    }
+    return response.json();
+  }
+
+  async deleteDiscount(discountId: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/${discountId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to delete discount');
+    }
+  }
 }

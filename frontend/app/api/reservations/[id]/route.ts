@@ -29,9 +29,7 @@ export async function GET(request: NextRequest, context: { params: { id: string 
   }
 }
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
+
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const cookieStore = cookies();

@@ -10,6 +10,7 @@ import BottomNavigation from "@/components/bottom-navigation"
 import { createClient } from "@/lib/supabase/client"
 import useSWR from "swr"
 import { BookingCardViewModel, createBookingCardViewModel } from "@/lib/viewmodels/reservation-card.viewmodel"
+import { ReservationService } from "@/lib/services/reservation.service"
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -138,7 +139,7 @@ export default function BookingsPage() {
                               <MapPin className="w-4 h-4" />
                               <span className="text-sm">{booking.address}</span>
                             </div>
-                             <p className="text-sm text-gray-500">{statusInfo.description}</p>
+                            <p className="text-sm text-gray-500">{statusInfo.description}</p>
                           </div>
                           <div className="text-center">
                             <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mx-auto mb-1">
