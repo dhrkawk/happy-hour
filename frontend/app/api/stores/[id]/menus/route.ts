@@ -5,14 +5,17 @@ import { StoreService } from '@/lib/services/store.service';
 import { Database } from '@/lib/supabase/types';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
+  console.log("API Route /api/stores/[id]/menus GET called");
   const storeId = params.id;
   const supabase = await createClient();
+  console.log("Supabase client created:", !!supabase); // Check if supabase is truthy
   const menuService = new MenuService(supabase);
 
   try {
     const menus = await menuService.getMenusByStoreId(storeId);
     return NextResponse.json(menus);
   } catch (error: any) {
+    console.error("Error in GET /api/stores/[id]/menus:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
