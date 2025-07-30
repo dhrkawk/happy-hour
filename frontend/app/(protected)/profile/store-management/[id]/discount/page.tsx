@@ -93,7 +93,7 @@ export default function DiscountManagementPage() {
         formData.append("start_time", timeRange.start_time);
         formData.append("end_time", timeRange.end_time);
 
-        const res = await fetch("/api/protected/discounts", {
+        const res = await fetch("/api/discounts", {
           method: "POST",
           body: formData,
         });
