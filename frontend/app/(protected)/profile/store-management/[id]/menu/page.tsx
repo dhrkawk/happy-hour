@@ -83,7 +83,7 @@ export default function MenuManagementPage() {
           formData.append("thumbnail", form.thumbnail);
         }
 
-        const res = await fetch("/api/protected/menus", {
+        const res = await fetch("/api/menus", {
           method: "POST",
           body: formData,
         });
