@@ -1,101 +1,46 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, MapPin, Clock, ShoppingCart, Loader2, AlertCircle } from "lucide-react"
+import { useRouter, useParams } from "next/navigation"
+import { ArrowLeft, MapPin, ShoppingCart, Loader2, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
-
-// 타입 정의
-interface CartItem {
-  id: string // menu_id
-  name: string
-  price: number
-  quantity: number
-  discount_id: string | null // 할인 ID 추가
-}
-
-interface StoreInfo {
-  id: string // store_id
-  name: string
-  address: string
-}
+import { useAppContext } from "@/contexts/app-context" // Import the context
 
 export default function BookingCreationPage() {
-  const router = useRouter();
-  const params = useParams();
-  const { toast } = useToast();
-  const storeId = params.id as string;
+  const router = useRouter()
+  const params = useParams()
+  const { toast } = useToast()
+  const { appState, clearCart, getCartTotals } = useAppContext() // Use the context
+  const storeId = params.id as string
 
-  // 상태 관리
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const { cart } = appState
+
   useEffect(() => {
-    const loadData = () => {
-      try {
-        const savedCartItems = localStorage.getItem('cartItems');
-        const savedStoreInfo = localStorage.getItem('storeInfo');
+    // Validate that the cart exists and belongs to the correct store
+    if (!cart) {
+      setError("장바구니가 비어있습니다. 가게 페이지로 돌아가 메뉴를 담아주세요.")
+    } else if (cart.storeId !== storeId) {
+      setError("장바구니 정보가 현재 가게와 일치하지 않습니다. 장바구니를 비우고 다시 시도해주세요.")
+      clearCart() // Clear the invalid cart
+    }
+  }, [cart, storeId, clearCart])
 
-        if (savedCartItems && savedStoreInfo) {
-          const cart = JSON.parse(savedCartItems);
-          const store = JSON.parse(savedStoreInfo);
+  // Get totals from context
+  const { totalItems, totalPrice } = getCartTotals()
 
-          // 데이터 형식 및 유효성 검증 강화
-          if (!store || typeof store !== 'object' || !store.id) {
-            setError("가게 정보가 올바르지 않습니다. 다시 시도해주세요.");
-            return;
-          }
-          if (!Array.isArray(cart)) {
-            setError("장바구니 정보가 올바르지 않습니다. 다시 시도해주세요.");
-            return;
-          }
-
-          // 현재 페이지의 storeId와 localStorage의 store.id가 일치하는지 확인
-          if (store.id !== storeId) {
-            setError("장바구니 정보가 현재 가게와 일치하지 않습니다. 장바구니를 비우고 다시 시도해주세요.");
-            setCartItems([]);
-            setStoreInfo(null);
-          } else {
-            setError(null); // 데이터가 유효하면 기존 에러 메시지 제거
-            setCartItems(cart);
-            setStoreInfo(store);
-          }
-        } else {
-          setError("장바구니에 담긴 메뉴가 없습니다. 가게 페이지로 돌아가 메뉴를 담아주세요.");
-        }
-      } catch (e) {
-        setError("예약 정보를 불러오는 중 오류가 발생했습니다. 장바구니를 비워주세요.");
-        console.error("Failed to parse localStorage data:", e);
-      }
-    };
-
-    loadData();
-
-    // 다른 탭/창에서의 localStorage 변경 감지
-    window.addEventListener('storage', loadData);
-
-    return () => {
-      window.removeEventListener('storage', loadData);
-    };
-  }, [storeId]);
-
-  // 총 결제 금액 및 수량 계산
-  const getTotalAmount = () => cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
-  const getTotalQuantity = () => cartItems.reduce((total, item) => total + item.quantity, 0)
-
-  // 예약 확정 핸들러
+  // Booking handler
   const handleBooking = async () => {
-    if (!storeInfo || cartItems.length === 0) {
+    if (!cart || cart.items.length === 0) {
       toast({
         variant: "destructive",
         title: "오류",
-        description: "가게 정보 또는 장바구니에 담긴 메뉴가 없습니다.",
+        description: "장바구니에 담긴 메뉴가 없습니다.",
       })
       return
     }
@@ -103,14 +48,15 @@ export default function BookingCreationPage() {
     setIsLoading(true)
     setError(null)
 
-    // API에 보낼 데이터 구성
+    // Construct payload from cart state
     const payload = {
-      store_id: storeInfo.id,
-      reserved_time: new Date().toISOString(),
-      items: cartItems.map(item => ({
+      store_id: cart.storeId,
+      reserved_time: new Date().toISOString(), // Reservation time is now
+      items: cart.items.map(item => ({
+        menu_name: item.name, // Add menu_name here
         quantity: item.quantity,
-        price: item.price, // 예: 15000
-        discount_rate: 0, // 예: 20 (20%)
+        price: item.price, // Final price
+        discount_rate: Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100),
       })),
     }
 
@@ -127,9 +73,8 @@ export default function BookingCreationPage() {
         throw new Error(result.error || "알 수 없는 오류로 예약에 실패했습니다.")
       }
 
-      // 예약 성공 시 localStorage 정리 및 상세 페이지로 이동
-      localStorage.removeItem('cartItems');
-      localStorage.removeItem('storeInfo');
+      // On success, clear the cart from context and navigate
+      clearCart()
 
       toast({
         title: "예약 완료!",
@@ -151,12 +96,12 @@ export default function BookingCreationPage() {
     }
   }
 
-  if (error) {
+  if (error || !cart) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
         <h2 className="text-xl font-semibold text-gray-800 mb-2">오류 발생</h2>
-        <p className="text-gray-600 text-center mb-6">{error}</p>
+        <p className="text-gray-600 text-center mb-6">{error || "예약 정보를 불러올 수 없습니다."}</p>
         <Link href="/home">
           <Button>홈으로 돌아가기</Button>
         </Link>
@@ -178,18 +123,15 @@ export default function BookingCreationPage() {
       </header>
 
       <main className="px-4 py-6 max-w-xl mx-auto">
-        {/* 가게 정보 */}
+        {/* Store Info */}
         <Card className="border-teal-200 mb-6">
           <CardContent className="p-4">
-            <h2 className="text-xl font-semibold text-gray-800 mb-3">{storeInfo?.name}</h2>
-            <div className="flex items-center gap-1.5 text-gray-600">
-              <MapPin className="w-4 h-4" />
-              <span className="text-sm">{storeInfo?.address}</span>
-            </div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-3">{cart.storeName}</h2>
+            {/* Address can be added to cart state if needed */}
           </CardContent>
         </Card>
 
-        {/* 주문 메뉴 */}
+        {/* Order Summary */}
         <Card className="border-teal-200 mb-6">
           <CardHeader>
             <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
@@ -198,8 +140,8 @@ export default function BookingCreationPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {cartItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            {cart.items.map((item) => (
+              <div key={item.menuId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-800">{item.name}</h4>
                   <p className="text-sm text-gray-500">
@@ -213,14 +155,14 @@ export default function BookingCreationPage() {
             ))}
             <div className="border-t pt-3 mt-3">
               <div className="flex items-center justify-between font-bold text-lg">
-                <span>총 {getTotalQuantity()}개</span>
-                <span className="text-teal-600">{getTotalAmount().toLocaleString()}원</span>
+                <span>총 {totalItems}개</span>
+                <span className="text-teal-600">{totalPrice.toLocaleString()}원</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* 주의사항 */}
+        {/* Disclaimers */}
         <Card className="border-orange-200 bg-orange-50 mb-6">
           <CardContent className="p-4">
             <h3 className="font-semibold text-orange-700 mb-2">주의사항</h3>
@@ -232,16 +174,16 @@ export default function BookingCreationPage() {
           </CardContent>
         </Card>
 
-        {/* 예약 확정 버튼 */}
+        {/* Confirmation Button */}
         <Button
           onClick={handleBooking}
-          disabled={isLoading || cartItems.length === 0}
+          disabled={isLoading || cart.items.length === 0}
           className="w-full bg-teal-500 hover:bg-teal-600 text-white py-3 text-lg font-semibold"
         >
           {isLoading ? (
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           ) : (
-            `${getTotalAmount().toLocaleString()}원 예약 확정하기`
+            `${totalPrice.toLocaleString()}원 예약 확정하기`
           )}
         </Button>
       </main>

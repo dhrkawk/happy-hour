@@ -16,7 +16,7 @@ import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
 import { DiscountApiClient } from "@/lib/services/discounts/discount.api-client";
 import { MenuListItemViewModel } from "@/lib/viewmodels/menus/menu.viewmodel";
 
-export default function DiscountManagementPage({ params }: { params: { id: string } }) {
+export default function DiscountManagementPage() {
   const router = useRouter();
   const storeId = params.id;
   const menuApiClient = new MenuApiClient(storeId);
@@ -61,11 +61,11 @@ export default function DiscountManagementPage({ params }: { params: { id: strin
     setLoading(true);
     setError("");
 
-    if (!selectedMenu) {
-      setError("메뉴를 선택해주세요.");
-      setLoading(false);
-      return;
-    }
+    try {
+      for (const form of forms) {
+        if (!form.menu_id) {
+          throw new Error("모든 할인 항목에 메뉴를 선택해주세요.");
+        }
 
     try {
       await discountApiClient.registerDiscount(form, storeId, selectedMenu);
@@ -83,7 +83,9 @@ export default function DiscountManagementPage({ params }: { params: { id: strin
         <Card>
           <CardHeader>
             <CardTitle className="text-3xl font-bold text-center text-teal-600">할인 관리</CardTitle>
-            <CardDescription className="text-center text-gray-500">메뉴를 선택하고 할인 정보를 입력해주세요.</CardDescription>
+            <CardDescription className="text-center text-gray-500">
+              할인 정보를 입력해주세요.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -120,13 +122,14 @@ export default function DiscountManagementPage({ params }: { params: { id: strin
                   <Label htmlFor="start_time">할인 시작일시</Label>
                   <Input id="start_time" name="start_time" type="datetime-local" value={form.start_time} onChange={handleChange} required />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="end_time">할인 종료일시</Label>
-                  <Input id="end_time" name="end_time" type="datetime-local" value={form.end_time} onChange={handleChange} required />
-                </div>
-              </div>
+              ))}
+
               {error && <div className="text-red-500 text-sm font-medium text-center">{error}</div>}
-              <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white text-lg font-semibold py-3 rounded-lg transition-colors" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full bg-teal-600 hover:bg-teal-700 text-white text-lg font-semibold py-3 rounded-lg transition-colors"
+                disabled={loading}
+              >
                 {loading ? "등록 중..." : "등록 완료"}
               </Button>
             </form>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { MapPin, Clock, RefreshCw, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -8,13 +8,12 @@ import useSWR from "swr"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { StoreCard } from "@/components/store-card"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
 import { StoreCardSkeleton } from "@/components/store-card-skeleton"
 import { useAppContext } from "@/contexts/app-context"
 import { createClient } from "@/lib/supabase/client"
-import { calculateDistance } from "@/lib/utils"
 import type { StoreEntity } from "@/lib/entities/store.entity"
 import { StoreCardViewModel, createStoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
 
@@ -28,8 +27,8 @@ export default function HomePage() {
   const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } = appState.location
   
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
+  const [selectedSorting, setSelectedSorting] = useState<"거리순"|"할인순">("할인순");
   const [allViewModels, setAllViewModels] = useState<StoreCardViewModel[]>([])
-  const [filteredViewModels, setFilteredViewModels] = useState<StoreCardViewModel[]>([])
   const [onboardingChecked, setOnboardingChecked] = useState(false)
 
   // 1. 온보딩/로그인 여부 확인
@@ -73,30 +72,29 @@ export default function HomePage() {
   // 3. 가져온 StoreEntity를 StoreCardViewModel로 변환합니다.
   useEffect(() => {
     if (storeEntities && coordinates) {
-      // 거리순으로 정렬 후 ViewModel로 변환
-      const sortedEntities = [...storeEntities].sort((a, b) => {
-        const distA = calculateDistance(coordinates.lat, coordinates.lng, a.lat, a.lng)
-        const distB = calculateDistance(coordinates.lat, coordinates.lng, b.lat, b.lng)
-        return distA - distB
-      })
-
-      const viewModels = sortedEntities.map((entity) =>
+      const storeList = storeEntities.map((entity) =>
         createStoreCardViewModel(entity, coordinates)
       )
+      const viewModels_distance = StoreCardViewModel.sortByDistance(storeList)
+      const viewModels = StoreCardViewModel.sortByDiscount(viewModels_distance)
       setAllViewModels(viewModels)
     }
   }, [storeEntities, coordinates])
 
-  // 4. 카테고리에 따라 ViewModel을 필터링합니다.
-  useEffect(() => {
-    if (selectedCategory === "전체") {
-      setFilteredViewModels(allViewModels)
+  // 필터링 + 정렬을 통합 처리한 최종 ViewModel 리스트
+  const finalViewModels = useMemo(() => {
+    // 1. 카테고리 필터링
+    const categoryFiltered = StoreCardViewModel.filterByCategory(allViewModels, selectedCategory);
+
+    // 2. 정렬
+    if (selectedSorting === "거리순") {
+      return StoreCardViewModel.sortByDistance(categoryFiltered);
+    } else if (selectedSorting === "할인순") {
+      return StoreCardViewModel.sortByDiscount(categoryFiltered);
     } else {
-      setFilteredViewModels(
-        allViewModels.filter((vm) => vm.category === selectedCategory)
-      )
+      return categoryFiltered;
     }
-  }, [selectedCategory, allViewModels])
+  }, [selectedCategory, selectedSorting, allViewModels, coordinates]);
   
   const isDataReady =
   onboardingChecked &&
@@ -146,16 +144,32 @@ export default function HomePage() {
       <main className="px-4 py-4 space-y-4 pb-24">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">
-            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} ({filteredViewModels.length})
+            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} ({finalViewModels.length})
           </h2>
-          <Badge variant="secondary" className="bg-teal-100 text-teal-700">
-            거리순
-          </Badge>
+          <div className="flex items-center gap-2">
+            {(["거리순", "할인순"] as const).map((label) => (
+              <Badge
+                key={label}
+                variant="secondary"
+                className="bg-teal-100 px-3 py-1 rounded-full"
+              >
+                <Button
+                  variant="link"
+                  className={`text-sm p-0 h-auto ${
+                    selectedSorting === label ? "text-teal-600 font-semibold" : "text-gray-500"
+                  }`}
+                  onClick={() => setSelectedSorting(label)}
+                >
+                  {label}
+                </Button>
+              </Badge>
+            ))}
+          </div>
         </div>
 
         {!isDataReady ? (
           Array.from({ length: 5 }).map((_, index) => <StoreCardSkeleton key={index} />)
-        ) : filteredViewModels.length === 0 ? (
+        ) : finalViewModels.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">해당 카테고리의 할인 가게가 없습니다</h3>
@@ -165,50 +179,9 @@ export default function HomePage() {
             </Button>
           </div>
         ) : (
-          filteredViewModels.map((vm) => (
+          finalViewModels.map((vm) => (
             <Link key={vm.id} href={`/store/${vm.id}`}>
-              <Card className="overflow-hidden hover:shadow-lg transition-shadow border-teal-100">
-                <CardContent className="p-0">
-                  <div className="flex items-center">
-                    <div className="w-20 h-20 bg-gray-200 flex-shrink-0">
-                      <img
-                        src={vm.thumbnailUrl}
-                        alt={vm.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 p-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-800 text-sm">{vm.name}</h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <MapPin className="w-3 h-3" />
-                              {vm.distance}
-                            </div>
-                            <span className="text-xs text-gray-400">{vm.category}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mt-2">
-                              {vm.maxDiscountRate ? <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs">최대 {vm.maxDiscountRate}% 할인</Badge> : null}
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <Clock className="w-3 h-3" />
-                              {vm.timeLeftText}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-gray-400 line-through">
-                            {vm.originalPrice?.toLocaleString()}원
-                          </div>
-                          <div className="text-sm font-bold text-teal-600">
-                            {vm.discountPrice?.toLocaleString()}원
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <StoreCard vm={vm} />
             </Link>
           ))
         )}

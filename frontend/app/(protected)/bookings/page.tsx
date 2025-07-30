@@ -10,8 +10,23 @@ import BottomNavigation from "@/components/bottom-navigation"
 import { createClient } from "@/lib/supabase/client"
 import useSWR from "swr"
 import { BookingCardViewModel, createBookingCardViewModel } from "@/lib/viewmodels/reservation-card.viewmodel"
-import { ReservationService } from "@/lib/services/reservation.service"
-import { getStatusInfo } from "@/lib/utils"
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+const getStatusInfo = (status: string) => {
+  switch (status) {
+    case "confirmed":
+      return { label: "예약확정", color: "bg-blue-500 text-white", description: "예약이 확정되었습니다." };
+    case "used":
+      return { label: "방문완료", color: "bg-green-500 text-white", description: "방문이 완료되었습니다." };
+    case "cancelled":
+      return { label: "예약취소", color: "bg-red-500 text-white", description: "예약이 취소되었습니다." };
+    case "pending":
+      return { label: "예약대기", color: "bg-yellow-500 text-white", description: "예약 승인 대기중입니다."};
+    default:
+      return { label: "알 수 없음", color: "bg-gray-500 text-white", description: "" };
+  }
+};
 
 export default function BookingsPage() {
   const supabase = createClient();
