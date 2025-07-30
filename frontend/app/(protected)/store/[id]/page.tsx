@@ -30,7 +30,7 @@ export default function StorePage() {
   const [isLiked, setIsLiked] = useState(false);
 
   const { data: storeData, error: swrError, isValidating } = useSWR<StoreDetailEntity>(
-    `/api/store/${storeId}`,
+    `/api/stores/${storeId}`,
     fetcher,
     {
       onSuccess: (data) => {

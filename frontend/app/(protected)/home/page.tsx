@@ -61,11 +61,11 @@ export default function HomePage() {
     checkOnboarding()
   }, [router, supabase])
 
-  // 2. SWR을 사용하여 API로부터 StoreEntity 데이터를 가져옵니다.
+  // 2. SWR을 사용하여 API로부터 StoreEnttiy 데이터를 가져옵니다.
   // 온보딩이 확인되고, 사용자 위치가 있을 때만 데이터를 요청합니다.
   const shouldFetch = onboardingChecked && !!coordinates
   const { data: storeEntities, isLoading: loadingStores } = useSWR<StoreEntity[]>(
-    shouldFetch ? "/api/store" : null,
+    shouldFetch ? "/api/stores" : null,
     fetcher
   )
 
