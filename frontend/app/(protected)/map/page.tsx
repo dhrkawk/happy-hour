@@ -26,6 +26,8 @@ export default function MapPage() {
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>("전체")
   const [allViewModels, setAllViewModels] = useState<StoreCardViewModel[]>([])
+  const [selectedSorting, setSelectedSorting] = useState<"거리순"|"할인순">("할인순");
+
 
   // Fetch stores from Supabase
   const shouldFetch = !!coordinates
@@ -50,18 +52,17 @@ export default function MapPage() {
     const finalViewModels = useMemo(() => {
     // 1. 카테고리 필터링
     const categoryFiltered = StoreCardViewModel.filterByCategory(allViewModels, selectedCategory);
-    return categoryFiltered
 
     // 2. 정렬
-    // if (selectedSorting === "거리순") {
-    //   return StoreCardViewModel.sortByDistance(categoryFiltered);
-    // } else if (selectedSorting === "할인순") {
-    //   return StoreCardViewModel.sortByDiscount(categoryFiltered);
-    // } else {
-    //   return categoryFiltered;
-    // }
-  // }, [selectedCategory, selectedSorting, allViewModels, coordinates]);
-  }, [selectedCategory, allViewModels, coordinates]);
+    if (selectedSorting === "거리순") {
+      return StoreCardViewModel.sortByDistance(categoryFiltered);
+    } else if (selectedSorting === "할인순") {
+      return StoreCardViewModel.sortByDiscount(categoryFiltered);
+    } else {
+      return categoryFiltered;
+    }
+  }, [selectedCategory, selectedSorting, allViewModels, coordinates]);
+
 
   const selectedStore = finalViewModels.find(store => store.id === selectedStoreId)
 
@@ -121,9 +122,25 @@ export default function MapPage() {
             {selectedCategory === "전체" ? "근처 할인 가게" : `근처 ${selectedCategory} 가게`} (
             {finalViewModels.length})
           </h2>
-          <Badge variant="secondary" className="bg-teal-100 text-teal-700">
-            거리순
-          </Badge>
+          <div className="flex items-center gap-2">
+            {(["거리순", "할인순"] as const).map((label) => (
+              <Badge
+                key={label}
+                variant="secondary"
+                className="bg-teal-100 px-3 py-1 rounded-full"
+              >
+                <Button
+                  variant="link"
+                  className={`text-sm p-0 h-auto ${
+                    selectedSorting === label ? "text-teal-600 font-semibold" : "text-gray-500"
+                  }`}
+                  onClick={() => setSelectedSorting(label)}
+                >
+                  {label}
+                </Button>
+              </Badge>
+            ))}
+          </div>
         </div>
 
         {finalViewModels.length === 0 ? (

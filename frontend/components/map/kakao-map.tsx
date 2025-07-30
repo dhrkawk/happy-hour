@@ -1,28 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { StoreCardViewModel } from '@/lib/viewmodels/store-card.viewmodel'
 
 declare global {
   interface Window {
     kakao: any
   }
-}
-
-interface StoreData {
-  id: string
-  name: string
-  category: string
-  address: string
-  store_thumbnail: string
-  discount: number
-  originalPrice: number
-  discountPrice: number
-  timeLeft: string
-  lat: number
-  lng: number
-  image_thumbnails?: string[]
 }
 
 interface KakaoMapProps {
@@ -36,7 +20,6 @@ interface KakaoMapProps {
 }
 
 export default function KakaoMap({ userLocation, stores, selectedStoreId, onSelectStore }: KakaoMapProps) {
-  const router = useRouter()
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const userMarkerInstance = useRef<any>(null)
@@ -122,21 +105,84 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
 
     stores.forEach(store => {
       if (store.lat && store.lng) {
-        const storePosition = new window.kakao.maps.LatLng(store.lat, store.lng)
+        const storePosition = new window.kakao.maps.LatLng(store.lat, store.lng);
+    
+        // 📍 1. 마커 생성
         const marker = new window.kakao.maps.Marker({
           position: storePosition,
           image: storeMarkerImage,
           map: mapInstance.current,
-        })
-
-        window.kakao.maps.event.addListener(marker, 'click', function() {
+        });
+    
+        // 🟦 2. 항상 표시되는 "이름" 오버레이
+        const nameLabel = document.createElement("div");
+        nameLabel.innerHTML = `
+          <div style="
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: black;
+            font-weight: bold;
+            white-space: nowrap;
+            text-shadow:
+              -1px -1px 0 white,
+               1px -1px 0 white,
+              -1px  1px 0 white,
+               1px  1px 0 white;
+          ">
+            ${store.name}
+          </div>`;
+        const nameOverlay = new window.kakao.maps.CustomOverlay({
+          content: nameLabel,
+          position: storePosition,
+          yAnchor: -0.3,
+          zIndex: 10,
+        });
+        nameOverlay.setMap(mapInstance.current);
+    
+        // 🟥 3. hover 시 표시되는 상세 오버레이
+        const detailBox = document.createElement("div");
+        detailBox.innerHTML = `
+          <div style="
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            font-size: 12px;
+            width: 200px;
+          ">
+            <strong style="color:#1E40AF">${store.name}</strong><br/>
+            ${store.timeLeftText}<br/>
+            카테고리: ${store.category}<br/>
+            최대 ${store.maxDiscountRate ?? 0}% 할인
+          </div>
+        `;
+        const detailOverlay = new window.kakao.maps.CustomOverlay({
+          content: detailBox,
+          position: storePosition,
+          yAnchor: 1.1,
+          zIndex: 20,
+        });
+    
+        // 🧠 hover 이벤트 등록
+        window.kakao.maps.event.addListener(marker, 'mouseover', () => {
+          detailOverlay.setMap(mapInstance.current);
+        });
+        window.kakao.maps.event.addListener(marker, 'mouseout', () => {
+          detailOverlay.setMap(null);
+        });
+    
+        // ✅ 클릭 시 store 선택
+        window.kakao.maps.event.addListener(marker, 'click', () => {
+          mapInstance.current.panTo(storePosition); // ✅ 중심 이동 추가!
           onSelectStore(store.id);
-        })
-
-        storeMarkersInstance.current.push(marker)
+        });
+    
+        storeMarkersInstance.current.push(marker);
       }
-    })
-  }, [stores, mapInstance.current, onSelectStore])
+    });
+  }, [stores, mapInstance.current, onSelectStore]); 
 
   if (!userLocation) {
     return (
@@ -151,4 +197,4 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
       <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
     </>
   )
-}
+  }
