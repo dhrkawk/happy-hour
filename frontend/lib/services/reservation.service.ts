@@ -13,7 +13,12 @@ const mapRawToReservationEntity = (raw: any): ReservationEntity => ({
   storeThumbnail: raw.stores?.store_thumbnail || '',
   storeAddress: raw.stores?.address || '',
   storePhone: raw.stores?.phone || '',
-  reservationItems: raw.reservation_items?.map((item: any) => ({ quantity: item.quantity })) || [],
+  reservationItems: raw.reservation_items?.map((item: any) => ({ 
+    menuName: item.menu_name,
+    quantity: item.quantity,
+    price: item.price,
+    discountRate: item.discount_rate,
+  })) || [],
 });
 
 export class ReservationService {
@@ -51,5 +56,36 @@ export class ReservationService {
       }
       console.log(reservations)
       return reservations.map(mapRawToReservationEntity);
+    }
+
+    async getReservationById(reservationId: string): Promise<ReservationEntity> {
+      const { data: userData, error: userError } = await this.supabase.auth.getUser();
+      if (userError || !userData.user) {
+        throw new Error('User not authenticated');
+      }
+      const userId = userData.user.id;
+
+      const { data, error } = await this.supabase
+        .from('reservations')
+        .select(`
+          id, store_id, user_id, reserved_time, status,
+          stores (name, address, phone),
+          reservation_items (
+            menu_name,
+            quantity,
+            price,
+            discount_rate
+          )
+        `)
+        .eq('id', reservationId)
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching reservation:', error);
+        throw new Error('Failed to fetch reservation.');
+      }
+
+      return mapRawToReservationEntity(data);
     }
   }

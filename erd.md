@@ -59,7 +59,7 @@ start_time	timestamptz	할인 시작 시간
 end_time	timestamptz	할인 종료 시간
 quantity	int4	남은 수량
 created_at	timestamptz	생성일자
-menu_id	uuid	할인 적용 메뉴 ID (store_menus)
+menu_id	uuid	할인 적용 메뉴 ID (store_menus.id 참조)
 
 
 ⸻
@@ -83,9 +83,10 @@ updated_at	timestamptz	수정일자
 컬럼명	타입	설명
 id	uuid (PK)	항목 ID
 reservation_id	uuid	예약 ID (reservations.id 참조)
-menu_id	uuid	선택한 메뉴 ID
-discount_id	uuid?	적용된 할인 ID (nullable, discounts.id)
+discount_rate	integer	 예약 당시 할인율
 quantity	int4	수량
+price       integer     예약 당시 원 가격 
+menu_name
 
 
 ⸻

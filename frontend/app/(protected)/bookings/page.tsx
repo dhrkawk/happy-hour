@@ -22,7 +22,7 @@ const getStatusInfo = (status: string) => {
     case "cancelled":
       return { label: "예약취소", color: "bg-red-500 text-white", description: "예약이 취소되었습니다." };
     case "pending":
-      return { label: "예약대기", color: "bg-gray-500 text-white", description: "예약 승인 대기중입니다."};
+      return { label: "예약대기", color: "bg-yellow-500 text-white", description: "예약 승인 대기중입니다."};
     default:
       return { label: "알 수 없음", color: "bg-gray-500 text-white", description: "" };
   }

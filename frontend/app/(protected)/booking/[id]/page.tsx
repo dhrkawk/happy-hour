@@ -53,7 +53,7 @@ export default function BookingCreationPage() {
       store_id: cart.storeId,
       reserved_time: new Date().toISOString(), // Reservation time is now
       items: cart.items.map(item => ({
-        menu_id: item.menuId,
+        menu_name: item.name, // Add menu_name here
         quantity: item.quantity,
         price: item.price, // Final price
         discount_rate: Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100),
