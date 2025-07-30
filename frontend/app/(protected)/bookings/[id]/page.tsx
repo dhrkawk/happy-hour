@@ -43,10 +43,10 @@ export default function BookingDetailPage() {
 
     setIsCanceling(true);
     try {
-      const res = await fetch('/api/reservations/cancel', {
-        method: 'POST',
+      const res = await fetch(`/api/reservations/${booking.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reservation_id: booking.id }),
+        body: JSON.stringify({ id: booking.id }),
       });
 
       if (!res.ok) {
@@ -162,7 +162,7 @@ export default function BookingDetailPage() {
               </div>
             </div>
 
-            {booking.status === 'active' && (
+            {booking.status === 'confirmed' && (
               <div className="flex gap-2 mt-5">
                 <a href={`tel:${booking.store.phone}`} className="flex-1">
                   <Button variant="outline" size="sm" className="w-full bg-transparent">
