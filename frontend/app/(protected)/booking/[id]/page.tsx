@@ -106,11 +106,11 @@ export default function BookingCreationPage() {
     // API에 보낼 데이터 구성
     const payload = {
       store_id: storeInfo.id,
-      reserved_time: new Date().toISOString(), // 현재 시간을 예약 시간으로 설정
+      reserved_time: new Date().toISOString(),
       items: cartItems.map(item => ({
-        menu_id: item.id,
-        discount_id: item.discount_id || null, // item.discount_id가 없으면 null을 전달
         quantity: item.quantity,
+        price: item.price, // 예: 15000
+        discount_rate: 0, // 예: 20 (20%)
       })),
     }
 
