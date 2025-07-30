@@ -1,9 +1,7 @@
 "use client"
 
-"use client"
-
-import { useState, useEffect } from "react"
 import { useParams } from "next/navigation";
+import useSWR from 'swr';
 import { ArrowLeft, MapPin, Clock, Phone, Loader2, ShoppingCart, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -12,27 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import BottomNavigation from "@/components/bottom-navigation"
 import { useToast } from "@/components/ui/use-toast"
-import { createClient } from "@/lib/supabase/client";
-
-// 타입 정의
-interface BookingDetail {
-  id: string;
-  bookingNumber: string;
-  reservedTime: string;
-  status: string;
-  store: {
-    name: string;
-    address: string;
-    phone: string;
-  };
-  items: {
-    menuName: string;
-    quantity: number;
-    price: number;
-    discountRate: number;
-  }[];
-  totalAmount: number;
-}
+import { useState } from "react";
+import { ReservationDetailViewModel } from '@/lib/viewmodels/reservation-detail.viewmodel';
 
 const getStatusInfo = (status: string) => {
   switch (status) {
@@ -44,92 +23,20 @@ const getStatusInfo = (status: string) => {
   }
 };
 
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) {
+    throw new Error('데이터를 불러오는 데 실패했습니다.');
+  }
+  return res.json();
+});
+
 export default function BookingDetailPage() {
   const params = useParams();
   const { toast } = useToast();
   const id = params.id as string;
-  const supabase = createClient();
-
-  const [booking, setBooking] = useState<BookingDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isCanceling, setIsCanceling] = useState(false);
 
-  useEffect(() => {
-    const fetchBookingDetails = async () => {
-      if (!id) return;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          throw new Error("로그인이 필요합니다.");
-        }
-
-        const { data, error: fetchError } = await supabase
-          .from('reservations')
-          .select(`
-            id,
-            reserved_time,
-            status,
-            stores (name, address, phone),
-            reservation_items (
-              menu_name,
-              quantity,
-              price,
-              discount_rate
-            )
-          `)
-          .eq('id', id)
-          .eq('user_id', user.id)
-          .single();
-
-        // --- DIAGNOSTIC LOGGING --- 
-        console.log("Raw data from Supabase:", data);
-
-        if (fetchError) {
-          if (fetchError.code === 'PGRST116') {
-            throw new Error("예약을 찾을 수 없거나 접근 권한이 없습니다.");
-          }
-          throw new Error(fetchError.message);
-        }
-
-        const totalAmount = data.reservation_items.reduce((acc, item) => {
-          const itemPrice = item.price * (1 - (item.discount_rate || 0) / 100);
-          return acc + itemPrice * item.quantity;
-        }, 0);
-
-        const formattedBooking = {
-          id: data.id,
-          bookingNumber: data.id.substring(0, 8),
-          reservedTime: data.reserved_time,
-          status: data.status,
-          store: data.stores as any,
-          items: data.reservation_items.map((item: any) => ({
-            menuName: item.menu_name,
-            quantity: item.quantity,
-            price: item.price,
-            discountRate: item.discount_rate,
-          })),
-          totalAmount,
-        };
-
-        // --- DIAGNOSTIC LOGGING --- 
-        console.log("Formatted booking object for state:", formattedBooking);
-
-        setBooking(formattedBooking);
-
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBookingDetails();
-  }, [id, supabase]);
+  const { data: booking, error, mutate } = useSWR<ReservationDetailViewModel>(`/api/reservations/${id}`, fetcher);
 
   const handleCancelBooking = async () => {
     if (!booking) return;
@@ -147,7 +54,7 @@ export default function BookingDetailPage() {
         throw new Error(errorData.error || '예약 취소에 실패했습니다.');
       }
 
-      setBooking(prev => prev ? { ...prev, status: 'cancelled' } : null);
+      mutate(); // 성공 시 SWR 캐시를 갱신하여 UI를 업데이트합니다.
       toast({ title: "예약 취소", description: "예약이 성공적으로 취소되었습니다." });
 
     } catch (err: any) {
@@ -157,24 +64,24 @@ export default function BookingDetailPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
-        <p className="ml-2 text-teal-600">예약 정보를 불러오는 중...</p>
-      </div>
-    );
-  }
-
-  if (error || !booking) {
+  if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
         <h2 className="text-xl font-semibold text-gray-800 mb-2">오류 발생</h2>
-        <p className="text-gray-600 text-center mb-6">{error || "예약을 찾을 수 없습니다."}</p>
+        <p className="text-gray-600 text-center mb-6">{error.message}</p>
         <Link href="/bookings">
           <Button>예약 목록으로 돌아가기</Button>
         </Link>
+      </div>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+        <p className="ml-2 text-teal-600">예약 정보를 불러오는 중...</p>
       </div>
     );
   }
