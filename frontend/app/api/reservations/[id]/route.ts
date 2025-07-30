@@ -29,29 +29,22 @@ export async function GET(request: NextRequest, context: { params: { id: string 
   }
 }
 
+export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
+  const { id: reservationId } = await context.params;
 
-
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!reservationId) {
+    return NextResponse.json({ error: 'Reservation ID is required' }, { status: 400 });
   }
 
-  const reservationId = params.id;
+  try {
+    const supabase = await createClient();
+    const reservationService = new ReservationService(supabase);
 
-  const { data, error } = await supabase
-    .from('reservations')
-    .delete()
-    .eq('id', reservationId)
-    .eq('user_id', session.user.id); // Ensure users can only delete their own reservations
+    const updatedReservation = await reservationService.cancelReservation(reservationId);
+    return NextResponse.json({ success: true, reservation: updatedReservation });
 
-  if (error) {
-    console.error('Reservation cancellation failed:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true, data }, { status: 200 });
 }

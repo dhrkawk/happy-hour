@@ -87,4 +87,23 @@ export class ReservationService {
 
       return mapRawToReservationEntity(data);
     }
+
+    async cancelReservation(reservationId: string): Promise<void> {
+      const { data: userData, error: userError } = await this.supabase.auth.getUser();
+      if (userError || !userData.user) {
+        throw new Error('User not authenticated');
+      }
+      const userId = userData.user.id;
+
+      const { error } = await this.supabase
+        .from('reservations')
+        .update({ status: 'cancelled' })
+        .eq('id', reservationId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error canceling reservation:', error);
+        throw new Error('Failed to cancel reservation.');
+      }
+    }
   }
