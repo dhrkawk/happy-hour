@@ -32,7 +32,7 @@ export default function MapPage() {
   // Fetch stores from Supabase
   const shouldFetch = !!coordinates
   const { data: storeEntities, isLoading: loadingStores } = useSWR<StoreEntity[]>(
-    shouldFetch ? "/api/store" : null,
+    shouldFetch ? "/api/stores" : null,
     fetcher
   )
 
