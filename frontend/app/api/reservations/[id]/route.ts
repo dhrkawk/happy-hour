@@ -28,3 +28,23 @@ export async function GET(request: NextRequest, context: { params: { id: string 
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
+  const { id: reservationId } = await context.params;
+
+  if (!reservationId) {
+    return NextResponse.json({ error: 'Reservation ID is required' }, { status: 400 });
+  }
+
+  try {
+    const supabase = await createClient();
+    const reservationService = new ReservationService(supabase);
+
+    const updatedReservation = await reservationService.cancelReservation(reservationId);
+    return NextResponse.json({ success: true, reservation: updatedReservation });
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
+}
