@@ -75,7 +75,7 @@ export default function StorePage() {
     if (!cart || cart.items.length === 0) {
       return;
     }
-    router.push(`/booking/${cart.storeId}`);
+    router.push(`/reservation/${cart.storeId}`);
   };
 
   if (isValidating && !viewmodel) {

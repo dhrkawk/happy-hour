@@ -82,7 +82,7 @@ export default function BookingCreationPage() {
         className: "bg-green-500 text-white",
       })
 
-      router.push(`/bookings/${result.reservation_id}`)
+      router.push(`/reservations/${result.reservation_id}`)
 
     } catch (err: any) {
       setError(err.message)
