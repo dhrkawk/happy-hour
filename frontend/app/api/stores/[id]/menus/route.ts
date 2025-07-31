@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { MenuService } from '@/lib/services/menus/menu.service';
-import { StoreService } from '@/lib/services/store.service';
+import { StoreService } from '@/lib/services/stores/store.service';
 import { Database } from '@/lib/supabase/types';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
