@@ -1,5 +1,5 @@
 // frontend/lib/viewmodels/store.viewmodel.ts
-import { StoreEntity } from '@/lib/entities/store.entity';
+import { StoreEntity } from '@/lib/entities/stores/store.entity';
 import { calculateDistance, formatTimeLeft } from '@/lib/utils'; // 유틸리티 함수 임포트
 
 // 가게 목록 카드에 필요한 데이터 (가격 필드 추가)

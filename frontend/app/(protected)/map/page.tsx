@@ -3,9 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { ArrowLeft, MapPin, Loader2, RefreshCw } from "lucide-react"
 import Link from "next/link"
-import useSWR from "swr"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
@@ -14,12 +12,11 @@ import { useAppContext } from "@/contexts/app-context"
 import { LocationErrorBanner } from "@/components/location-error-banner"
 import { motion, AnimatePresence } from "framer-motion"
 import { StoreCardViewModel, createStoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
-import type { StoreEntity } from "@/lib/entities/store.entity"
 import { StoreCard } from "@/components/store-card"
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+import { StoreApiClient } from "@/lib/services/stores/store.api-client"
 
 export default function MapPage() {
+  const storeAPiClient = new StoreApiClient()
   const { appState, fetchLocation } = useAppContext()
   const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } = appState.location
 
@@ -29,24 +26,21 @@ export default function MapPage() {
   const [selectedSorting, setSelectedSorting] = useState<"거리순"|"할인순">("할인순");
 
 
-  // Fetch stores from Supabase
-  const shouldFetch = !!coordinates
-  const { data: storeEntities, isLoading: loadingStores } = useSWR<StoreEntity[]>(
-    shouldFetch ? "/api/stores" : null,
-    fetcher
-  )
+  // api 호출을 통해 가게 정보를 가져옵니다.
+  useEffect(() => {
+    if (!coordinates) return;
 
-    // 3. 가져온 StoreEntity를 StoreCardViewModel로 변환합니다.
-    useEffect(() => {
-      if (storeEntities && coordinates) {
-        const storeList = storeEntities.map((entity) =>
-          createStoreCardViewModel(entity, coordinates)
-        )
-        const viewModels_distance = StoreCardViewModel.sortByDistance(storeList)
-        const viewModels = StoreCardViewModel.sortByDiscount(viewModels_distance)
-        setAllViewModels(viewModels)
+    const fetchStores = async () => {
+      try {
+        const viewModels = await storeAPiClient.getAllStores(coordinates);
+        setAllViewModels(viewModels);
+      } catch (error) {
+        console.error("Error fetching stores:", error);
       }
-    }, [storeEntities, coordinates])
+    };
+
+    fetchStores();
+  }, [coordinates]);
 
     // 필터링 + 정렬을 통합 처리한 최종 ViewModel 리스트
     const finalViewModels = useMemo(() => {

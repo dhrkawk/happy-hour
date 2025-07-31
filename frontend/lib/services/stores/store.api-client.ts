@@ -1,4 +1,4 @@
-import { StoreEntity } from '@/lib/entities/store.entity';
+import { StoreEntity } from '@/lib/entities/stores/store.entity';
 import { StoreCardViewModel, createStoreCardViewModel } from '@/lib/viewmodels/store-card.viewmodel';
 
 export class StoreApiClient {

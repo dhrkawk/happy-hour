@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
-import { StoreEntity } from "@/lib/entities/store.entity"
+import { StoreEntity } from "@/lib/entities/stores/store.entity"
 
 export default function StoreManagementPage({ params }: { params: { id: string } }) {
   const storeId = params.id

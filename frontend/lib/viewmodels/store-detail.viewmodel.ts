@@ -1,4 +1,4 @@
-import type { StoreDetailEntity } from '@/lib/entities/store-detail.entity';
+import type { StoreDetailEntity } from '@/lib/entities/stores/store-detail.entity';
 import { formatTimeLeft, calculateDistance } from '@/lib/utils';
 
 export interface StoreMenuViewModel {

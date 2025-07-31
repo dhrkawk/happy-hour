@@ -57,6 +57,7 @@ export default function HomePage() {
     checkOnboarding()
   }, [router, supabase])
 
+  // api 호출을 통해 가게 정보를 가져옵니다.
   useEffect(() => {
     if (!coordinates) return;
 

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { StoreDetailService } from '@/lib/services/store-detail.service';
+import { StoreDetailService } from '@/lib/services/stores/store-detail.service';
 
 
 export async function GET(
   request: NextRequest,
   context: { params: { id: string } }
 ) {
-  const { id: storeId } = context.params;
+  const { id: storeId } = await context.params;
   const supabase = await createClient();
   const storeDetailService = new StoreDetailService(supabase);
   
