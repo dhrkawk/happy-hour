@@ -4,12 +4,12 @@ import { DiscountService } from '@/lib/services/discounts/discount.service';
 import { DiscountFormViewModel } from '@/lib/viewmodels/discounts/discount.viewmodel';
 
 // TODO: 특정 할인 수정
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, context: { params: { id: string } }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const discountId = params.id;
+  const { id : discountId } = await context.params;
   const discountData: Partial<DiscountFormViewModel> = await req.json();
   const discountService = new DiscountService(supabase);
 
@@ -23,12 +23,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // TODO: 특정 할인 삭제
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const discountId = params.id;
+  const { id: discountId } = await context.params;
   const discountService = new DiscountService(supabase);
 
   try {

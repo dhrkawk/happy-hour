@@ -1,15 +1,13 @@
-// 없어도 되는 코드
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { DiscountService } from '@/lib/services/discounts/discount.service';
 import { DiscountFormViewModel } from '@/lib/viewmodels/discounts/discount.viewmodel';
 
-
 // 해당 메뉴의 할인 목록 조회 (히스토리 포함)
-export async function GET(req: NextRequest, { params }: { params: { id: string, menuId: string } }) {
+export async function GET(req: NextRequest, context : { params: { id: string, menuId: string } }) {
   const supabase = await createClient();
   const discountService = new DiscountService(supabase);
-  const menuId = params.menuId;
+  const { menuId } = await context.params;
   try {
     const discounts = await discountService.getDiscountsByMenuId(menuId);
 
@@ -22,8 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string, 
 
 // TODO: 새로운 할인 등록
 export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string; menuId: string } }
+  req: NextRequest
 ) {
   const supabase = await createClient();
   const discountService = new DiscountService(supabase);
