@@ -3,12 +3,13 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { StoreDetailService } from '@/lib/services/store-detail.service';
 
+export const dynamic = 'force-dynamic'; // Add this line
 
 export async function GET(
   request: NextRequest,
   context: { params: { id: string } }
 ) {
-  const { id: storeId } = context.params;
+  const { id: storeId } = context.params; // Remove await
   const supabase = await createClient();
   const storeDetailService = new StoreDetailService(supabase);
   
