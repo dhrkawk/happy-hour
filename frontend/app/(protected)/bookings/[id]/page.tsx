@@ -13,16 +13,6 @@ import { useToast } from "@/components/ui/use-toast"
 import { useState } from "react";
 import { ReservationDetailViewModel } from '@/lib/viewmodels/reservation-detail.viewmodel';
 
-const getStatusInfo = (status: string) => {
-  switch (status) {
-    case "pending": return { label: "예약대기", color: "bg-yellow-500 text-white" };
-    case "confirmed": return { label: "예약확정", color: "bg-blue-500 text-white" };
-    case "used": return { label: "방문완료", color: "bg-green-500 text-white" };
-    case "cancelled": return { label: "예약취소", color: "bg-red-500 text-white" };
-    default: return { label: "알 수 없음", color: "bg-gray-500 text-white" };
-  }
-};
-
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) {
     throw new Error('데이터를 불러오는 데 실패했습니다.');
@@ -46,11 +36,11 @@ export default function BookingDetailPage() {
       const res = await fetch(`/api/reservations/${booking.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: booking.id }),
+        body: JSON.stringify({ id: booking.id, status: 'cancelled' }), // Send status update
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!res.ok) {
+        const errorData = await res.json();
         throw new Error(errorData.error || '예약 취소에 실패했습니다.');
       }
 
@@ -86,8 +76,6 @@ export default function BookingDetailPage() {
     );
   }
 
-  const statusInfo = getStatusInfo(booking.status);
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto">
       <header className="bg-white shadow-sm border-b border-teal-100 sticky top-0 z-10">
@@ -118,7 +106,7 @@ export default function BookingDetailPage() {
                   <span className="text-sm">예약시간: {new Date(booking.reservedTime).toLocaleString('ko-KR')}</span>
                 </div>
               </div>
-              <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
+              <Badge className={booking.statusColor}>{booking.statusLabel}</Badge>
             </div>
 
             <div className="bg-teal-50 rounded-lg p-3 mb-4 text-center">
@@ -162,7 +150,7 @@ export default function BookingDetailPage() {
               </div>
             </div>
 
-            {booking.status === 'confirmed' && (
+            {(booking.status === 'confirmed' || booking.status === 'pending') && (
               <div className="flex gap-2 mt-5">
                 <a href={`tel:${booking.store.phone}`} className="flex-1">
                   <Button variant="outline" size="sm" className="w-full bg-transparent">
@@ -189,4 +177,5 @@ export default function BookingDetailPage() {
     </div>
   );
 }
+
 
