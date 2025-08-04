@@ -73,16 +73,10 @@ export default function BookingCreationPage() {
         throw new Error(result.error || "알 수 없는 오류로 예약에 실패했습니다.")
       }
 
-      // On success, clear the cart from context and navigate
-      clearCart()
-
-      toast({
-        title: "예약 완료!",
-        description: "예약이 성공적으로 완료되었습니다. 상세 페이지로 이동합니다.",
-        className: "bg-green-500 text-white",
-      })
-
       router.push(`/bookings/${result.reservation_id}`)
+
+      // On success, clear the cart from context
+      clearCart()
 
     } catch (err: any) {
       setError(err.message)
