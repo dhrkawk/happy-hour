@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { headers } from 'next/headers'; // headers import 추가
+import { headers } from 'next/headers';
 import { MenuApiClient } from '@/lib/services/menus/menu.api-client';
 import { MenuListItemViewModel } from '@/lib/viewmodels/menus/menu.viewmodel';
+import { Button } from "@/components/ui/button";
 
 interface DiscountPageProps {
   params: {
@@ -12,52 +13,48 @@ interface DiscountPageProps {
 
 export default async function DiscountPage({ params }: DiscountPageProps) {
   const storeId = params.id;
-  console.log('Current Store ID:', storeId);
-
-  if (!storeId) {
-    notFound();
-  }
+  if (!storeId) notFound();
 
   const headersList = await headers();
   const proto = headersList.get('x-forwarded-proto') || (process.env.NODE_ENV === 'production' ? 'https' : 'http');
   const host = headersList.get('x-forwarded-host') || headersList.get('host');
   const origin = `${proto}://${host}`;
 
-  const menuApiClient = new MenuApiClient(storeId, origin); // origin 전달
+  const menuApiClient = new MenuApiClient(storeId, origin);
   let menus: MenuListItemViewModel[] = [];
   let error: string | null = null;
 
   try {
     menus = await menuApiClient.getMenus();
-    console.log('Fetched Menus:', menus);
   } catch (err: any) {
     console.error('Error fetching menus:', err);
     error = err.message;
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">메뉴별 할인 관리: {storeId}</h1>
+    <div className="min-h-screen bg-gray-50 py-8 px-4 max-w-xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold text-teal-600 text-center">메뉴별 할인 관리</h1>
+
       {error ? (
-        <p className="text-red-500">오류 발생: {error}</p>
+        <div className="text-center text-red-500 font-medium">{error}</div>
       ) : menus.length === 0 ? (
-        <p>등록된 메뉴가 없습니다.</p>
+        <div className="text-center text-gray-500">등록된 메뉴가 없습니다.</div>
       ) : (
-        <ul>
-          {menus.map((menu: MenuListItemViewModel) => (
-            <li key={menu.id} className="border p-4 mb-2 rounded-md flex justify-between items-center">
+        <div className="space-y-3">
+          {menus.map((menu) => (
+            <div key={menu.id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 flex justify-between items-center hover:shadow-md transition-shadow">
               <div>
-                <h2 className="text-xl font-semibold">{menu.name}</h2>
-                <p>가격: {menu.price}원</p>
+                <h2 className="text-base font-semibold text-gray-800">{menu.name}</h2>
+                <p className="text-sm text-gray-500">{menu.price.toLocaleString()}원</p>
               </div>
-              <Link href={`/profile/store-management/${storeId}/discount/manage/${menu.id}`}>
-                <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+              <Link href={`/profile/store-management/${storeId}/discount/${menu.id}`}>
+                <Button variant="outline" size="sm" className="text-sm">
                   할인 관리
-                </button>
+                </Button>
               </Link>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

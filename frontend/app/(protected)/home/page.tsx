@@ -12,7 +12,7 @@ import CategoryFilter from "@/components/category-filter"
 import { StoreCardSkeleton } from "@/components/store-card-skeleton"
 import { useAppContext } from "@/contexts/app-context"
 import { createClient } from "@/lib/supabase/client"
-import { StoreCardViewModel, createStoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
+import { StoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
 import { StoreApiClient } from "@/lib/services/stores/store.api-client"
 
 export default function HomePage() {

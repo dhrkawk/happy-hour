@@ -9,13 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { useAppContext } from "@/contexts/app-context"
 import { createCartItem } from "@/lib/viewmodels/cart-item.viewmodel";
 import { StoreDetailViewModel, createStoreDetailViewModel, StoreMenuViewModel } from "@/lib/viewmodels/store-detail.viewmodel";
-import { storeDetailApiClient } from "@/lib/services/stores/store-detail.api-client"
+import { StoreApiClient } from "@/lib/services/stores/store.api-client";
 
 export default function StorePage() {
   const router = useRouter();
   const params = useParams();
   const storeId = params.id as string;
-  const storeApiClient = new storeDetailApiClient(storeId);
+  const storeApiClient = new StoreApiClient();
 
   const { appState, addToCart, updateItemQuantity, removeFromCart, getCartTotals } = useAppContext();
   const { location, cart } = appState;
@@ -29,7 +29,7 @@ export default function StorePage() {
     if (coordinates) {
       const fetchStoreDetail = async () => {
         try {
-          const storeDetail: StoreDetailViewModel = await storeApiClient.getStoreById(coordinates);
+          const storeDetail: StoreDetailViewModel = await storeApiClient.getStoreById(storeId, coordinates);
           setViewModel(storeDetail);
         } catch (err: any) {
           console.error("가게 정보를 불러오는 중 오류 발생:", err);
