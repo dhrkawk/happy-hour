@@ -20,6 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
+// 특정 할인 수정
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -38,6 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
+// 특정 할인 삭제
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
