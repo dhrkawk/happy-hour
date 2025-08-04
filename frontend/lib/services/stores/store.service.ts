@@ -1,5 +1,5 @@
 // frontend/lib/services/store.service.ts
-import { StoreEntity } from '@/lib/entities/store.entity';
+import { StoreEntity } from '@/lib/entities/stores/store.entity';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/supabase/types';
 

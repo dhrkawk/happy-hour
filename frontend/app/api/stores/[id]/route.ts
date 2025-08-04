@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { StoreDetailService } from '@/lib/services/store-detail.service';
+import { StoreDetailService } from '@/lib/services/stores/store-detail.service';
 
 export const dynamic = 'force-dynamic'; // Add this line
 

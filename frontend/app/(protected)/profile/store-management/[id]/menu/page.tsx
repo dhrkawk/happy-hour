@@ -13,12 +13,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MenuFormViewModel } from "@/lib/viewmodels/menus/menu.viewmodel";
 import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
+import { DiscountApiClient } from "@/lib/services/discounts/discount.api-client";
 
 export default function MenuManagementPage() {
   const router = useRouter();
   const params = useParams();
   const storeId = params.id as string;
   const menuApiClient = new MenuApiClient(storeId);
+  const discountApiClient = new DiscountApiClient();
 
   const [form, setForm] = useState<MenuFormViewModel>({
     name: "",

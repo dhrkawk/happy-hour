@@ -89,3 +89,15 @@ export const getStatusInfo = (status: string) => {
       return { label: "알 수 없음", color: "bg-gray-500 text-white", description: "" };
   }
 };
+
+type DiscountStatus = "scheduled" | "active" | "expired";
+export function getDiscountStatus(start: string, end: string, isActive: boolean): DiscountStatus {
+  if (!isActive) return "expired"; // 비활성화된 할인은 만료 상태로 간주
+  const now = new Date();
+  const startTime = new Date(start);
+  const endTime = new Date(end);
+
+  if (now < startTime) return "scheduled";
+  if (now > endTime) return "expired";
+  return "active";
+}

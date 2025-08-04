@@ -1,5 +1,4 @@
 "use client"
-import useSWR from "swr"
 import React, { useState, useEffect } from "react"
 import { ArrowLeft, MapPin, Clock, Heart, Share2, Phone, Plus, Minus, ShoppingCart, Loader2 } from "lucide-react"
 import Link from "next/link"
@@ -7,48 +6,39 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { notFound } from "next/navigation"
 import { useAppContext } from "@/contexts/app-context"
 import { createCartItem } from "@/lib/viewmodels/cart-item.viewmodel";
-import type { StoreDetailEntity } from "@/lib/entities/store-detail.entity";
 import { StoreDetailViewModel, createStoreDetailViewModel, StoreMenuViewModel } from "@/lib/viewmodels/store-detail.viewmodel";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+import { storeDetailApiClient } from "@/lib/services/stores/store-detail.api-client"
 
 export default function StorePage() {
   const router = useRouter();
   const params = useParams();
   const storeId = params.id as string;
-  
+  const storeApiClient = new storeDetailApiClient(storeId);
+
   const { appState, addToCart, updateItemQuantity, removeFromCart, getCartTotals } = useAppContext();
   const { location, cart } = appState;
   const { coordinates } = location;
-
   const [viewmodel, setViewModel] = useState<StoreDetailViewModel>();
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("menu");
   const [isLiked, setIsLiked] = useState(false);
 
-  const { data: storeData, error: swrError, isValidating } = useSWR<StoreDetailEntity>(
-    `/api/stores/${storeId}`,
-    fetcher,
-    {
-      onSuccess: (data) => {
-        const vm = createStoreDetailViewModel(data, coordinates);
-        setViewModel(vm);
-      },
-      onError: () => {
-        setError("가게 정보를 불러오는 데 실패했습니다.");
-      },
-    }
-  );
-
   useEffect(() => {
-    if (storeData) {
-      const viewModel = createStoreDetailViewModel(storeData, coordinates)
-      setViewModel(viewModel)
+    if (coordinates) {
+      const fetchStoreDetail = async () => {
+        try {
+          const storeDetail: StoreDetailViewModel = await storeApiClient.getStoreById(coordinates);
+          setViewModel(storeDetail);
+        } catch (err: any) {
+          console.error("가게 정보를 불러오는 중 오류 발생:", err);
+          setError(err.message || "가게 정보를 불러오는 데 실패했습니다.");
+        }
+      };
+      fetchStoreDetail();
     }
-  }, [storeData, coordinates])
+  }, [coordinates])
 
   const handleAddToCart = (menu: StoreMenuViewModel) => {
     if (!viewmodel) return;
@@ -78,7 +68,7 @@ export default function StorePage() {
     router.push(`/reservation/${cart.storeId}`);
   };
 
-  if (isValidating && !viewmodel) {
+  if (!viewmodel) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-teal-500" />

@@ -3,7 +3,22 @@ import { createClient } from '@/lib/supabase/server';
 import { DiscountService } from '@/lib/services/discounts/discount.service';
 import { DiscountFormViewModel } from '@/lib/viewmodels/discounts/discount.viewmodel';
 
-const discountService = new DiscountService();
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const discountId = params.id;
+  const supabase = await createClient();
+  const discountService = new DiscountService(supabase);
+
+  try {
+    const discount = await discountService.getDiscountById(discountId);
+    if (!discount) {
+      return NextResponse.json({ error: 'Discount not found' }, { status: 404 });
+    }
+    return NextResponse.json(discount);
+  } catch (error: any) {
+    console.error('Discount fetch failed:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  }
+}
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = await createClient();
@@ -12,6 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const discountId = params.id;
   const discountData: Partial<DiscountFormViewModel> = await req.json();
+  const discountService = new DiscountService(supabase);
 
   try {
     const updatedDiscount = await discountService.updateDiscount(discountId, discountData);
@@ -23,11 +39,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const discountId = params.id;
+  const discountService = new DiscountService(supabase);
 
   try {
     await discountService.deleteDiscount(discountId);

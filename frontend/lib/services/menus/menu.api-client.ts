@@ -3,13 +3,16 @@ import { MenuEntity } from '@/lib/entities/menus/menu.entity';
 
 export class MenuApiClient {
   private baseUrl: string;
+  private origin: string | undefined;
 
-  constructor(storeId: string) {
-    this.baseUrl = `/api/stores/${storeId}/menu`;
+  constructor(storeId: string, origin?: string) {
+    this.baseUrl = `/api/stores/${storeId}/menus`;
+    this.origin = origin;
   }
 
   async getMenus(): Promise<MenuListItemViewModel[]> {
-    const response = await fetch(this.baseUrl);
+    const url = this.origin ? `${this.origin}${this.baseUrl}` : this.baseUrl;
+    const response = await fetch(url);
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to fetch menus');
