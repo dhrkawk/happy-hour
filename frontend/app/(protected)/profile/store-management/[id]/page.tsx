@@ -94,7 +94,7 @@ export default function StoreManagementPage({ params }: { params: { id: string }
       </header>
 
       <div className="px-4 py-6 space-y-4">
-        <Link href={`/profile/store-management/${storeId}/menu`}>
+        <Link href={`/profile/store-management/${storeId}/menus`}>
           <Card className="border-teal-100 hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
