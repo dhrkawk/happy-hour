@@ -1,8 +1,8 @@
+// 없어도 되는 코드
 import { NextRequest, NextResponse } from 'next/server'
 import { DiscountService } from '@/lib/services/discounts/discount.service';
 import { createClient } from '@/lib/supabase/server';
 import { Database } from '@/lib/supabase/types';
-
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

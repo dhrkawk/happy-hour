@@ -4,6 +4,7 @@ import { MenuService } from '@/lib/services/menus/menu.service';
 import { StoreService } from '@/lib/services/stores/store.service';
 import { Database } from '@/lib/supabase/types';
 
+// 매장의 메뉴 목록 조회
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   console.log("API Route /api/stores/[id]/menus GET called");
   const storeId = params.id;
@@ -20,6 +21,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
+// 매장에 메뉴 등록
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const storeId = params.id;
   const supabase = await createClient();
