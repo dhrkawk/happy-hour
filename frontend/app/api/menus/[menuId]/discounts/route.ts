@@ -34,11 +34,14 @@ export async function POST(
   console.log("Received discount data:", discountData);
   try {
     // 현재는 단순 등록만 수행 (is_active나 status 관련 처리 없음)
-    const newDiscount = await discountService.registerDiscount(discountData);
+    const newDiscount = await discountService.createDiscount(discountData);
 
     return NextResponse.json({ success: true, discount: newDiscount }, { status: 201 });
   } catch (error: any) {
     console.error("Discount registration failed:", error);
+    if (error.message.includes('동일한 기간에 활성 할인이 있습니다!')) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
