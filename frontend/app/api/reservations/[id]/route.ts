@@ -4,8 +4,10 @@ import { ReservationService } from '@/lib/services/reservation.service';
 import { createReservationDetailViewModel } from '@/lib/viewmodels/reservation-detail.viewmodel';
 import { createClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic'; // Add this line
+
 export async function GET(request: NextRequest, context: { params: { id: string } }) {
-  const { id: reservationId } = await context.params;
+  const { id: reservationId } = context.params; // Remove await
 
   if (!reservationId) {
     return NextResponse.json({ error: 'Reservation ID is required' }, { status: 400 });
@@ -30,7 +32,7 @@ export async function GET(request: NextRequest, context: { params: { id: string 
 }
 
 export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
-  const { id: reservationId } = await context.params;
+  const { id: reservationId } = context.params; // Remove await
 
   if (!reservationId) {
     return NextResponse.json({ error: 'Reservation ID is required' }, { status: 400 });
@@ -40,7 +42,12 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
     const supabase = await createClient();
     const reservationService = new ReservationService(supabase);
 
-    const updatedReservation = await reservationService.cancelReservation(reservationId);
+    // Assuming the PATCH request body contains the new status, e.g., { status: 'cancelled' }
+    const { status } = await request.json();
+
+    // You might need a specific service method for status updates
+    // For now, let's assume cancelReservation can handle status updates
+    const updatedReservation = await reservationService.cancelReservation(reservationId, status);
     return NextResponse.json({ success: true, reservation: updatedReservation });
 
   } catch (error) {
