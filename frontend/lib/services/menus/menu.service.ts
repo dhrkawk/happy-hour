@@ -111,10 +111,16 @@ const { data, error } = await this.supabase
       }
     }
 
-    const updatePayload: Partial<MenuEntity> = {
-      name: menuData.name,
-      price: menuData.price,
-    };
+    const updatePayload: Partial<MenuEntity> = {};
+
+    if (menuData.name !== undefined) {
+      updatePayload.name = menuData.name;
+    }
+
+    if (menuData.price !== undefined) {
+      updatePayload.price = menuData.price;
+    }
+
     if (thumbnailUrl !== undefined) {
       updatePayload.thumbnail = thumbnailUrl;
     }

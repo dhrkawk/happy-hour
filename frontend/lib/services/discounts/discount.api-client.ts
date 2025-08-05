@@ -12,17 +12,8 @@ export class DiscountApiClient {
     return response.json();
   }
 
-  static async getDiscountById(discountId: string): Promise<DiscountEntity> {
-    const response = await fetch(`/api/discounts/${discountId}`);
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to fetch discount');
-    }
-    return response.json();
-  }
-
   static async getDiscountsByMenuId(storeId: string, menuId: string): Promise<DiscountDetailViewModel[]> {
-    const response = await fetch(`/api/stores/${storeId}/menus/${menuId}/discounts`);
+    const response = await fetch(`/api/menus/${menuId}/discounts`);
     if (!response.ok) {
       if (response.status === 404) return [];
       const errorData = await response.json();
@@ -35,9 +26,8 @@ export class DiscountApiClient {
   }
 
   static async registerDiscount(discountData: DiscountFormViewModel): Promise<DiscountEntity> {
-    const storeId = discountData.store_id;
     const menuId = discountData.menu_id;
-    const response = await fetch(`/api/stores/${storeId}/menus/${menuId}/discounts`, {
+    const response = await fetch(`/api/menus/${menuId}/discounts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

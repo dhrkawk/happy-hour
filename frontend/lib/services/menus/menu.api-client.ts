@@ -10,6 +10,7 @@ export class MenuApiClient {
     this.origin = origin;
   }
 
+  // 전체 메뉴 목록 조회
   async getMenus(): Promise<MenuListItemViewModel[]> {
     const url = this.origin ? `${this.origin}${this.baseUrl}` : this.baseUrl;
     const response = await fetch(url);
@@ -20,6 +21,7 @@ export class MenuApiClient {
     return response.json();
   }
 
+  // 메뉴 상세 조회
   async getMenuById(menuId: string): Promise<MenuEntity> {
     const response = await fetch(`${this.baseUrl}/${menuId}`);
     if (!response.ok) {
@@ -29,6 +31,7 @@ export class MenuApiClient {
     return response.json();
   }
 
+  // 메뉴 등록
   async registerMenu(menuData: MenuFormViewModel, thumbnailFile: File | null): Promise<MenuEntity> {
     const formData = new FormData();
     formData.append('name', menuData.name);
@@ -50,6 +53,7 @@ export class MenuApiClient {
     return response.json();
   }
 
+  // 메뉴 수정
   async updateMenu(menuId: string, menuData: Partial<MenuFormViewModel>, thumbnailFile: File | null): Promise<MenuEntity> {
     const formData = new FormData();
     if (menuData.name) formData.append('name', menuData.name);
@@ -70,6 +74,7 @@ export class MenuApiClient {
     return response.json();
   }
 
+  // 메뉴 삭제
   async deleteMenu(menuId: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/${menuId}`, {
       method: 'DELETE',
@@ -80,4 +85,5 @@ export class MenuApiClient {
       throw new Error(errorData.error || 'Failed to delete menu');
     }
   }
+
 }
