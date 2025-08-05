@@ -24,6 +24,23 @@ export default function ManageMenusPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const handleDelete = async (menuId: string) => {
+    if (!confirm("정말로 이 메뉴를 삭제하시겠습니까?")) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      await menuApiClient.deleteMenu(menuId);
+      await loadMenus();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadMenus = async () => {
     setLoading(true);
     try {
@@ -109,7 +126,16 @@ export default function ManageMenusPage() {
                 <p className="text-sm text-gray-500">{menu.price.toLocaleString()}원</p>
               </div>
             </div>
-            <Button variant="outline" onClick={() => openEditDialog(menu)}>수정</Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => openEditDialog(menu)}>수정</Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleDelete(menu.id)}
+              >
+                삭제
+              </Button>
+            </div>
           </Card>
         ))}
       </div>
