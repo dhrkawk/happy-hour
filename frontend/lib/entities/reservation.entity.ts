@@ -11,6 +11,8 @@ export interface ReservationEntity {
     storeThumbnail?: string;
     storeAddress?: string;
     storePhone?: string;
+    userName?: string;
+    userPhone?: string;
     reservationItems?: ReservationItem[];
   }
 

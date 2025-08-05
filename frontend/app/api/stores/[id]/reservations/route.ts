@@ -6,7 +6,7 @@ import { ReservationService } from '@/lib/services/reservation.service';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest, context: { params: { id: string } }) {
-  const storeId = context.params.id;
+  const storeId = (await context.params).id;
 
   if (!storeId) {
     return NextResponse.json({ error: 'Store ID is required' }, { status: 400 });

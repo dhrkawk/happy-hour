@@ -84,7 +84,7 @@ export default function StoreReservationsPage() {
               </div>
 
               {bookings.map((booking) => (
-                <Link href={`/bookings/${booking.id}`} key={booking.id} passHref>
+                <Link href={`/profile/store-management/${storeId}/reservations/${booking.id}`} key={booking.id} passHref>
                   <Card className="border-teal-100 hover:shadow-md transition-all duration-300">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
