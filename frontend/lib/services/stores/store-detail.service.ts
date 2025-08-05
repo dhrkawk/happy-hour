@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/types';
-import type { StoreDetailEntity, StoreMenu, Discount } from '@/lib/entities/store-detail.entity';
+import type { StoreDetailEntity, StoreMenu, Discount } from '@/lib/entities/stores/store-detail.entity';
 
 const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
   const menus: StoreMenu[] = (store.store_menus || []).map((menu: any) => {

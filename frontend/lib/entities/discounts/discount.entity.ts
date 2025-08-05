@@ -6,4 +6,5 @@ export interface DiscountEntity {
   end_time: string;
   quantity: number | null;
   created_at: string;
+  is_active: boolean;
 }

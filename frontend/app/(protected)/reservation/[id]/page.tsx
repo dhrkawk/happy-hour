@@ -18,18 +18,19 @@ export default function BookingCreationPage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isBookingCompleted, setIsBookingCompleted] = useState(false) // New state variable
 
   const { cart } = appState
 
   useEffect(() => {
     // Validate that the cart exists and belongs to the correct store
-    if (!cart) {
+    if (!cart && !isBookingCompleted) { // Add !isBookingCompleted condition
       setError("장바구니가 비어있습니다. 가게 페이지로 돌아가 메뉴를 담아주세요.")
-    } else if (cart.storeId !== storeId) {
+    } else if (cart && cart.storeId !== storeId) {
       setError("장바구니 정보가 현재 가게와 일치하지 않습니다. 장바구니를 비우고 다시 시도해주세요.")
       clearCart() // Clear the invalid cart
     }
-  }, [cart, storeId, clearCart])
+  }, [cart, storeId, clearCart, isBookingCompleted])
 
   // Get totals from context
   const { totalItems, totalPrice } = getCartTotals()
@@ -73,16 +74,11 @@ export default function BookingCreationPage() {
         throw new Error(result.error || "알 수 없는 오류로 예약에 실패했습니다.")
       }
 
-      // On success, clear the cart from context and navigate
-      clearCart()
-
-      toast({
-        title: "예약 완료!",
-        description: "예약이 성공적으로 완료되었습니다. 상세 페이지로 이동합니다.",
-        className: "bg-green-500 text-white",
-      })
-
+      setIsBookingCompleted(true); // Set flag before navigation
       router.push(`/bookings/${result.reservation_id}`)
+
+      // On success, clear the cart from context
+      clearCart()
 
     } catch (err: any) {
       setError(err.message)

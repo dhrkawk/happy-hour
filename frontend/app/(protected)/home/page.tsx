@@ -1,11 +1,9 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { MapPin, Clock, RefreshCw, Loader2 } from "lucide-react"
+import { MapPin, RefreshCw, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import useSWR from "swr"
-
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { StoreCard } from "@/components/store-card"
@@ -14,15 +12,13 @@ import CategoryFilter from "@/components/category-filter"
 import { StoreCardSkeleton } from "@/components/store-card-skeleton"
 import { useAppContext } from "@/contexts/app-context"
 import { createClient } from "@/lib/supabase/client"
-import type { StoreEntity } from "@/lib/entities/store.entity"
-import { StoreCardViewModel, createStoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
-
-// SWR을 위한 fetcher 함수
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+import { StoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
+import { StoreApiClient } from "@/lib/services/stores/store.api-client"
 
 export default function HomePage() {
   const router = useRouter()
   const supabase = createClient()
+  const storeAPiClient = new StoreApiClient()
   const { appState, fetchLocation } = useAppContext()
   const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } = appState.location
   
@@ -61,25 +57,22 @@ export default function HomePage() {
     checkOnboarding()
   }, [router, supabase])
 
-  // 2. SWR을 사용하여 API로부터 StoreEnttiy 데이터를 가져옵니다.
-  // 온보딩이 확인되고, 사용자 위치가 있을 때만 데이터를 요청합니다.
-  const shouldFetch = onboardingChecked && !!coordinates
-  const { data: storeEntities, isLoading: loadingStores } = useSWR<StoreEntity[]>(
-    shouldFetch ? "/api/stores" : null,
-    fetcher
-  )
-
-  // 3. 가져온 StoreEntity를 StoreCardViewModel로 변환합니다.
+  // api 호출을 통해 가게 정보를 가져옵니다.
   useEffect(() => {
-    if (storeEntities && coordinates) {
-      const storeList = storeEntities.map((entity) =>
-        createStoreCardViewModel(entity, coordinates)
-      )
-      const viewModels_distance = StoreCardViewModel.sortByDistance(storeList)
-      const viewModels = StoreCardViewModel.sortByDiscount(viewModels_distance)
-      setAllViewModels(viewModels)
-    }
-  }, [storeEntities, coordinates])
+    if (!coordinates) return;
+
+    const fetchStores = async () => {
+      try {
+        const viewModels = await storeAPiClient.getAllStores(coordinates);
+        setAllViewModels(viewModels);
+      } catch (error) {
+        console.error("Error fetching stores:", error);
+      }
+    };
+
+    fetchStores();
+  }, [coordinates]);
+
 
   // 필터링 + 정렬을 통합 처리한 최종 ViewModel 리스트
   const finalViewModels = useMemo(() => {
@@ -99,9 +92,7 @@ export default function HomePage() {
   const isDataReady =
   onboardingChecked &&
   !locationLoading &&
-  !!coordinates &&
-  !!storeEntities &&
-  !loadingStores
+  !!coordinates
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto relative">

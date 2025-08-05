@@ -19,6 +19,7 @@ export class DiscountService {
         start_time: discountData.start_time,
         end_time: discountData.end_time,
         quantity: discountData.quantity || null,
+        is_active: true,
       })
       .select()
       .single();
@@ -46,19 +47,19 @@ export class DiscountService {
     })) as DiscountViewModel[];
   }
 
-  async getDiscountById(discountId: string): Promise<DiscountEntity | null> {
-    const { data, error } = await this.supabase
-      .from('discounts')
-      .select('*, menu:store_menus(name)')
-      .eq('id', discountId)
-      .single();
+  // async getDiscountById(discountId: string): Promise<DiscountEntity | null> {
+  //   const { data, error } = await this.supabase
+  //     .from('discounts')
+  //     .select('*, menu:store_menus(name)')
+  //     .eq('id', discountId)
+  //     .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') return null; // No rows found
-      throw new Error(`Failed to fetch discount: ${error.message}`);
-    }
-    return data as DiscountEntity;
-  }
+  //   if (error) {
+  //     if (error.code === 'PGRST116') return null; // No rows found
+  //     throw new Error(`Failed to fetch discount: ${error.message}`);
+  //   }
+  //   return data as DiscountEntity;
+  // }
 
   async getDiscountByMenuId(menuId: string): Promise<DiscountEntity | null> {
     const { data, error } = await this.supabase
@@ -99,5 +100,16 @@ export class DiscountService {
       .eq('id', discountId);
 
     if (error) throw new Error(`Failed to delete discount: ${error.message}`);
+  }
+
+  async getDiscountsByMenuId(menuId: string): Promise<DiscountEntity[]> {
+    const { data, error } = await this.supabase
+      .from('discounts')
+      .select('*')
+      .eq('menu_id', menuId)
+      .order('start_time', { ascending: true });
+
+    if (error) throw new Error(`Failed to fetch discounts by menu ID: ${error.message}`);
+    return data as DiscountEntity[];
   }
 }

@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
-import { StoreService } from '@/lib/services/store.service';
+import { StoreService } from '@/lib/services/stores/store.service';
 import { NextResponse } from 'next/server';
 
+// GET: 전체 매장 목록 조회
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -12,3 +13,5 @@ export async function GET() {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
+
+// POST: 매장 등록

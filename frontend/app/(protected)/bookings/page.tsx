@@ -14,21 +14,6 @@ import { ReservationService } from "@/lib/services/reservation.service"
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-const getStatusInfo = (status: string) => {
-  switch (status) {
-    case "confirmed":
-      return { label: "예약확정", color: "bg-blue-500 text-white", description: "예약이 확정되었습니다." };
-    case "used":
-      return { label: "방문완료", color: "bg-green-500 text-white", description: "방문이 완료되었습니다." };
-    case "cancelled":
-      return { label: "예약취소", color: "bg-red-500 text-white", description: "예약이 취소되었습니다." };
-    case "pending":
-      return { label: "예약대기", color: "bg-yellow-500 text-white", description: "예약 승인 대기중입니다."};
-    default:
-      return { label: "알 수 없음", color: "bg-gray-500 text-white", description: "" };
-  }
-};
-
 export default function BookingsPage() {
   const supabase = createClient();
   const reservationService = new ReservationService(supabase);
@@ -118,7 +103,6 @@ export default function BookingsPage() {
               </div>
 
               {bookings.map((booking) => {
-                const statusInfo = getStatusInfo(booking.status);
                 const isCanceling = cancelingBookingId === booking.id;
 
                 return (
@@ -133,13 +117,13 @@ export default function BookingsPage() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <h3 className="font-semibold text-gray-800 text-lg">{booking.storeName}</h3>
-                              <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
+                              <Badge className={booking.statusColor}>{booking.statusLabel}</Badge>
                             </div>
                             <div className="flex items-center gap-1 text-gray-600 mb-1">
                               <MapPin className="w-4 h-4" />
                               <span className="text-sm">{booking.address}</span>
                             </div>
-                            <p className="text-sm text-gray-500">{statusInfo.description}</p>
+                             <p className="text-sm text-gray-500">{booking.statusDescription}</p>
                           </div>
                           <div className="text-center">
                             <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mx-auto mb-1">
@@ -173,7 +157,7 @@ export default function BookingsPage() {
                           </div>
                         </div>
 
-                        {booking.status === 'active' && (
+                        {booking.status === 'confirmed' || booking.status === 'pending' && (
                           <div className="mt-3">
                             <Button
                               variant="outline"

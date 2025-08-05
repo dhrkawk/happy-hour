@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { MenuService } from '@/lib/services/menus/menu.service';
 import { Database } from '@/lib/supabase/types';
 
+// 특정 메뉴 상세 조회
 export async function GET(request: Request, { params }: { params: { id: string, menuId: string } }) {
   const { id: storeId, menuId } = params;
   const cookieStore = cookies();
@@ -21,6 +22,7 @@ export async function GET(request: Request, { params }: { params: { id: string, 
   }
 }
 
+// 메뉴 수정
 export async function PATCH(request: Request, { params }: { params: { id: string, menuId: string } }) {
   const { id: storeId, menuId } = params;
   const cookieStore = cookies();
@@ -44,6 +46,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
+// 메뉴 삭제
 export async function DELETE(request: Request, { params }: { params: { id: string, menuId: string } }) {
   const { id: storeId, menuId } = params;
   const cookieStore = cookies();

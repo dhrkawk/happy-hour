@@ -1,4 +1,4 @@
-import { DiscountFormViewModel, DiscountViewModel } from '@/lib/viewmodels/discounts/discount.viewmodel';
+import { DiscountDetailViewModel, DiscountFormViewModel, DiscountViewModel, createDiscountDetailViewModel } from '@/lib/viewmodels/discounts/discount.viewmodel';
 import { DiscountEntity } from '@/lib/entities/discounts/discount.entity';
 
 export class DiscountApiClient {
@@ -12,27 +12,22 @@ export class DiscountApiClient {
     return response.json();
   }
 
-  static async getDiscountById(discountId: string): Promise<DiscountEntity> {
-    const response = await fetch(`/api/discounts/${discountId}`);
+  static async getDiscountsByMenuId(storeId: string, menuId: string): Promise<DiscountDetailViewModel[]> {
+    const response = await fetch(`/api/menus/${menuId}/discounts`);
     if (!response.ok) {
+      if (response.status === 404) return [];
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to fetch discount');
+      throw new Error(errorData.error || 'Failed to fetch discounts by menu ID');
     }
-    return response.json();
-  }
 
-  static async getDiscountByMenuId(menuId: string): Promise<DiscountEntity | null> {
-    const response = await fetch(`/api/discounts/menu/${menuId}`);
-    if (!response.ok) {
-      if (response.status === 404) return null;
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to fetch discount by menu ID');
-    }
-    return response.json();
+    const { discounts } = await response.json();
+
+    return discounts.map(createDiscountDetailViewModel);
   }
 
   static async registerDiscount(discountData: DiscountFormViewModel): Promise<DiscountEntity> {
-    const response = await fetch('/api/discounts', {
+    const menuId = discountData.menu_id;
+    const response = await fetch(`/api/menus/${menuId}/discounts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

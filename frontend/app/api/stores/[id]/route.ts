@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { StoreDetailService } from '@/lib/services/store-detail.service';
+import { StoreDetailService } from '@/lib/services/stores/store-detail.service';
 
-
+// 매장 상세 정보 조회
 export async function GET(
   request: NextRequest,
   context: { params: { id: string } }
@@ -30,3 +29,7 @@ export async function GET(
     );
   }
 }
+
+// PATCH: 매장 정보 수정
+
+// Delete: 매장 삭제
