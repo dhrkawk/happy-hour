@@ -53,7 +53,7 @@ export class MenuApiClient {
     return response.json();
   }
 
-  // TODO: 메뉴 수정
+  // 메뉴 수정
   async updateMenu(menuId: string, menuData: Partial<MenuFormViewModel>, thumbnailFile: File | null): Promise<MenuEntity> {
     const formData = new FormData();
     if (menuData.name) formData.append('name', menuData.name);
@@ -74,7 +74,7 @@ export class MenuApiClient {
     return response.json();
   }
 
-  // TODO: 메뉴 삭제
+  // 메뉴 삭제
   async deleteMenu(menuId: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/${menuId}`, {
       method: 'DELETE',
