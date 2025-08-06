@@ -7,7 +7,7 @@ export async function GET(
   request: NextRequest,
   context: { params: { id: string } }
 ) {
-  const { id: storeId } = context.params;
+  const { id: storeId } = await context.params;
   const supabase = await createClient();
   const storeDetailService = new StoreDetailService(supabase);
   
