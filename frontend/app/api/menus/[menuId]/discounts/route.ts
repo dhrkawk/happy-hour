@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, context : { params: { id: string, me
   }
 }
 
-// TODO: 새로운 할인 등록
+// 새로운 할인 등록
 export async function POST(
   req: NextRequest
 ) {

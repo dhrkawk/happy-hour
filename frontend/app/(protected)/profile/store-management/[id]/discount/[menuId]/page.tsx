@@ -87,7 +87,7 @@ export default function ManageDiscountPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === "final_price") {
-      const finalPrice = Math.round(Number(value));
+      const finalPrice = Number(value);
       if (menu && menu.price > 0) {
         const discountRate = Math.round(((menu.price - finalPrice) / menu.price) * 100);
         setForm((prev) => ({
@@ -105,6 +105,11 @@ export default function ManageDiscountPage() {
           discount_rate: discountRate,
           final_price: finalPrice,
         }));
+      } else {
+        setForm((prev) => ({
+          ...prev,
+          discount_rate: discountRate,
+        }));
       }
     } else {
       setForm((prev) => ({
@@ -113,6 +118,7 @@ export default function ManageDiscountPage() {
       }));
     }
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,9 +296,9 @@ export default function ManageDiscountPage() {
               <Input
                 name="discount_rate"
                 type="number"
-                value={form.discount_rate}
-                readOnly
-                disabled
+                value={form.discount_rate || ''}
+                onChange={handleChange}
+                required
               />
             </div>
             <div>
