@@ -23,6 +23,7 @@ export type Database = {
           menu_id: string | null
           quantity: number | null
           start_time: string
+          is_active: boolean
         }
         Insert: {
           created_at?: string
@@ -32,6 +33,7 @@ export type Database = {
           menu_id?: string | null
           quantity?: number | null
           start_time: string
+          is_active?: boolean
         }
         Update: {
           created_at?: string
@@ -41,6 +43,7 @@ export type Database = {
           menu_id?: string | null
           quantity?: number | null
           start_time?: string
+          is_active?: boolean
         }
         Relationships: [
           {
