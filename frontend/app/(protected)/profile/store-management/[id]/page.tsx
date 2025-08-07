@@ -8,8 +8,11 @@ import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { StoreEntity } from "@/lib/entities/stores/store.entity"
 
-export default function StoreManagementPage({ params }: { params: { id: string } }) {
-  const storeId = params.id
+import { useParams } from "next/navigation";
+
+export default function StoreManagementPage() {
+  const params = useParams();
+  const storeId = params.id as string;
 
   const [storeData, setStoreData] = useState<StoreEntity | null>(null)
   const [loading, setLoading] = useState(true)
