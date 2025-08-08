@@ -1,7 +1,7 @@
 // frontend/app/api/stores/[id]/reservations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { ReservationService } from '@/lib/services/reservation.service';
+import { ReservationService } from '@/lib/services/reservations/reservation.service';
 
 export const dynamic = 'force-dynamic';
 

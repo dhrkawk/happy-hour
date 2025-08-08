@@ -1,13 +1,13 @@
 // frontend/app/api/reservations/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { ReservationService } from '@/lib/services/reservation.service';
+import { ReservationService } from '@/lib/services/reservations/reservation.service';
 import { createReservationDetailViewModel } from '@/lib/viewmodels/reservation-detail.viewmodel';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic'; // Add this line
 
 export async function GET(request: NextRequest, context: { params: { id: string } }) {
-  const { id: reservationId } = context.params; // Remove await
+  const { id: reservationId } = await context.params;
 
   if (!reservationId) {
     return NextResponse.json({ error: 'Reservation ID is required' }, { status: 400 });
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, context: { params: { id: string 
 }
 
 export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
-  const { id: reservationId } = context.params; // Remove await
+  const { id: reservationId } = await context.params;
 
   if (!reservationId) {
     return NextResponse.json({ error: 'Reservation ID is required' }, { status: 400 });

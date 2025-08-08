@@ -10,7 +10,7 @@ import BottomNavigation from "@/components/bottom-navigation"
 import { createClient } from "@/lib/supabase/client"
 import useSWR from "swr"
 import { BookingCardViewModel, createBookingCardViewModel } from "@/lib/viewmodels/reservation-card.viewmodel"
-import { ReservationService } from "@/lib/services/reservation.service"
+import { ReservationService } from "@/lib/services/reservations/reservation.service"
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 

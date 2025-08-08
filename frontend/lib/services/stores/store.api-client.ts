@@ -17,9 +17,7 @@ export class StoreApiClient {
     const storeEntities: StoreEntity[] = await response.json();
     
     // Convert StoreEntity to StoreCardViewModel
-    const storeList = storeEntities.map(entity => createStoreCardViewModel(entity, userLocation));
-    const viewModels_distance = StoreCardViewModel.sortByDistance(storeList);
-    const viewModels = StoreCardViewModel.sortByDiscount(viewModels_distance);
+    const viewModels = storeEntities.map(entity => createStoreCardViewModel(entity, userLocation));
     return viewModels;
   }
 
