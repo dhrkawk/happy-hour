@@ -70,4 +70,15 @@ export class DiscountApiClient {
       throw new Error(errorData.error || 'Failed to delete discount');
     }
   }
+
+  static async endDiscount(discountId: string): Promise<void> {
+    const response = await fetch(`/api/discounts/${discountId}/end`, {
+      method: 'PATCH',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to end discount');
+    }
+  }
 }

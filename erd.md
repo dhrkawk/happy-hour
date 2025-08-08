@@ -45,7 +45,7 @@ name	varchar	메뉴명
 price	int4	가격
 thumbnail	text	이미지 URL
 created_at	timestamptz	생성일자
-
+description	text 메뉴 설명
 
 ⸻
 
@@ -59,7 +59,7 @@ end_time	timestamptz	할인 종료 시간
 quantity	int4	남은 수량
 created_at	timestamptz	생성일자
 menu_id	uuid	할인 적용 메뉴 ID (store_menus.id 참조)
-
+is_active   boolean    활성화 여부
 
 ⸻
 
@@ -85,7 +85,7 @@ reservation_id	uuid	예약 ID (reservations.id 참조)
 discount_rate	integer	 예약 당시 할인율
 quantity	int4	수량
 price       integer     예약 당시 원 가격 
-menu_name
+menu_name   text    예약 당시 메뉴 이름
 
 
 ⸻

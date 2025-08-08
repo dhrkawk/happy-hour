@@ -31,13 +31,18 @@ export default function BookingsPage() {
     ? data.map(createBookingCardViewModel)
     : [];
 
+  console.log("Bookings data:", bookings);
+  bookings.forEach(booking => {
+    console.log(`Booking ID: ${booking.id}, Status: ${booking.status}, Status Label: ${booking.statusLabel}, Status Color: ${booking.statusColor}`);
+  });
+
   const handleCancelBooking = async (bookingId: string) => {
     if (!confirm("정말로 이 예약을 취소하시겠습니까?")) return;
   
     setCancelingBookingId(bookingId);
   
     try {
-      await reservationService.cancelReservation(bookingId);
+      await reservationService.cancelReservation(bookingId, 'cancelled');
       alert('예약이 성공적으로 취소되었습니다.');
       mutate(); // 데이터 갱신
     } catch (error: any) {

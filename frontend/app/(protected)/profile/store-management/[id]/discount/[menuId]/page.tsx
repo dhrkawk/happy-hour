@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
+import { MenuEntity } from "@/lib/entities/menus/menu.entity";
 
 export default function ManageDiscountPage() {
   const { id: storeId, menuId } = useParams() as { id: string; menuId: string };
@@ -27,19 +29,25 @@ export default function ManageDiscountPage() {
   type Status = typeof statuses[number];
 
   const [discounts, setDiscounts] = useState<DiscountDetailViewModel[]>([]);
+  const [menu, setMenu] = useState<MenuEntity | null>(null);
   const [selected, setSelected] = useState<DiscountDetailViewModel | null>(null);
-  const [form, setForm] = useState<DiscountFormViewModel>(createDiscountFormViewModel(menuId));
+  const [form, setForm] = useState<DiscountFormViewModel & { final_price?: number }>(createDiscountFormViewModel(storeId, menuId));
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isNew, setIsNew] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<"all" | "scheduled" | "active" | "expired">("all");
 
-  const loadDiscounts = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const data = await DiscountApiClient.getDiscountsByMenuId(storeId, menuId);
-      setDiscounts(data);
+      const menuApiClient = new MenuApiClient(storeId);
+      const [discountData, menuData] = await Promise.all([
+        DiscountApiClient.getDiscountsByMenuId(storeId, menuId),
+        menuApiClient.getMenuById(menuId),
+      ]);
+      setDiscounts(discountData);
+      setMenu(menuData);
     } catch (err: any) {
       console.error(err);
       setError(err.message);
@@ -49,7 +57,7 @@ export default function ManageDiscountPage() {
   };
 
   useEffect(() => {
-    loadDiscounts();
+    loadData();
   }, [menuId]);
 
   const openCreateDialog = () => {
@@ -60,12 +68,15 @@ export default function ManageDiscountPage() {
   };
 
   const openEditDialog = (d: DiscountDetailViewModel) => {
+    if (!menu) return; // 메뉴 정보가 없으면 처리하지 않음
+    const calculatedFinalPrice = Math.round(menu.price * (1 - d.discount_rate / 100));
     setForm({
       menu_id: menuId,
       discount_rate: d.discount_rate,
       quantity: d.quantity,
       start_time: new Date(d.start_time).toISOString().slice(0, 16),
       end_time: new Date(d.end_time).toISOString().slice(0, 16),
+      final_price: calculatedFinalPrice,
     });
     setIsNew(false);
     setSelected(d);
@@ -74,11 +85,39 @@ export default function ManageDiscountPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: name === "discount_rate" || name === "quantity" ? Number(value) : value,
-    }));
+    if (name === "final_price") {
+      const finalPrice = Number(value);
+      if (menu && menu.price > 0) {
+        const discountRate = Math.round(((menu.price - finalPrice) / menu.price) * 100);
+        setForm((prev) => ({
+          ...prev,
+          discount_rate: discountRate,
+          final_price: finalPrice,
+        }));
+      }
+    } else if (name === "discount_rate") {
+      const discountRate = Number(value);
+      if (menu && menu.price > 0) {
+        const finalPrice = Math.round(menu.price * (1 - discountRate / 100));
+        setForm((prev) => ({
+          ...prev,
+          discount_rate: discountRate,
+          final_price: finalPrice,
+        }));
+      } else {
+        setForm((prev) => ({
+          ...prev,
+          discount_rate: discountRate,
+        }));
+      }
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        [name]: name === "quantity" ? Number(value) : value,
+      }));
+    }
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,12 +126,17 @@ export default function ManageDiscountPage() {
       if (isNew) {
         await DiscountApiClient.registerDiscount(form);
       } else if (selected) {
-        await DiscountApiClient.updateDiscount(selected.id, form);
+        const { final_price, ...restForm } = form; // final_price는 API로 보내지 않음
+        await DiscountApiClient.updateDiscount(selected.id, restForm);
       }
-      await loadDiscounts();
+      await loadData();
       setDialogOpen(false);
     } catch (err: any) {
-      setError(err.message);
+      if (err.message.includes("동일한 기간에 활성 할인이 있습니다!")) {
+        alert("동일한 기간에 활성 할인이 있습니다!");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -104,8 +148,21 @@ export default function ManageDiscountPage() {
     setLoading(true);
     try {
       await DiscountApiClient.deleteDiscount(selected.id);
-      await loadDiscounts();
+      await loadData();
       setDialogOpen(false);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEndDiscount = async (discountId: string) => {
+    if (!confirm("정말로 할인을 종료하시겠습니까?")) return;
+    setLoading(true);
+    try {
+      await DiscountApiClient.endDiscount(discountId);
+      await loadData();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -121,7 +178,10 @@ export default function ManageDiscountPage() {
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto px-4 py-6">
       {/* 헤더 */}
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold text-teal-600">할인 히스토리</h2>
+        <div>
+          <h2 className="text-lg font-bold text-teal-600">할인 히스토리</h2>
+          {menu && <p className="text-sm text-gray-500">메뉴: {menu.name} (원가: {menu.price.toLocaleString()}원)</p>}
+        </div>
         <Button onClick={openCreateDialog} size="sm">
           + 새 할인
         </Button>
@@ -158,30 +218,46 @@ export default function ManageDiscountPage() {
           {filteredDiscounts.map((d) => (
             <div
               key={d.id}
-              className="p-4 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer"
-              onClick={() => openEditDialog(d)}
+              className="p-4 border border-gray-200 rounded"
             >
-              <div className="flex justify-between items-center">
-                <p className="text-sm font-medium">{d.discount_rate}% 할인</p>
-                <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    d.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : d.status === "scheduled"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-200 text-gray-500"
-                  }`}
-                >
-                  {{
-                    active: "진행 중",
-                    scheduled: "예정됨",
-                    expired: "종료됨",
-                  }[d.status]}
-                </span>
+              <div
+                className={d.status !== "expired" ? "cursor-pointer" : ""}
+                onClick={() => d.status !== "expired" && openEditDialog(d)}
+              >
+                <div className="flex justify-between items-center">
+                  <p className="text-sm font-medium">{d.discount_rate}% 할인</p>
+                  <span
+                    className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      d.status === "active"
+                        ? "bg-green-100 text-green-700"
+                        : d.status === "scheduled"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {{
+                      active: "진행 중",
+                      scheduled: "예정됨",
+                      expired: "종료됨",
+                    }[d.status]}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {new Date(d.start_time).toLocaleString()} ~ {new Date(d.end_time).toLocaleString()}
+                </p>
               </div>
-              <p className="text-xs text-gray-500">
-                {new Date(d.start_time).toLocaleString()} ~ {new Date(d.end_time).toLocaleString()}
-              </p>
+              {d.status === "active" && (
+                <div className="flex justify-end mt-2">
+                  <Button
+                    onClick={() => handleEndDiscount(d.id)}
+                    size="sm"
+                    variant="destructive"
+                    className="h-7 px-2 text-xs"
+                  >
+                    할인 종료하기
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -198,9 +274,31 @@ export default function ManageDiscountPage() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {menu && (
+              <div>
+                <Label>메뉴 원가</Label>
+                <Input type="text" value={`${menu.price.toLocaleString()}원`} readOnly disabled />
+              </div>
+            )}
+            <div>
+              <Label htmlFor="final_price">할인될 최종 가격</Label>
+              <Input
+                name="final_price"
+                type="number"
+                value={form.final_price || ''}
+                onChange={handleChange}
+                required
+              />
+            </div>
             <div>
               <Label htmlFor="discount_rate">할인율 (%)</Label>
-              <Input name="discount_rate" type="number" value={form.discount_rate} onChange={handleChange} required />
+              <Input
+                name="discount_rate"
+                type="number"
+                value={form.discount_rate || ''}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div>
               <Label htmlFor="quantity">수량 (선택)</Label>

@@ -10,7 +10,26 @@ export class DiscountService {
     this.supabase = supabaseClient;
   }
 
-  async registerDiscount(discountData: DiscountFormViewModel): Promise<DiscountEntity> {
+  async createDiscount(discountData: DiscountFormViewModel): Promise<DiscountEntity> {
+    // 1. 기간 중복 검사
+    const existingDiscounts = await this.getDiscountsByMenuId(discountData.menu_id);
+    const newStartTime = new Date(discountData.start_time);
+    const newEndTime = new Date(discountData.end_time);
+
+    for (const existing of existingDiscounts) {
+      // 활성 할인만 검사
+      if (!existing.is_active) continue;
+
+      const existingStartTime = new Date(existing.start_time);
+      const existingEndTime = new Date(existing.end_time);
+
+      // 기간 중복 조건: (새 시작 < 기존 종료) && (새 종료 > 기존 시작)
+      if (newStartTime < existingEndTime && newEndTime > existingStartTime) {
+        throw new Error('동일한 기간에 활성 할인이 있습니다!');
+      }
+    }
+
+    // 2. 할인 등록
     const { data, error } = await this.supabase
       .from('discounts')
       .insert({
@@ -24,8 +43,47 @@ export class DiscountService {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to register discount: ${error.message}`);
+    if (error) throw new Error(`Failed to create discount: ${error.message}`);
     return data as DiscountEntity;
+  }
+
+  async endDiscount(discountId: string): Promise<DiscountEntity> {
+    const { data, error } = await this.supabase
+      .from('discounts')
+      .update({ is_active: false })
+      .eq('id', discountId)
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to end discount: ${error.message}`);
+    return data as DiscountEntity;
+  }
+
+  async updateDiscount(discountId: string, discountData: Partial<DiscountFormViewModel>): Promise<DiscountEntity> {
+    const { data, error } = await this.supabase
+      .from('discounts')
+      .update({
+        discount_rate: discountData.discount_rate,
+        quantity: discountData.quantity,
+        start_time: discountData.start_time,
+        end_time: discountData.end_time,
+        menu_id: discountData.menu_id,
+      })
+      .eq('id', discountId)
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to update discount: ${error.message}`);
+    return data as DiscountEntity;
+  }
+
+  async deleteDiscount(discountId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('discounts')
+      .delete()
+      .eq('id', discountId);
+
+    if (error) throw new Error(`Failed to delete discount: ${error.message}`);
   }
 
   async getDiscountsByStoreId(storeId: string): Promise<DiscountViewModel[]> {
@@ -61,53 +119,13 @@ export class DiscountService {
   //   return data as DiscountEntity;
   // }
 
-  async getDiscountByMenuId(menuId: string): Promise<DiscountEntity | null> {
+    async getDiscountsByMenuId(menuId: string): Promise<DiscountEntity[]> {
     const { data, error } = await this.supabase
       .from('discounts')
       .select('*')
       .eq('menu_id', menuId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return null; // No rows found
-      throw new Error(`Failed to fetch discount by menu ID: ${error.message}`);
-    }
-    return data as DiscountEntity;
-  }
-
-  async updateDiscount(discountId: string, discountData: Partial<DiscountFormViewModel>): Promise<DiscountEntity> {
-    const { data, error } = await this.supabase
-      .from('discounts')
-      .update({
-        discount_rate: discountData.discount_rate,
-        quantity: discountData.quantity,
-        start_time: discountData.start_time,
-        end_time: discountData.end_time,
-        menu_id: discountData.menu_id,
-      })
-      .eq('id', discountId)
-      .select()
-      .single();
-
-    if (error) throw new Error(`Failed to update discount: ${error.message}`);
-    return data as DiscountEntity;
-  }
-
-  async deleteDiscount(discountId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('discounts')
-      .delete()
-      .eq('id', discountId);
-
-    if (error) throw new Error(`Failed to delete discount: ${error.message}`);
-  }
-
-  async getDiscountsByMenuId(menuId: string): Promise<DiscountEntity[]> {
-    const { data, error } = await this.supabase
-      .from('discounts')
-      .select('*')
-      .eq('menu_id', menuId)
-      .order('start_time', { ascending: true });
+      .order('is_active', { ascending: false }) // 활성 할인이 먼저 오도록
+      .order('start_time', { ascending: true }); // 시작 시간 기준으로 정렬
 
     if (error) throw new Error(`Failed to fetch discounts by menu ID: ${error.message}`);
     return data as DiscountEntity[];
