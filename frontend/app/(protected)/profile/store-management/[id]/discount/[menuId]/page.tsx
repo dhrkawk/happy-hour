@@ -61,7 +61,7 @@ export default function ManageDiscountPage() {
   }, [menuId]);
 
   const openCreateDialog = () => {
-    setForm(createDiscountFormViewModel(storeId, menuId));
+    setForm(createDiscountFormViewModel(menuId));
     setIsNew(true);
     setSelected(null);
     setDialogOpen(true);
@@ -72,7 +72,6 @@ export default function ManageDiscountPage() {
     const calculatedFinalPrice = Math.round(menu.price * (1 - d.discount_rate / 100));
     setForm({
       menu_id: menuId,
-      store_id: storeId,
       discount_rate: d.discount_rate,
       quantity: d.quantity,
       start_time: new Date(d.start_time).toISOString().slice(0, 16),
