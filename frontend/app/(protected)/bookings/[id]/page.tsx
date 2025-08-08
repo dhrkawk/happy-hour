@@ -1,6 +1,7 @@
 "use client"
 
 import { useParams } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 import useSWR from 'swr';
 import { ArrowLeft, MapPin, Clock, Phone, Loader2, ShoppingCart, AlertCircle } from "lucide-react"
 import Link from "next/link"
@@ -10,8 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import BottomNavigation from "@/components/bottom-navigation"
 import { useToast } from "@/components/ui/use-toast"
-import { useState } from "react";
 import { ReservationDetailViewModel } from '@/lib/viewmodels/reservation-detail.viewmodel';
+import { useAppContext } from "@/contexts/app-context"
 
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) {
@@ -25,8 +26,21 @@ export default function BookingDetailPage() {
   const { toast } = useToast();
   const id = params.id as string;
   const [isCanceling, setIsCanceling] = useState(false);
+  const { appState, clearCart } = useAppContext();
+  const didClearRef = useRef(false);
 
   const { data: booking, error, mutate } = useSWR<ReservationDetailViewModel>(`/api/reservations/${id}`, fetcher);
+  // 예약 상세 로드되면 한 번만 장바구니 비우기
+  useEffect(() => {
+    if (didClearRef.current) return;
+    if (!booking) return;
+    const hasCart = !!appState.cart && appState.cart.items.length > 0;
+    // 예약이 정상 상태일 때만, 그리고 장바구니가 있을 때만 비움
+    if (hasCart && (booking.status === "confirmed" || booking.status === "pending")) {
+      clearCart();
+    }
+    didClearRef.current = true; // 다시 호출되지 않도록 플래그 설정
+  }, [booking, appState.cart, clearCart]);
 
   const handleCancelBooking = async () => {
     if (!booking) return;

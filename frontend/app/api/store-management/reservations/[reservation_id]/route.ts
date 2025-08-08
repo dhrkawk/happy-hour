@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ReservationService } from '@/lib/services/reservation.service';
+import { ReservationService } from '@/lib/services/reservations/reservation.service';
 import { createReservationDetailOwnerViewModel } from '@/lib/viewmodels/reservation-detail-owner.viewmodel';
 import { createClient } from '@/lib/supabase/server';
 
