@@ -1,55 +1,41 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { ArrowLeft, MapPin, ShoppingCart, Loader2, AlertCircle } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
-import { useAppContext } from "@/contexts/app-context" // Import the context
-import { ReservationApiClient } from "@/lib/services/reservations/reservation.api-client"
-import { set } from "react-hook-form"
-
-const apiClient = new ReservationApiClient()
+import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft, ShoppingCart, Loader2, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { useAppContext } from "@/contexts/app-context";
+import { useCreateReservation } from "@/hooks/use-create-reservation";
 
 export default function BookingCreationPage() {
-  const router = useRouter()
-  const params = useParams()
-  const { toast } = useToast()
-  const { appState, getCartTotals } = useAppContext() // Use the context
-  const storeId = params.id as string
+  const router = useRouter();
+  const params = useParams();
+  const { toast } = useToast();
+  const { appState, getCartTotals } = useAppContext();
+  const { createReservation, isLoading } = useCreateReservation();
+  const storeId = params.id as string;
 
-  const [isLoading, setIsLoading] = useState(false)
+  const { cart } = appState;
+  const { totalItems, totalPrice } = getCartTotals();
 
-  const { cart } = appState
-  
-  // Get totals from context
-  const { totalItems, totalPrice } = getCartTotals()
-
-  // Booking handler
   const handleBooking = async () => {
     if (!cart) return;
 
-    setIsLoading(true);
     try {
-      // API 클라이언트의 메서드를 호출하는 한 줄로 간결해집니다.
-      const result = await apiClient.registerReservation(cart);
-
-      // API 클라이언트가 반환한 ID를 사용합니다.
+      const result = await createReservation(cart);
       router.push(`/bookings/${result.reservation_id}`);
     } catch (err: any) {
-      // 에러 처리 및 토스트 메시지
       toast({ variant: "destructive", title: "예약 실패", description: err.message });
-      setIsLoading(false);
-    } 
+    }
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
-        <p className="ml-2 text-teal-600">정보를 준비하는 중...</p>
+        <p className="ml-2 text-teal-600">예약을 생성하는 중...</p>
       </div>
     );
   }
@@ -59,8 +45,6 @@ export default function BookingCreationPage() {
     validationError = "장바구니가 비어있습니다. 가게 페이지로 돌아가 메뉴를 담아주세요.";
   } else if (cart.storeId !== storeId) {
     validationError = "장바구니 정보가 현재 가게와 일치하지 않습니다. 장바구니를 비우고 다시 시도해주세요.";
-    // 이 경우, useEffect에서 clearCart를 호출하는 대신 사용자에게 명확한 옵션을 줄 수도 있습니다.
-    // 여기서는 일단 에러 메시지만 표시합니다.
   }
 
   if (validationError) {
@@ -69,11 +53,11 @@ export default function BookingCreationPage() {
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
         <h2 className="text-xl font-semibold text-gray-800 mb-2">오류 발생</h2>
         <p className="text-gray-600 text-center mb-6">{validationError}</p>
-        <Link href="/home">
+        <Link href={`/store/${storeId}`}>
           <Button>가게 페이지로 돌아가기</Button>
         </Link>
       </div>
-    )
+    );
   }
 
   if (!cart) return null;
@@ -92,15 +76,12 @@ export default function BookingCreationPage() {
       </header>
 
       <main className="px-4 py-6 max-w-xl mx-auto">
-        {/* Store Info */}
         <Card className="border-teal-200 mb-6">
           <CardContent className="p-4">
             <h2 className="text-xl font-semibold text-gray-800 mb-3">{cart.storeName}</h2>
-            {/* Address can be added to cart state if needed */}
           </CardContent>
         </Card>
 
-        {/* Order Summary */}
         <Card className="border-teal-200 mb-6">
           <CardHeader>
             <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
@@ -131,7 +112,6 @@ export default function BookingCreationPage() {
           </CardContent>
         </Card>
 
-        {/* Disclaimers */}
         <Card className="border-orange-200 bg-orange-50 mb-6">
           <CardContent className="p-4">
             <h3 className="font-semibold text-orange-700 mb-2">주의사항</h3>
@@ -143,7 +123,6 @@ export default function BookingCreationPage() {
           </CardContent>
         </Card>
 
-        {/* Confirmation Button */}
         <Button
           onClick={handleBooking}
           disabled={isLoading || cart.items.length === 0}
@@ -157,5 +136,5 @@ export default function BookingCreationPage() {
         </Button>
       </main>
     </div>
-  )
+  );
 }
