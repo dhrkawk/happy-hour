@@ -10,6 +10,7 @@ export interface CartItem {
   name: string;
   price: number; // The final price after discount
   originalPrice: number; // Price before discount
+  discountRate: number; // The discount rate
   quantity: number;
   thumbnail: string;
 }

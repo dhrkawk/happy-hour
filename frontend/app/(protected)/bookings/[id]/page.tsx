@@ -2,24 +2,19 @@
 
 import { useParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import useSWR from 'swr';
-import { ArrowLeft, MapPin, Clock, Phone, Loader2, ShoppingCart, AlertCircle } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import BottomNavigation from "@/components/bottom-navigation"
-import { useToast } from "@/components/ui/use-toast"
-import { ReservationDetailViewModel } from '@/lib/viewmodels/reservation-detail.viewmodel';
-import { useAppContext } from "@/contexts/app-context"
+import { ArrowLeft, MapPin, Clock, Phone, Loader2, ShoppingCart, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import BottomNavigation from "@/components/bottom-navigation";
+import { useToast } from "@/components/ui/use-toast";
+import { useAppContext } from "@/contexts/app-context";
+import { useGetReservationById } from "@/hooks/use-get-reservation-by-id";
+import { ReservationApiClient } from "@/lib/services/reservations/reservation.api-client";
 
-const fetcher = (url: string) => fetch(url).then(res => {
-  if (!res.ok) {
-    throw new Error('데이터를 불러오는 데 실패했습니다.');
-  }
-  return res.json();
-});
+const apiClient = new ReservationApiClient();
 
 export default function BookingDetailPage() {
   const params = useParams();
@@ -29,17 +24,16 @@ export default function BookingDetailPage() {
   const { appState, clearCart } = useAppContext();
   const didClearRef = useRef(false);
 
-  const { data: booking, error, mutate } = useSWR<ReservationDetailViewModel>(`/api/reservations/${id}`, fetcher);
-  // 예약 상세 로드되면 한 번만 장바구니 비우기
+  const { booking, error, isLoading, mutate } = useGetReservationById(id);
+
+  // Clear cart once on successful load
   useEffect(() => {
-    if (didClearRef.current) return;
-    if (!booking) return;
+    if (didClearRef.current || !booking) return;
     const hasCart = !!appState.cart && appState.cart.items.length > 0;
-    // 예약이 정상 상태일 때만, 그리고 장바구니가 있을 때만 비움
     if (hasCart && (booking.status === "confirmed" || booking.status === "pending")) {
       clearCart();
     }
-    didClearRef.current = true; // 다시 호출되지 않도록 플래그 설정
+    didClearRef.current = true;
   }, [booking, appState.cart, clearCart]);
 
   const handleCancelBooking = async () => {
@@ -47,20 +41,9 @@ export default function BookingDetailPage() {
 
     setIsCanceling(true);
     try {
-      const res = await fetch(`/api/reservations/${booking.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: booking.id, status: 'cancelled' }), // Send status update
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || '예약 취소에 실패했습니다.');
-      }
-
-      mutate(); // 성공 시 SWR 캐시를 갱신하여 UI를 업데이트합니다.
+      await apiClient.cancelReservation(booking.id);
+      mutate(); // Re-fetch data to update UI
       toast({ title: "예약 취소", description: "예약이 성공적으로 취소되었습니다." });
-
     } catch (err: any) {
       toast({ variant: "destructive", title: "오류", description: err.message });
     } finally {
@@ -68,6 +51,15 @@ export default function BookingDetailPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+        <p className="ml-2 text-teal-600">예약 정보를 불러오는 중...</p>
+      </div>
+    );
+  }
+  
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
@@ -83,9 +75,13 @@ export default function BookingDetailPage() {
 
   if (!booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
-        <p className="ml-2 text-teal-600">예약 정보를 불러오는 중...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+        <AlertCircle className="w-12 h-12 text-gray-400 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">예약 정보 없음</h2>
+        <p className="text-gray-600 text-center mb-6">해당 예약을 찾을 수 없습니다.</p>
+        <Link href="/bookings">
+          <Button>예약 목록으로 돌아가기</Button>
+        </Link>
       </div>
     );
   }
@@ -134,7 +130,7 @@ export default function BookingDetailPage() {
               <h4 className="font-semibold text-gray-700 mb-3 flex items-center"><ShoppingCart className="w-5 h-5 mr-2 text-teal-600"/>예약 메뉴</h4>
               <div className="space-y-3">
                 {booking.items.map((item, index) => {
-                  const finalPrice = item.price * (1 - (item.discountRate || 0) / 100);
+                  const finalPrice = item.price;
                   return (
                     <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded-md">
                       <div>

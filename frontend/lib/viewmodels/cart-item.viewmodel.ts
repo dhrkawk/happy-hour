@@ -14,6 +14,7 @@ export function createCartItem(menu: StoreMenuViewModel): Omit<CartItem, 'quanti
     name: menu.name,
     price: menu.discountPrice,
     originalPrice: menu.originalPrice,
+    discountRate: menu.discountRate,
     thumbnail: menu.thumbnail,
   };
 }

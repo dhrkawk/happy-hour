@@ -1,57 +1,44 @@
-// frontend/app/api/reservations/[id]/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
-import { ReservationService } from '@/lib/services/reservations/reservation.service';
-import { createReservationDetailViewModel } from '@/lib/viewmodels/reservation-detail.viewmodel';
 import { createClient } from '@/lib/supabase/server';
+import { ReservationService } from '@/lib/services/reservations/reservation.service';
 
-export const dynamic = 'force-dynamic'; // Add this line
-
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
-  const { id: reservationId } = await context.params;
-
-  if (!reservationId) {
-    return NextResponse.json({ error: 'Reservation ID is required' }, { status: 400 });
-  }
+// GET a single reservation by ID
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+  const reservationId = params.id;
 
   try {
     const supabase = await createClient();
     const reservationService = new ReservationService(supabase);
-
+    
+    // The service method should handle user authentication to ensure a user can only fetch their own reservation
     const reservation = await reservationService.getReservationById(reservationId);
-    const viewModel = createReservationDetailViewModel(reservation);
-
-    return NextResponse.json(viewModel);
-
+    
+    return NextResponse.json(reservation);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    if (errorMessage.includes('Failed to fetch reservation')) {
-      return NextResponse.json({ error: 'Reservation not found or you do not have permission to view it.' }, { status: 404 });
-    }
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
 
-export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
-  const { id: reservationId } = await context.params;
 
-  if (!reservationId) {
-    return NextResponse.json({ error: 'Reservation ID is required' }, { status: 400 });
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const body = await request.json();
+  const reservationId = params.id;
+  const status = body.status;
+
+  if (status !== 'cancelled') {
+    return NextResponse.json({ error: 'This endpoint only supports cancellation.' }, { status: 400 });
   }
 
   try {
     const supabase = await createClient();
     const reservationService = new ReservationService(supabase);
-
-    // Assuming the PATCH request body contains the new status, e.g., { status: 'cancelled' }
-    const { status } = await request.json();
-
-    // You might need a specific service method for status updates
-    // For now, let's assume cancelReservation can handle status updates
-    const updatedReservation = await reservationService.cancelReservation(reservationId, status);
-    return NextResponse.json({ success: true, reservation: updatedReservation });
-
+    
+    // The service method handles user authentication and authorization
+    await reservationService.cancelReservation(reservationId, status);
+    
+    return NextResponse.json({ success: true, message: 'Reservation cancelled successfully.' }, { status: 200 });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
