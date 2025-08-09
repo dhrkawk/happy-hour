@@ -1,4 +1,5 @@
 import { Cart } from '@/contexts/app-context'; // 장바구니 타입을 가져옵니다.
+import { ReservationEntity } from '@/lib/entities/reservation.entity';
 
 export type ReservationFormViewModel = Cart;
 
@@ -41,5 +42,26 @@ export class ReservationApiClient {
       }
 
       return result;
+    }
+
+
+    // TODO
+    async getReservationById(id: string): Promise<ReservationEntity> {
+      const response = await fetch(`${this.baseUrl}/${id}`);
+      if (!response.ok) throw new Error('예약 정보를 불러오는 데 실패했습니다.');
+      return response.json();
+    }
+
+    // TODO
+    async cancelReservation(id: string): Promise<void> {
+      const response = await fetch(`${this.baseUrl}/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '예약 취소에 실패했습니다.');
+      }
     }
 }
