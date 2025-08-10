@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { ArrowLeft, Loader2, ChevronRight, ShoppingBag, Percent, Calendar } from "lucide-react"
+import { ArrowLeft, Loader2, ChevronRight, ShoppingBag, Percent, Calendar, Gift } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { notFound } from "next/navigation"
@@ -122,6 +122,22 @@ export default function StoreManagementPage() {
                     <Percent className="w-5 h-5 text-orange-500" />
                   </div>
                   <span className="font-medium text-gray-800">할인 관리</span>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href={`/profile/store-management/${storeId}/gifts`}>
+          <Card className="border-yellow-100 hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <Gift className="w-5 h-5 text-yellow-500" />
+                  </div>
+                  <span className="font-medium text-gray-800">증정품 관리</span>
                 </div>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>

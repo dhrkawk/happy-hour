@@ -36,6 +36,11 @@ export function StoreCard({ vm }: Props) {
                       {vm.discountDisplay}
                     </Badge>
                   ) : null}
+                  {vm.hasActiveGift ? (
+                    <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs">
+                      서비스 증정
+                    </Badge>
+                  ) : null}
                   <div className="flex items-center gap-1 text-xs text-gray-500">
                     <Clock className="w-3 h-3" />
                     {vm.timeLeftText}
@@ -48,9 +53,11 @@ export function StoreCard({ vm }: Props) {
                     {vm.originalPrice.toLocaleString()}원
                   </div>
                 ) : null}
-                <div className="text-sm font-bold text-teal-600">
+                {vm.maxDiscountRate ? (
+                  <div className="text-sm font-bold text-teal-600">
                   {vm.discountPrice.toLocaleString()}원
-                </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
