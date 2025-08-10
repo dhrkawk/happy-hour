@@ -11,21 +11,20 @@ export class DiscountService {
   }
 
   async createDiscount(discountData: DiscountFormViewModel): Promise<DiscountEntity> {
-    // 1. 기간 중복 검사
-    const existingDiscounts = await this.getDiscountsByMenuId(discountData.menu_id);
-    const newStartTime = new Date(discountData.start_time);
-    const newEndTime = new Date(discountData.end_time);
+    const now = new Date();
+    const startTime = new Date(discountData.start_time);
+    const endTime = new Date(discountData.end_time);
+    const newDiscountIsActive = now >= startTime && now <= endTime;
 
-    for (const existing of existingDiscounts) {
-      // 활성 할인만 검사
-      if (!existing.is_active) continue;
+    // If the new discount is active, deactivate all other discounts for this menu
+    if (newDiscountIsActive) {
+      const { error: updateError } = await this.supabase
+        .from('discounts')
+        .update({ is_active: false })
+        .eq('menu_id', discountData.menu_id);
 
-      const existingStartTime = new Date(existing.start_time);
-      const existingEndTime = new Date(existing.end_time);
-
-      // 기간 중복 조건: (새 시작 < 기존 종료) && (새 종료 > 기존 시작)
-      if (newStartTime < existingEndTime && newEndTime > existingStartTime) {
-        throw new Error('동일한 기간에 활성 할인이 있습니다!');
+      if (updateError) {
+        throw new Error(`Failed to deactivate existing discounts: ${updateError.message}`);
       }
     }
 
@@ -38,7 +37,7 @@ export class DiscountService {
         start_time: discountData.start_time,
         end_time: discountData.end_time,
         quantity: discountData.quantity || null,
-        is_active: true,
+        is_active: newDiscountIsActive, // Use the dynamically determined status
       })
       .select()
       .single();

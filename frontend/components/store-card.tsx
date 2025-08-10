@@ -31,9 +31,9 @@ export function StoreCard({ vm }: Props) {
                   <span className="text-xs text-gray-400">{vm.category}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  {vm.maxDiscountRate ? (
+                  {vm.discountDisplay ? (
                     <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs">
-                      최대 {vm.maxDiscountRate}% 할인
+                      {vm.discountDisplay}
                     </Badge>
                   ) : null}
                   <div className="flex items-center gap-1 text-xs text-gray-500">

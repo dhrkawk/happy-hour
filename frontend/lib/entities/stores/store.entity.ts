@@ -14,5 +14,6 @@ export interface StoreEntity {
 	maxDiscountRate: number | null
     maxPrice: number | null
 	maxDiscountEndTime: string | null
+	discountCount: number
 }
 
