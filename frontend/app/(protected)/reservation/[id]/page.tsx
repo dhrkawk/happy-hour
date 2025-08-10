@@ -1,109 +1,66 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { ArrowLeft, MapPin, ShoppingCart, Loader2, AlertCircle } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
-import { useAppContext } from "@/contexts/app-context" // Import the context
+import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft, ShoppingCart, Loader2, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { useAppContext } from "@/contexts/app-context";
+import { useCreateReservation } from "@/hooks/use-create-reservation";
 
 export default function BookingCreationPage() {
-  const router = useRouter()
-  const params = useParams()
-  const { toast } = useToast()
-  const { appState, clearCart, getCartTotals } = useAppContext() // Use the context
-  const storeId = params.id as string
+  const router = useRouter();
+  const params = useParams();
+  const { toast } = useToast();
+  const { appState, getCartTotals } = useAppContext();
+  const { createReservation, isLoading } = useCreateReservation();
+  const storeId = params.id as string;
 
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isBookingCompleted, setIsBookingCompleted] = useState(false) // New state variable
+  const { cart } = appState;
+  const { totalItems, totalPrice } = getCartTotals();
 
-  const { cart } = appState
-
-  useEffect(() => {
-    // Validate that the cart exists and belongs to the correct store
-    if (!cart && !isBookingCompleted) { // Add !isBookingCompleted condition
-      setError("장바구니가 비어있습니다. 가게 페이지로 돌아가 메뉴를 담아주세요.")
-    } else if (cart && cart.storeId !== storeId) {
-      setError("장바구니 정보가 현재 가게와 일치하지 않습니다. 장바구니를 비우고 다시 시도해주세요.")
-      clearCart() // Clear the invalid cart
-    }
-  }, [cart, storeId, clearCart, isBookingCompleted])
-
-  // Get totals from context
-  const { totalItems, totalPrice } = getCartTotals()
-
-  // Booking handler
   const handleBooking = async () => {
-    if (!cart || cart.items.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "오류",
-        description: "장바구니에 담긴 메뉴가 없습니다.",
-      })
-      return
-    }
-
-    setIsLoading(true)
-    setError(null)
-
-    // Construct payload from cart state
-    const payload = {
-      store_id: cart.storeId,
-      reserved_time: new Date().toISOString(), // Reservation time is now
-      items: cart.items.map(item => ({
-        menu_name: item.name, // Add menu_name here
-        quantity: item.quantity,
-        price: item.price, // Final price
-        discount_rate: Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100),
-      })),
-    }
+    if (!cart) return;
 
     try {
-      const response = await fetch('/api/reservations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || "알 수 없는 오류로 예약에 실패했습니다.")
-      }
-
-      setIsBookingCompleted(true); // Set flag before navigation
-      router.push(`/bookings/${result.reservation_id}`)
-
-      // On success, clear the cart from context
-      clearCart()
-
+      const result = await createReservation(cart);
+      router.push(`/bookings/${result.reservation_id}`);
     } catch (err: any) {
-      setError(err.message)
-      toast({
-        variant: "destructive",
-        title: "예약 실패",
-        description: err.message,
-      })
-    } finally {
-      setIsLoading(false)
+      toast({ variant: "destructive", title: "예약 실패", description: err.message });
     }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+        <p className="ml-2 text-teal-600">예약을 생성하는 중...</p>
+      </div>
+    );
   }
 
-  if (error || !cart) {
+  let validationError: string | null = null;
+  if (!cart) {
+    validationError = "장바구니가 비어있습니다. 가게 페이지로 돌아가 메뉴를 담아주세요.";
+  } else if (cart.storeId !== storeId) {
+    validationError = "장바구니 정보가 현재 가게와 일치하지 않습니다. 장바구니를 비우고 다시 시도해주세요.";
+  }
+
+  if (validationError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
         <h2 className="text-xl font-semibold text-gray-800 mb-2">오류 발생</h2>
-        <p className="text-gray-600 text-center mb-6">{error || "예약 정보를 불러올 수 없습니다."}</p>
-        <Link href="/home">
-          <Button>홈으로 돌아가기</Button>
+        <p className="text-gray-600 text-center mb-6">{validationError}</p>
+        <Link href={`/store/${storeId}`}>
+          <Button>가게 페이지로 돌아가기</Button>
         </Link>
       </div>
-    )
+    );
   }
+
+  if (!cart) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
@@ -119,15 +76,12 @@ export default function BookingCreationPage() {
       </header>
 
       <main className="px-4 py-6 max-w-xl mx-auto">
-        {/* Store Info */}
         <Card className="border-teal-200 mb-6">
           <CardContent className="p-4">
             <h2 className="text-xl font-semibold text-gray-800 mb-3">{cart.storeName}</h2>
-            {/* Address can be added to cart state if needed */}
           </CardContent>
         </Card>
 
-        {/* Order Summary */}
         <Card className="border-teal-200 mb-6">
           <CardHeader>
             <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
@@ -158,7 +112,6 @@ export default function BookingCreationPage() {
           </CardContent>
         </Card>
 
-        {/* Disclaimers */}
         <Card className="border-orange-200 bg-orange-50 mb-6">
           <CardContent className="p-4">
             <h3 className="font-semibold text-orange-700 mb-2">주의사항</h3>
@@ -170,7 +123,6 @@ export default function BookingCreationPage() {
           </CardContent>
         </Card>
 
-        {/* Confirmation Button */}
         <Button
           onClick={handleBooking}
           disabled={isLoading || cart.items.length === 0}
@@ -184,5 +136,5 @@ export default function BookingCreationPage() {
         </Button>
       </main>
     </div>
-  )
+  );
 }

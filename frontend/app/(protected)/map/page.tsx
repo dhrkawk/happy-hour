@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
-import { ArrowLeft, MapPin, Loader2, RefreshCw } from "lucide-react"
+import { useState, useMemo } from "react"
+import { ArrowLeft, Loader2, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,58 +11,35 @@ import KakaoMap from "@/components/map/kakao-map"
 import { useAppContext } from "@/contexts/app-context"
 import { LocationErrorBanner } from "@/components/location-error-banner"
 import { motion, AnimatePresence } from "framer-motion"
-import { StoreCardViewModel, createStoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
 import { StoreCard } from "@/components/store-card"
-import { StoreApiClient } from "@/lib/services/stores/store.api-client"
+import { useGetStoreList } from "@/hooks/use-get-store-list"
+import { useFilteredStores } from "@/hooks/use-filtered-stores"
+import { StoreCardSkeleton } from "@/components/store-card-skeleton"
 
 export default function MapPage() {
-  const storeAPiClient = new StoreApiClient()
   const { appState, fetchLocation } = useAppContext()
   const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } = appState.location
 
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState<string>("전체")
-  const [allViewModels, setAllViewModels] = useState<StoreCardViewModel[]>([])
-  const [selectedSorting, setSelectedSorting] = useState<"거리순"|"할인순">("할인순");
-
-
-  // api 호출을 통해 가게 정보를 가져옵니다.
-  useEffect(() => {
-    if (!coordinates) return;
-
-    const fetchStores = async () => {
-      try {
-        const viewModels = await storeAPiClient.getAllStores(coordinates);
-        setAllViewModels(viewModels);
-      } catch (error) {
-        console.error("Error fetching stores:", error);
-      }
-    };
-
-    fetchStores();
-  }, [coordinates]);
-
-    // 필터링 + 정렬을 통합 처리한 최종 ViewModel 리스트
-    const finalViewModels = useMemo(() => {
-    // 1. 카테고리 필터링
-    const categoryFiltered = StoreCardViewModel.filterByCategory(allViewModels, selectedCategory);
-
-    // 2. 정렬
-    if (selectedSorting === "거리순") {
-      return StoreCardViewModel.sortByDistance(categoryFiltered);
-    } else if (selectedSorting === "할인순") {
-      return StoreCardViewModel.sortByDiscount(categoryFiltered);
-    } else {
-      return categoryFiltered;
-    }
-  }, [selectedCategory, selectedSorting, allViewModels, coordinates]);
-
+  
+  // 2. storesLoading 상태를 useGetStoreList 훅에서 가져옵니다.
+  const { stores: allViewModels, isLoading: storesLoading } = useGetStoreList();
+  const { 
+    finalViewModels, 
+    selectedCategory, 
+    setSelectedCategory, 
+    selectedSorting, 
+    setSelectedSorting 
+  } = useFilteredStores(allViewModels);
 
   const selectedStore = finalViewModels.find(store => store.id === selectedStoreId)
 
+  // 3. 로딩 상태를 명확하게 정의합니다.
+  const isLoading = locationLoading || storesLoading;
+
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto relative overflow-hidden">
-      {/* 헤더 */}
+      {/* 헤더 (변경 없음) */}
       <header className="bg-white shadow-sm border-b border-teal-100 relative z-10 safe-area-top">
         <div className="px-4 py-4">
           <div className="flex items-start justify-between mb-3">
@@ -90,16 +67,14 @@ export default function MapPage() {
               )}
             </div>
           </div>
-
-          {/* 카테고리 필터 */}
           <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
         </div>
       </header>
 
-      {/* 위치 오류 메시지 */}
-      {locationError && <LocationErrorBanner></LocationErrorBanner>}
+      {/* 위치 오류 메시지 (변경 없음) */}
+      {locationError && <LocationErrorBanner />}
 
-      {/* 지도 영역 */}
+      {/* 지도 영역 (변경 없음) */}
       <div className="relative h-[60vh] bg-gray-200">
         <KakaoMap
           userLocation={coordinates}
@@ -137,7 +112,14 @@ export default function MapPage() {
           </div>
         </div>
 
-        {finalViewModels.length === 0 ? (
+        {/* 4. 조건부 렌더링 로직을 스켈레톤 UI와 통합합니다. */}
+        {isLoading ? (
+          // 로딩 중일 때 스켈레톤을 보여줍니다.
+          Array.from({ length: 3 }).map((_, index) => (
+            <StoreCardSkeleton key={index} />
+          ))
+        ) : finalViewModels.length === 0 ? (
+          // 로딩이 끝났지만 데이터가 없을 때 "가게 없음" UI를 보여줍니다.
           <div className="text-center py-8">
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">해당 카테고리의 할인 가게가 없습니다</h3>
@@ -147,6 +129,7 @@ export default function MapPage() {
             </Button>
           </div>
         ) : (
+          // 로딩이 끝나고 데이터가 있을 때 실제 목록을 보여줍니다.
           finalViewModels.map(store => (
             <Link key={store.id} href={`/store/${store.id}`}>
               <StoreCard vm={store}></StoreCard>
@@ -155,10 +138,10 @@ export default function MapPage() {
         )}
       </div>
 
-      {/* 하단 네비게이션 */}
+      {/* 하단 네비게이션 (변경 없음) */}
       <BottomNavigation />
 
-      {/* 선택된 가게 정보 (슬라이딩 모달) */}
+      {/* 선택된 가게 정보 (슬라이딩 모달) (변경 없음) */}
       <AnimatePresence>
         {selectedStore && (
           <motion.div

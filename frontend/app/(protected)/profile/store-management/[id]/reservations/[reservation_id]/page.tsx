@@ -1,72 +1,38 @@
 "use client"
 
 import { useParams } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, MapPin, Clock, Phone, Loader2, ShoppingCart, AlertCircle } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import BottomNavigation from "@/components/bottom-navigation";
-import { useToast } from "@/components/ui/use-toast";
-import { useAppContext } from "@/contexts/app-context";
-import { useGetReservationById } from "@/hooks/use-get-reservation-by-id";
-import { ReservationApiClient } from "@/lib/services/reservations/reservation.api-client";
+import useSWR from 'swr';
+import { ArrowLeft, MapPin, Clock, Phone, Loader2, ShoppingCart, AlertCircle, User } from "lucide-react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { useToast } from "@/components/ui/use-toast"
+import { ReservationDetailOwnerViewModel } from '@/lib/viewmodels/reservation-detail-owner.viewmodel';
 
-const apiClient = new ReservationApiClient();
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) {
+    throw new Error('데이터를 불러오는 데 실패했습니다.');
+  }
+  return res.json();
+});
 
-export default function BookingDetailPage() {
+export default function StoreReservationDetailPage() {
   const params = useParams();
   const { toast } = useToast();
-  const id = params.id as string;
-  const [isCanceling, setIsCanceling] = useState(false);
-  const { appState, clearCart } = useAppContext();
-  const didClearRef = useRef(false);
+  const storeId = params.id as string;
+  const reservationId = params.reservation_id as string;
 
-  const { booking, error, isLoading, mutate } = useGetReservationById(id);
+  const { data: booking, error } = useSWR<ReservationDetailOwnerViewModel>(`/api/store-management/reservations/${reservationId}?storeId=${storeId}`, fetcher);
 
-  // Clear cart once on successful load
-  useEffect(() => {
-    if (didClearRef.current || !booking) return;
-    const hasCart = !!appState.cart && appState.cart.items.length > 0;
-    if (hasCart && (booking.status === "confirmed" || booking.status === "pending")) {
-      clearCart();
-    }
-    didClearRef.current = true;
-  }, [booking, appState.cart, clearCart]);
-
-  const handleCancelBooking = async () => {
-    if (!booking) return;
-
-    setIsCanceling(true);
-    try {
-      await apiClient.cancelReservation(booking.id);
-      mutate(); // Re-fetch data to update UI
-      toast({ title: "예약 취소", description: "예약이 성공적으로 취소되었습니다." });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "오류", description: err.message });
-    } finally {
-      setIsCanceling(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
-        <p className="ml-2 text-teal-600">예약 정보를 불러오는 중...</p>
-      </div>
-    );
-  }
-  
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
         <h2 className="text-xl font-semibold text-gray-800 mb-2">오류 발생</h2>
         <p className="text-gray-600 text-center mb-6">{error.message}</p>
-        <Link href="/bookings">
+        <Link href={`/profile/store-management/${storeId}/reservations`}>
           <Button>예약 목록으로 돌아가기</Button>
         </Link>
       </div>
@@ -75,13 +41,9 @@ export default function BookingDetailPage() {
 
   if (!booking) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-        <AlertCircle className="w-12 h-12 text-gray-400 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">예약 정보 없음</h2>
-        <p className="text-gray-600 text-center mb-6">해당 예약을 찾을 수 없습니다.</p>
-        <Link href="/bookings">
-          <Button>예약 목록으로 돌아가기</Button>
-        </Link>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+        <p className="ml-2 text-teal-600">예약 정보를 불러오는 중...</p>
       </div>
     );
   }
@@ -91,7 +53,7 @@ export default function BookingDetailPage() {
       <header className="bg-white shadow-sm border-b border-teal-100 sticky top-0 z-10">
         <div className="px-4 py-4">
           <div className="flex items-center gap-3">
-            <Link href="/bookings">
+            <Link href={`/profile/store-management/${storeId}/reservations`}>
               <Button variant="ghost" size="sm" className="p-2">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
@@ -127,10 +89,20 @@ export default function BookingDetailPage() {
             <Separator className="my-4"/>
 
             <div>
+              <h4 className="font-semibold text-gray-700 mb-3 flex items-center"><User className="w-5 h-5 mr-2 text-teal-600"/>예약자 정보</h4>
+              <div className="space-y-2 mb-4">
+                <p className="text-gray-700"><span className="font-medium">이름:</span> {booking.userName}</p>
+                <p className="text-gray-700"><span className="font-medium">전화번호:</span> {booking.userPhone}</p>
+              </div>
+            </div>
+
+            <Separator className="my-4"/>
+
+            <div>
               <h4 className="font-semibold text-gray-700 mb-3 flex items-center"><ShoppingCart className="w-5 h-5 mr-2 text-teal-600"/>예약 메뉴</h4>
               <div className="space-y-3">
                 {booking.items.map((item, index) => {
-                  const finalPrice = item.price;
+                  const finalPrice = item.price * (1 - (item.discountRate || 0) / 100);
                   return (
                     <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded-md">
                       <div>
@@ -160,32 +132,18 @@ export default function BookingDetailPage() {
               </div>
             </div>
 
-            {(booking.status === 'confirmed' || booking.status === 'pending') && (
-              <div className="flex gap-2 mt-5">
-                <a href={`tel:${booking.store.phone}`} className="flex-1">
+            <div className="flex gap-2 mt-5">
+                <a href={`tel:${booking.userPhone}`} className="flex-1">
                   <Button variant="outline" size="sm" className="w-full bg-transparent">
                     <Phone className="w-4 h-4 mr-1" />
-                    가게 전화
+                    예약자에게 전화
                   </Button>
                 </a>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="flex-1"
-                  onClick={handleCancelBooking}
-                  disabled={isCanceling}
-                >
-                  {isCanceling ? <Loader2 className="w-4 h-4 animate-spin"/> : "예약 취소"}
-                </Button>
-              </div>
-            )}
+                {/* 예약 상태 변경 버튼 (예: 확정, 취소)은 여기에 추가될 수 있습니다. */}
+            </div>
           </CardContent>
         </Card>
       </main>
-
-      <BottomNavigation />
     </div>
   );
 }
-
-

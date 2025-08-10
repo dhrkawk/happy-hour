@@ -6,7 +6,6 @@ export interface DiscountFormViewModel {
   start_time: string;
   end_time: string;
   menu_id: string;
-  store_id: string;
 }
 
 export interface DiscountViewModel {
@@ -54,10 +53,9 @@ export function createDiscountDetailViewModel(entity: DiscountEntity): DiscountD
   };
 }
 
-export function createDiscountFormViewModel(store_id: string, menu_id: string,): DiscountFormViewModel {
+export function createDiscountFormViewModel(menu_id: string): DiscountFormViewModel {
   return {
     menu_id,
-    store_id,
     discount_rate: 0,
     quantity: null,
     start_time: "",

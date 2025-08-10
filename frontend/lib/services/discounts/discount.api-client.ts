@@ -44,6 +44,7 @@ export class DiscountApiClient {
   }
 
   static async updateDiscount(discountId: string, discountData: Partial<DiscountFormViewModel>): Promise<DiscountEntity> {
+    console.log("Updating discount with data:", discountId);
     const response = await fetch(`/api/discounts/${discountId}`, {
       method: 'PATCH',
       headers: {

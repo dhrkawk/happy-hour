@@ -21,6 +21,7 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
       price: menu.price,
       description: menu.description,
       thumbnail: menu.thumbnail,
+      category: menu.category,
       discount,
     };
   });
@@ -36,6 +37,7 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
     activated: store.activated,
     storeThumbnail: store.store_thumbnail,
     ownerId: store.owner_id,
+    menu_category: store.menu_category,
     menus,
   };
 };

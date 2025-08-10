@@ -1,9 +1,7 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
 import { MapPin, RefreshCw, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { StoreCard } from "@/components/store-card"
@@ -11,88 +9,25 @@ import BottomNavigation from "@/components/bottom-navigation"
 import CategoryFilter from "@/components/category-filter"
 import { StoreCardSkeleton } from "@/components/store-card-skeleton"
 import { useAppContext } from "@/contexts/app-context"
-import { createClient } from "@/lib/supabase/client"
-import { StoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel"
-import { StoreApiClient } from "@/lib/services/stores/store.api-client"
+import { useOnboardingCheck } from "@/hooks/use-onboarding-check"
+import { useGetStoreList } from "@/hooks/use-get-store-list"
+import { useFilteredStores } from "@/hooks/use-filtered-stores"
 
 export default function HomePage() {
-  const router = useRouter()
-  const supabase = createClient()
-  const storeAPiClient = new StoreApiClient()
   const { appState, fetchLocation } = useAppContext()
-  const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } = appState.location
-  
-  const [selectedCategory, setSelectedCategory] = useState<string>("전체")
-  const [selectedSorting, setSelectedSorting] = useState<"거리순"|"할인순">("할인순");
-  const [allViewModels, setAllViewModels] = useState<StoreCardViewModel[]>([])
-  const [onboardingChecked, setOnboardingChecked] = useState(false)
+  const { address, loading: locationLoading, error: locationError, lastUpdated } = appState.location;
+  const { isReady: isOnboardingComplete } = useOnboardingCheck();
+  const { stores: allViewModels, isLoading: storesLoading } = useGetStoreList();
 
-  // 1. 온보딩/로그인 여부 확인
-  useEffect(() => {
-    const checkOnboarding = async () => {
-      if (localStorage.getItem("onboardingChecked") === "true") {
-        setOnboardingChecked(true)
-        return
-      }
+    const { 
+    finalViewModels, 
+    selectedCategory, 
+    setSelectedCategory, 
+    selectedSorting, 
+    setSelectedSorting 
+  } = useFilteredStores(allViewModels);
 
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push("/login")
-        return
-      }
-
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle()
-
-      if (!profile) {
-        router.push("/onboarding")
-      } else {
-        localStorage.setItem("onboardingChecked", "true")
-        setOnboardingChecked(true)
-      }
-    }
-    checkOnboarding()
-  }, [router, supabase])
-
-  // api 호출을 통해 가게 정보를 가져옵니다.
-  useEffect(() => {
-    if (!coordinates) return;
-
-    const fetchStores = async () => {
-      try {
-        const viewModels = await storeAPiClient.getAllStores(coordinates);
-        setAllViewModels(viewModels);
-      } catch (error) {
-        console.error("Error fetching stores:", error);
-      }
-    };
-
-    fetchStores();
-  }, [coordinates]);
-
-
-  // 필터링 + 정렬을 통합 처리한 최종 ViewModel 리스트
-  const finalViewModels = useMemo(() => {
-    // 1. 카테고리 필터링
-    const categoryFiltered = StoreCardViewModel.filterByCategory(allViewModels, selectedCategory);
-
-    // 2. 정렬
-    if (selectedSorting === "거리순") {
-      return StoreCardViewModel.sortByDistance(categoryFiltered);
-    } else if (selectedSorting === "할인순") {
-      return StoreCardViewModel.sortByDiscount(categoryFiltered);
-    } else {
-      return categoryFiltered;
-    }
-  }, [selectedCategory, selectedSorting, allViewModels, coordinates]);
-  
-  const isDataReady =
-  onboardingChecked &&
-  !locationLoading &&
-  !!coordinates
+  const isSkeletonLoading = !isOnboardingComplete || locationLoading || storesLoading;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto relative">
@@ -158,7 +93,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {!isDataReady ? (
+        {isSkeletonLoading ? (
           Array.from({ length: 5 }).map((_, index) => <StoreCardSkeleton key={index} />)
         ) : finalViewModels.length === 0 ? (
           <div className="text-center py-12">

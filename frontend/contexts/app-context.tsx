@@ -10,6 +10,7 @@ export interface CartItem {
   name: string;
   price: number; // The final price after discount
   originalPrice: number; // Price before discount
+  discountRate: number; // The discount rate
   quantity: number;
   thumbnail: string;
 }
@@ -57,12 +58,37 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     location: {
       coordinates: null,
       address: null,
-      loading: false,
+      loading: true,
       error: null,
       lastUpdated: null,
     },
     cart: null, // Initialize cart as null
   });
+
+  // 데이터 로딩을 시작하는 useEffect
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem('cart');
+      if (savedCart) {
+        setAppState(prev => ({ ...prev, cart: JSON.parse(savedCart) }));
+      }
+    } catch (error) {
+      console.error("Failed to load cart from localStorage", error);
+    }
+    
+    fetchLocation();
+  }, []); // 이 useEffect는 한 번만 실행됩니다.
+
+  // 장바구니 저장 로직
+  useEffect(() => {
+    // 이제 isInitialized 조건 없이, appState.cart가 변경될 때마다 저장합니다.
+    if (appState.cart) {
+      localStorage.setItem('cart', JSON.stringify(appState.cart));
+    } else {
+      localStorage.removeItem('cart');
+    }
+  }, [appState.cart]);
+
 
   // --- Location Logic ---
 
@@ -135,10 +161,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
     )
   }, [])
-
-  useEffect(() => {
-    fetchLocation()
-  }, [fetchLocation])
 
   // --- Cart Logic ---
 

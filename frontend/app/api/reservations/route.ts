@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { ReservationService } from '@/lib/services/reservation.service';
+import { ReservationService } from '@/lib/services/reservations/reservation.service';
 
 // DB 스키마에 맞게 수정된 ReservationItem 타입
 type ReservationItem = {

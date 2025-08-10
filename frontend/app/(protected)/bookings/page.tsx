@@ -1,35 +1,20 @@
 "use client"
 
-import { useState } from "react"
-import { ArrowLeft, MapPin, Hash, Clock, Phone, Loader2, ShoppingCart } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import BottomNavigation from "@/components/bottom-navigation"
-import { createClient } from "@/lib/supabase/client"
-import useSWR from "swr"
-import { BookingCardViewModel, createBookingCardViewModel } from "@/lib/viewmodels/reservation-card.viewmodel"
-import { ReservationService } from "@/lib/services/reservation.service"
+import { useState } from "react";
+import { ArrowLeft, MapPin, Hash, Clock, Loader2, ShoppingCart } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import BottomNavigation from "@/components/bottom-navigation";
+import { useGetMyReservations } from "@/hooks/use-get-my-reservations";
+import { ReservationApiClient } from "@/lib/services/reservations/reservation.api-client";
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const apiClient = new ReservationApiClient();
 
 export default function BookingsPage() {
-  const supabase = createClient();
-  const reservationService = new ReservationService(supabase);
-
-  const fetcher = async (key: string) => {
-    if (key === '/api/reservations') {
-      return await reservationService.getMyReservations();
-    }
-    throw new Error('Unknown fetch key');
-  };
-
-  const { data, error, isLoading, mutate } = useSWR('/api/reservations', fetcher);
+  const { bookings, isLoading, error, mutate } = useGetMyReservations();
   const [cancelingBookingId, setCancelingBookingId] = useState<string | null>(null);
-  const bookings: BookingCardViewModel[] = data
-    ? data.map(createBookingCardViewModel)
-    : [];
 
   const handleCancelBooking = async (bookingId: string) => {
     if (!confirm("정말로 이 예약을 취소하시겠습니까?")) return;
@@ -37,7 +22,7 @@ export default function BookingsPage() {
     setCancelingBookingId(bookingId);
   
     try {
-      await reservationService.cancelReservation(bookingId);
+      await apiClient.cancelReservation(bookingId);
       alert('예약이 성공적으로 취소되었습니다.');
       mutate(); // 데이터 갱신
     } catch (error: any) {
@@ -157,7 +142,7 @@ export default function BookingsPage() {
                           </div>
                         </div>
 
-                        {booking.status === 'confirmed' || booking.status === 'pending' && (
+                        {(booking.status === 'confirmed' || booking.status === 'pending') && (
                           <div className="mt-3">
                             <Button
                               variant="outline"

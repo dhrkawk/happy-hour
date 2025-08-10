@@ -20,30 +20,30 @@ export type Database = {
           discount_rate: number
           end_time: string
           id: string
+          is_active: boolean
           menu_id: string | null
           quantity: number | null
           start_time: string
-          is_active: boolean
         }
         Insert: {
           created_at?: string
           discount_rate: number
           end_time: string
           id?: string
+          is_active?: boolean
           menu_id?: string | null
           quantity?: number | null
           start_time: string
-          is_active?: boolean
         }
         Update: {
           created_at?: string
           discount_rate?: number
           end_time?: string
           id?: string
+          is_active?: boolean
           menu_id?: string | null
           quantity?: number | null
           start_time?: string
-          is_active?: boolean
         }
         Relationships: [
           {
@@ -59,6 +59,8 @@ export type Database = {
         Row: {
           discount_rate: number | null
           id: string
+          is_free: boolean
+          menu_name: string | null
           price: number | null
           quantity: number
           reservation_id: string
@@ -66,6 +68,8 @@ export type Database = {
         Insert: {
           discount_rate?: number | null
           id?: string
+          is_free?: boolean
+          menu_name?: string | null
           price?: number | null
           quantity: number
           reservation_id: string
@@ -73,6 +77,8 @@ export type Database = {
         Update: {
           discount_rate?: number | null
           id?: string
+          is_free?: boolean
+          menu_name?: string | null
           price?: number | null
           quantity?: number
           reservation_id?: string
@@ -125,8 +131,59 @@ export type Database = {
           },
         ]
       }
+      store_gifts: {
+        Row: {
+          created_at: string
+          display_note: string | null
+          end_at: string
+          gift_qty: number
+          id: string
+          is_active: boolean
+          max_redemptions: number | null
+          option_menu_ids: string[] | null
+          remaining: number | null
+          start_at: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_note?: string | null
+          end_at: string
+          gift_qty?: number
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          option_menu_ids?: string[] | null
+          remaining?: number | null
+          start_at: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          display_note?: string | null
+          end_at?: string
+          gift_qty?: number
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          option_menu_ids?: string[] | null
+          remaining?: number | null
+          start_at?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_gifts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_menus: {
         Row: {
+          category: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -136,6 +193,7 @@ export type Database = {
           thumbnail: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -145,6 +203,7 @@ export type Database = {
           thumbnail?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -172,6 +231,7 @@ export type Database = {
           id: string
           lat: number
           lng: number
+          menu_category: string[] | null
           name: string
           owner_id: string | null
           phone: string | null
@@ -185,6 +245,7 @@ export type Database = {
           id?: string
           lat: number
           lng: number
+          menu_category?: string[] | null
           name: string
           owner_id?: string | null
           phone?: string | null
@@ -198,6 +259,7 @@ export type Database = {
           id?: string
           lat?: number
           lng?: number
+          menu_category?: string[] | null
           name?: string
           owner_id?: string | null
           phone?: string | null
@@ -257,20 +319,21 @@ export type Database = {
           p_user_id: string
           p_store_id: string
           p_reserved_time: string
-          p_items: Database["public"]["CompositeTypes"]["reservation_item_type"][]
+          p_items: Json
         }
         Returns: string
       }
     }
     Enums: {
-      reservation_status: "pending" | "confirmed" | "cancelled"
+      gift_selection_policy: "FIXED" | "PICK_ONE_FROM_LIST"
+      reservation_status: "pending" | "confirmed" | "cancelled" | "used"
       role: "admin" | "customer" | "store_owner"
     }
     CompositeTypes: {
       reservation_item_type: {
-        menu_id: string | null
-        discount_id: string | null
         quantity: number | null
+        price: number | null
+        discount_rate: number | null
       }
     }
   }
@@ -396,7 +459,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      reservation_status: ["pending", "confirmed", "cancelled"],
+      gift_selection_policy: ["FIXED", "PICK_ONE_FROM_LIST"],
+      reservation_status: ["pending", "confirmed", "cancelled", "used"],
       role: ["admin", "customer", "store_owner"],
     },
   },

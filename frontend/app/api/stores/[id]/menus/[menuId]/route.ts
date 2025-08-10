@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 import { MenuService } from '@/lib/services/menus/menu.service';
-import { Database } from '@/lib/supabase/types';
 
 // 특정 메뉴 상세 조회
 export async function GET(request: Request, { params }: { params: { id: string, menuId: string } }) {
-  const { id: storeId, menuId } = params;
-  const cookieStore = await cookies();
-  const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
+  const { id: storeId, menuId } = await params;
+  const supabase = await createClient();
   const menuService = new MenuService(supabase);
 
   try {
@@ -24,20 +21,21 @@ export async function GET(request: Request, { params }: { params: { id: string, 
 
 // 메뉴 수정
 export async function PATCH(request: Request, { params }: { params: { id: string, menuId: string } }) {
-  const { id: storeId, menuId } = params;
-  const cookieStore = await cookies();
-  const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
+  const { id: storeId, menuId } = await params;
+  const supabase = await createClient();
   const menuService = new MenuService(supabase);
 
   try {
     const formData = await request.formData();
     const name = formData.get('name') as string | null;
     const price = formData.get('price') ? parseFloat(formData.get('price') as string) : null;
+    const category = formData.get('category') as string | null;
     const thumbnailFile = formData.get('thumbnail') as File | null;
 
-    const updatePayload: { name?: string; price?: number } = {};
+    const updatePayload: { name?: string; price?: number; category?: string } = {};
     if (name) updatePayload.name = name;
     if (price !== null) updatePayload.price = price;
+    if (category !== null) updatePayload.category = category;
 
     const updatedMenu = await menuService.updateMenu(menuId, updatePayload, thumbnailFile);
     return NextResponse.json(updatedMenu);
@@ -48,9 +46,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
 // 메뉴 삭제
 export async function DELETE(request: Request, { params }: { params: { id: string, menuId: string } }) {
-  const { id: storeId, menuId } = params;
-  const cookieStore = await cookies();
-  const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
+  const { id: storeId, menuId } = await params;
+  const supabase = await createClient();
   const menuService = new MenuService(supabase);
 
   try {
