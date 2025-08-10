@@ -5,25 +5,20 @@ import { Database } from '@/lib/supabase/types';
 
 // Supabase raw data를 StoreEntity로 변환하는 헬퍼 함수
 const mapRawToStoreEntity = (store: any): StoreEntity => {
-  const firstMenu = store.store_menus?.[0];
-
   let maxDiscountRate: number | null = null;
   let maxDiscountEndTime: string | null = null;
   let maxPrice: number | null = null;
-  
-  if (firstMenu) {
-    maxDiscountRate = firstMenu.discount?.discount_rate ?? 0;
-    maxDiscountEndTime = firstMenu.discount?.discountEndTime ?? null;
-    maxPrice = firstMenu.price;
-  }
+  let discountCount = 0;
 
   store.store_menus?.forEach((menu: any) => {
     menu.discounts?.forEach((discount: any) => {
-      // 여기에 현재 시간에 유효한 할인인지 체크하는 로직 추가 가능
-      if (maxDiscountRate === null || discount.discount_rate > maxDiscountRate) {
-        maxDiscountRate = discount.discount_rate;
-        maxDiscountEndTime = discount.end_time;
-        maxPrice = menu.price;
+      if (discount.is_active) {
+        discountCount++;
+        if (maxDiscountRate === null || discount.discount_rate > maxDiscountRate) {
+          maxDiscountRate = discount.discount_rate;
+          maxDiscountEndTime = discount.end_time;
+          maxPrice = menu.price;
+        }
       }
     });
   });
@@ -42,6 +37,7 @@ const mapRawToStoreEntity = (store: any): StoreEntity => {
     maxDiscountRate,
     maxDiscountEndTime, 
     maxPrice,
+    discountCount,
   };
 };
 
@@ -62,7 +58,7 @@ export class StoreService {
               store_menus (
                 price,
                 discounts (
-                  discount_rate, end_time
+                  discount_rate, end_time, is_active
                 )
               )
             `);

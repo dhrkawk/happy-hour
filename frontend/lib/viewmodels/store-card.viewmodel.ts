@@ -16,6 +16,7 @@ export class StoreCardViewModel {
   distanceText: string;
   lat: number;
   lng: number;
+  discountDisplay: string;
 
   constructor(props: {
     id: string;
@@ -30,6 +31,7 @@ export class StoreCardViewModel {
     distanceText: string;
     lat: number;
     lng: number;
+    discountDisplay: string;
   }) {
     this.id = props.id;
     this.name = props.name;
@@ -43,6 +45,7 @@ export class StoreCardViewModel {
     this.discountPrice = props.discountPrice;
     this.lat = props.lat;
     this.lng = props.lng;
+    this.discountDisplay = props.discountDisplay;
   }
 
   // 카테고리로 필터링
@@ -80,7 +83,17 @@ export function createStoreCardViewModel(
   const distance = userLocation ? calculateDistance(userLocation.lat, userLocation.lng, entity.lat, entity.lng) : 0;
   const distanceText = distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`;
 
-  return {
+  // 2. 할인 표시 텍스트 생성
+  let discountDisplay = '';
+  if (entity.maxDiscountRate) {
+    if (entity.discountCount > 1) {
+      discountDisplay = `최대 ${entity.maxDiscountRate}% 할인`;
+    } else {
+      discountDisplay = `${entity.maxDiscountRate}% 할인`;
+    }
+  }
+
+  return new StoreCardViewModel({
     id: entity.id,
     name: entity.name,
     category: entity.category,
@@ -90,8 +103,9 @@ export function createStoreCardViewModel(
     distance: distance,
     distanceText: distanceText,
     originalPrice: entity.maxPrice ? entity.maxPrice : 0,
-    discountPrice: entity.maxPrice ? entity.maxPrice * (1 - entity.maxDiscountRate! / 100) : 0,
+    discountPrice: entity.maxPrice ? entity.maxPrice * (1 - (entity.maxDiscountRate || 0) / 100) : 0,
     lat: entity.lat,
-    lng: entity.lng
-  };
+    lng: entity.lng,
+    discountDisplay: discountDisplay,
+  });
 }

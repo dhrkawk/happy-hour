@@ -28,8 +28,7 @@ export async function DELETE(req: NextRequest, context: { params: { discountId: 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { discountId } = context.params;
-  const { discountId: discountId } = await context.params;
+  const { discountId } = await context.params;
   const discountService = new DiscountService(supabase);
 
   try {

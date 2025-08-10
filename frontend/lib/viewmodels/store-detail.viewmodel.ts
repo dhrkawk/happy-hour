@@ -11,6 +11,7 @@ export interface StoreMenuViewModel {
   discountId: string | null;
   discountRate: number;
   discountEndTime: string;
+  discountDisplayText: string;
 }
 
 export interface StoreDetailViewModel {
@@ -45,23 +46,29 @@ export function createStoreDetailViewModel(
 
   const processedMenus: StoreMenuViewModel[] = entity.menus.map((menu) => {
     const discount = menu.discount;
+    const discountRate = discount?.discount_rate ?? 0;
+    const discountDisplayText = discountRate > 0 ? `${discountRate}% 할인` : '';
 
     return {
-      id: menu.id, // 명시적 변환 (key 중복 방지 목적도 포함)
+      id: menu.id,
       name: menu.name,
       originalPrice: menu.price,
       discountPrice: discount
         ? Math.round(menu.price * (1 - discount.discount_rate / 100))
         : menu.price,
-      description: menu.description ?? "", // 누락 방지
+      description: menu.description ?? "",
       thumbnail: menu.thumbnail,
       discountId: discount ? `${discount.discount_rate}-${discount.end_time}` : null,
-      discountRate: discount?.discount_rate ?? 0,
+      discountRate: discountRate,
       discountEndTime: discount?.end_time ?? "",
+      discountDisplayText: discountDisplayText,
     };
   });
 
-  const representativeMenu = processedMenus[0]; // 기준: 첫 번째 메뉴
+  // Sort menus: discounted items first
+  processedMenus.sort((a, b) => b.discountRate - a.discountRate);
+
+  const representativeMenu = processedMenus[0];
 
   return {
     id: entity.id,
