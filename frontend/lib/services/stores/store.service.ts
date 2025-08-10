@@ -3,25 +3,36 @@ import { StoreEntity } from '@/lib/entities/stores/store.entity';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/supabase/types';
 
-// Supabase raw data를 StoreEntity로 변환하는 헬퍼 함수
+// raw data를 entity로 전환
 const mapRawToStoreEntity = (store: any): StoreEntity => {
-  let maxDiscountRate: number | null = null;
-  let maxDiscountEndTime: string | null = null;
-  let maxPrice: number | null = null;
-  let discountCount = 0;
+  let maxDiscountRate: number | null = null
+  let maxDiscountEndTime: string | null = null
+  let maxPrice: number | null = null
+  let discountCount = 0
 
   store.store_menus?.forEach((menu: any) => {
     menu.discounts?.forEach((discount: any) => {
       if (discount.is_active) {
-        discountCount++;
+        discountCount++
         if (maxDiscountRate === null || discount.discount_rate > maxDiscountRate) {
-          maxDiscountRate = discount.discount_rate;
-          maxDiscountEndTime = discount.end_time;
-          maxPrice = menu.price;
+          maxDiscountRate = discount.discount_rate
+          maxDiscountEndTime = discount.end_time
+          maxPrice = menu.price
         }
       }
-    });
-  });
+    })
+  })
+
+  const gifts = store.store_gifts ?? []
+  const now = new Date()
+  const hasActiveGift = gifts.some((g: any) => {
+    if (!g.is_active) return false
+    const start = new Date(g.start_at)
+    const end = new Date(g.end_at)
+    const inPeriod = start <= now && now < end
+    const hasStock = g.remaining == null || g.remaining > 0
+    return inPeriod && hasStock
+  })
 
   return {
     id: store.id,
@@ -34,12 +45,15 @@ const mapRawToStoreEntity = (store: any): StoreEntity => {
     activated: store.activated,
     storeThumbnail: store.store_thumbnail,
     ownerId: store.owner_id,
+
     maxDiscountRate,
-    maxDiscountEndTime, 
+    maxDiscountEndTime,
     maxPrice,
     discountCount,
-  };
-};
+
+    hasActiveGift,
+  }
+}
 
 export class StoreService {
     private supabase: SupabaseClient<Database>;
@@ -51,24 +65,27 @@ export class StoreService {
 
     // 모든 가게 정보 조회
     async getAllStores(): Promise<StoreEntity[]> {
-        const { data: stores, error } = await this.supabase
-            .from('stores')
-            .select(`
-              id, name, address, lat, lng, phone, category, activated, store_thumbnail, owner_id,
-              store_menus (
-                price,
-                discounts (
-                  discount_rate, end_time, is_active
-                )
-              )
-            `);
+      const { data: stores, error } = await this.supabase
+        .from('stores')
+        .select(`
+          id, name, address, lat, lng, phone, category, activated, store_thumbnail, owner_id,
+          store_menus (
+            price,
+            discounts (
+              discount_rate, end_time, is_active
+            )
+          ),
+          store_gifts (
+            id, is_active, start_at, end_at, remaining
+          )
+        `)
 
-        if (error) {
-            console.error('Error fetching stores:', error);
-            throw new Error('Failed to fetch stores.');
-        }
+      if (error) {
+        console.error('Error fetching stores:', error)
+        throw new Error('Failed to fetch stores.')
+      }
 
-        return stores.map(mapRawToStoreEntity);
+      return stores.map(mapRawToStoreEntity)
     }
 
     async getStoreById(storeId: string): Promise<StoreEntity> {

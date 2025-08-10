@@ -17,6 +17,7 @@ export class StoreCardViewModel {
   lat: number;
   lng: number;
   discountDisplay: string;
+  hasActiveGift: boolean;
 
   constructor(props: {
     id: string;
@@ -32,6 +33,7 @@ export class StoreCardViewModel {
     lat: number;
     lng: number;
     discountDisplay: string;
+    hasActiveGift: boolean;
   }) {
     this.id = props.id;
     this.name = props.name;
@@ -46,32 +48,32 @@ export class StoreCardViewModel {
     this.lat = props.lat;
     this.lng = props.lng;
     this.discountDisplay = props.discountDisplay;
+    this.hasActiveGift = props.hasActiveGift;
   }
 
-  // 카테고리로 필터링
-  static filterByCategory(viewModels: StoreCardViewModel[], category: string): StoreCardViewModel[] {
-    if (category === "전체") return viewModels;
-    return viewModels.filter((vm) => vm.category === category);
-  }
-
-  // distance로 정렬
-  static sortByDistance(
-    viewModels: StoreCardViewModel[],
-  ): StoreCardViewModel[] {
-    return [...viewModels].sort((a, b) => {
-      return a.distance - b.distance;
-    });
-  }
-
-  // discount로 정렬
-  static sortByDiscount(
-    viewModels: StoreCardViewModel[],
-  ): StoreCardViewModel[] {
-    return [...viewModels].sort((a, b) => {
-      return b.maxDiscountRate - a.maxDiscountRate;
-    });
-  }
-
+    // 카테고리로 필터링
+    static filterByCategory(viewModels: StoreCardViewModel[], category: string): StoreCardViewModel[] {
+      if (category === "전체") return viewModels;
+      return viewModels.filter((vm) => vm.category === category);
+    }
+  
+    // distance로 정렬
+    static sortByDistance(
+      viewModels: StoreCardViewModel[],
+    ): StoreCardViewModel[] {
+      return [...viewModels].sort((a, b) => {
+        return a.distance - b.distance;
+      });
+    }
+  
+    // discount로 정렬
+    static sortByDiscount(
+      viewModels: StoreCardViewModel[],
+    ): StoreCardViewModel[] {
+      return [...viewModels].sort((a, b) => {
+        return b.maxDiscountRate - a.maxDiscountRate;
+      });
+    }
 }
 
 // ViewModel을 생성하는 팩토리 함수 (로직 구현)
@@ -107,5 +109,6 @@ export function createStoreCardViewModel(
     lat: entity.lat,
     lng: entity.lng,
     discountDisplay: discountDisplay,
+    hasActiveGift: entity.hasActiveGift
   });
 }
