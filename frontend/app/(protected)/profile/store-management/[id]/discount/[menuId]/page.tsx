@@ -31,7 +31,7 @@ export default function ManageDiscountPage() {
   const [discounts, setDiscounts] = useState<DiscountDetailViewModel[]>([]);
   const [menu, setMenu] = useState<MenuEntity | null>(null);
   const [selected, setSelected] = useState<DiscountDetailViewModel | null>(null);
-  const [form, setForm] = useState<DiscountFormViewModel & { final_price?: number }>(createDiscountFormViewModel(storeId, menuId));
+  const [form, setForm] = useState<DiscountFormViewModel & { final_price?: number }>(createDiscountFormViewModel(menuId));
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isNew, setIsNew] = useState(true);
   const [loading, setLoading] = useState(true);

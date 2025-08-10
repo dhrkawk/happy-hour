@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { ArrowLeft, MapPin, Clock, Heart, Share2, Phone, Plus, Minus, ShoppingCart, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation";
@@ -25,13 +25,72 @@ export default function StorePage() {
   const [activeTab, setActiveTab] = useState("menu");
   const [isLiked, setIsLiked] = useState(false);
   const [selectedMenuCategory, setSelectedMenuCategory] = useState<string | null>(null);
+  const [categorizedMenus, setCategorizedMenus] = useState<Record<string, StoreMenuViewModel[]>>({});
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Intersection Observer for sticky tabs
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setSelectedMenuCategory(entry.target.id);
+          }
+        });
+      },
+      {
+        rootMargin: "-50% 0px -50% 0px", // Adjust this to control when intersection occurs
+        threshold: 0,
+      }
+    );
+
+    // Observe all category sections
+    Object.keys(categorizedMenus).forEach((category) => {
+      const ref = sectionRefs.current[category];
+      if (ref) {
+        observer.observe(ref);
+      }
+    });
+
+    return () => {
+      // Disconnect observer on component unmount
+      Object.keys(categorizedMenus).forEach((category) => {
+        const ref = sectionRefs.current[category];
+        if (ref) {
+          observer.unobserve(ref);
+        }
+      });
+    };
+  }, [categorizedMenus]); // Re-run when categorizedMenus changes
 
   useEffect(() => {
     if (coordinates) {
       const fetchStoreDetail = async () => {
         try {
           const storeDetail: StoreDetailViewModel = await storeApiClient.getStoreById(storeId, coordinates);
+
+          // Group menus by category
+          const grouped: Record<string, StoreMenuViewModel[]> = {};
+          const allCategories = ["할인", ...(storeDetail.menu_category || []), "기타"];
+
+          allCategories.forEach(cat => {
+            grouped[cat] = [];
+          });
+
+          (storeDetail.menu || []).forEach(menu => {
+            if (menu.discountRate > 0) {
+              grouped["할인"].push(menu);
+            }
+            if (menu.category && grouped[menu.category]) {
+              grouped[menu.category].push(menu);
+            } else if (menu.discountRate === 0) { // Only add to 기타 if not discounted and no specific category
+              grouped["기타"].push(menu);
+            }
+          });
+
+          setCategorizedMenus(grouped);
           setViewModel(storeDetail);
+          setSelectedMenuCategory("할인"); // Set initial active category to 할인
         } catch (err: any) {
           console.error("가게 정보를 불러오는 중 오류 발생:", err);
           setError(err.message || "가게 정보를 불러오는 데 실패했습니다.");
@@ -177,111 +236,117 @@ export default function StorePage() {
       <div className="px-4 py-4 pb-32">
         {activeTab === "menu" && (
           <div className="space-y-3">
-            {/* Category Filter Buttons */}
-            {viewmodel.menu_category && viewmodel.menu_category.length > 0 && (
-              <div className="flex overflow-x-auto space-x-2 pb-2 no-scrollbar">
-                <Button
-                  variant={selectedMenuCategory === null ? "default" : "outline"}
-                  onClick={() => setSelectedMenuCategory(null)}
-                  className="flex-shrink-0"
-                >
-                  전체
-                </Button>
-                {viewmodel.menu_category.map((category) => (
+            {/* Sticky Category Tabs */}
+            {viewmodel?.menu_category && viewmodel.menu_category.length > 0 && (
+              <div className="sticky top-0 bg-white z-10 py-2 border-b border-gray-100 -mx-4 px-4">
+                <div className="flex overflow-x-auto space-x-2 pb-2 no-scrollbar">
                   <Button
-                    key={category}
-                    variant={selectedMenuCategory === category ? "default" : "outline"}
-                    onClick={() => setSelectedMenuCategory(category)}
+                    variant={selectedMenuCategory === "할인" ? "default" : "outline"}
+                    onClick={() => {
+                      setSelectedMenuCategory("할인");
+                      sectionRefs.current["할인"]?.scrollIntoView({ behavior: "smooth" });
+                    }}
                     className="flex-shrink-0"
                   >
-                    {category}
+                    할인
                   </Button>
-                ))}
-              </div>
-            )}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">할인 메뉴</h3>
-              {cart && cart.items.length > 0 && (
-                <div className="flex items-center gap-2 text-teal-600">
-                  <ShoppingCart className="w-4 h-4" />
-                  <span className="text-sm font-medium">{totalItems}개 선택</span>
+                  {viewmodel.menu_category.map((category) => (
+                    <Button
+                      key={category}
+                      variant={selectedMenuCategory === category ? "default" : "outline"}
+                      onClick={() => {
+                        setSelectedMenuCategory(category);
+                        sectionRefs.current[category]?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="flex-shrink-0"
+                    >
+                      {category}
+                    </Button>
+                  ))}
                 </div>
-              )}
-            </div>
-            {(viewmodel.menu ?? []).filter(menu => 
-              selectedMenuCategory === null || menu.category === selectedMenuCategory
-            ).length > 0 ? (
-              (viewmodel.menu ?? []).filter(menu => 
-                selectedMenuCategory === null || menu.category === selectedMenuCategory
-              ).map((item) => {
-                const quantity = getCartQuantity(item.id)
-                return (
-                  <Card key={item.id} className="border-teal-100">
-                    <CardContent className="p-4 flex items-center">
-                      <div className="w-20 h-20 flex-shrink-0 mr-4">
-                        <img
-                          src={item.thumbnail || "/no-image.jpg"}
-                          alt={item.name}
-                          className="w-full h-full object-cover rounded-md"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-800">{item.name}</h4>
-                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-sm text-gray-400 line-through">
-                            {item.originalPrice.toLocaleString()}원
-                          </span>
-                          <span className="text-lg font-bold text-teal-600">
-                            {item.discountPrice.toLocaleString()}원
-                          </span>
-                          <Badge className="bg-orange-500 text-white text-xs">{item.discountRate}% 할인</Badge>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        {quantity > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-8 h-8 p-0 bg-transparent"
-                              onClick={() => handleRemoveFromCart(item.id)}
-                            >
-                              <Minus className="w-4 h-4" />
-                            </Button>
-                            <span className="w-8 text-center font-medium">{quantity}</span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-8 h-8 p-0 bg-transparent"
-                              onClick={() => handleAddToCart(item)}
-                            >
-                              <Plus className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAddToCart(item)}
-                            className="bg-teal-50 border-teal-200 text-teal-600 hover:bg-teal-100"
-                          >
-                            <Plus className="w-4 h-4 mr-1" />
-                            담기
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })
-            ) : (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-4">😅</div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">아직 등록된 할인 메뉴가 없습니다.</h3>
-                <p className="text-gray-600">새로운 메뉴가 곧 추가될 예정입니다!</p>
               </div>
             )}
+
+            {/* Menu Sections */}
+            {Object.keys(categorizedMenus).map((category, index) => (
+              <React.Fragment key={category}>
+                <div id={category} ref={(el) => { sectionRefs.current[category] = el; }} className="pt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">{category}</h3>
+                  <div className="space-y-3">
+                    {categorizedMenus[category].length > 0 ? (
+                      categorizedMenus[category].map((item) => {
+                        const quantity = getCartQuantity(item.id);
+                        return (
+                          <Card key={item.id} className="border-teal-100">
+                            <CardContent className="p-4 flex items-center">
+                              <div className="w-20 h-20 flex-shrink-0 mr-4">
+                                <img
+                                  src={item.thumbnail || "/no-image.jpg"}
+                                  alt={item.name}
+                                  className="w-full h-full object-cover rounded-md"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-gray-800">{item.name}</h4>
+                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <span className="text-sm text-gray-400 line-through">
+                                    {item.originalPrice.toLocaleString()}원
+                                  </span>
+                                  <span className="text-lg font-bold text-teal-600">
+                                    {item.discountPrice.toLocaleString()}원
+                                  </span>
+                                  <Badge className="bg-orange-500 text-white text-xs">{item.discountRate}% 할인</Badge>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 ml-4">
+                                {quantity > 0 ? (
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-8 h-8 p-0 bg-transparent"
+                                      onClick={() => handleRemoveFromCart(item.id)}
+                                    >
+                                      <Minus className="w-4 h-4" />
+                                    </Button>
+                                    <span className="w-8 text-center font-medium">{quantity}</span>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-8 h-8 p-0 bg-transparent"
+                                      onClick={() => handleAddToCart(item)}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                  
+                                    size="sm"
+                                    onClick={() => handleAddToCart(item)}
+                                    className="bg-teal-50 border-teal-200 text-teal-600 hover:bg-teal-100"
+                                  >
+                                    <Plus className="w-4 h-4 mr-1" />
+                                    담기
+                                  </Button>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })
+                    ) : (
+                      <p className="text-gray-500 text-sm">이 카테고리에 메뉴가 없습니다.</p>
+                    )}
+                  </div>
+                </div>
+                {index < Object.keys(categorizedMenus).length - 1 && (
+                  <div className="border-b-2 border-gray-200 my-4"></div>
+                )}
+              </React.Fragment>
+            ))}
           </div>
         )}
 
