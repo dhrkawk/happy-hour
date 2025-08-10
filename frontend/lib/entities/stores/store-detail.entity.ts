@@ -11,6 +11,7 @@ export interface StoreMenu {
   price: number;               // 원래 가격
   description: string;         // 메뉴 설명
   thumbnail: string;           // 메뉴 이미지
+  category: string;            // 메뉴 카테고리
   discount: Discount | null;   // 1:1 연결된 할인 정보
 }
 
@@ -25,6 +26,7 @@ export interface StoreDetailEntity {
   activated: boolean;
   storeThumbnail: string | "no-image.jpg"; // 기본 이미지 경로
   ownerId: string;
+  menu_category: string[] | null;
 
   menus: StoreMenu[];          // 전체 메뉴 목록
 }

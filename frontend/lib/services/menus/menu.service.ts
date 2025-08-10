@@ -48,6 +48,7 @@ const { data, error } = await this.supabase
     store_id: storeId,
     name: menuData.name,
     price: menuData.price,
+    category: menuData.category,
     thumbnail: thumbnailUrl,
   })
   .select()
@@ -70,6 +71,7 @@ const { data, error } = await this.supabase
       name: menu.name,
       price: menu.price,
       thumbnailUrl: menu.thumbnail || '/no-image.jpg',
+      category: menu.category,
     })) as MenuListItemViewModel[];
   }
 
@@ -119,6 +121,10 @@ const { data, error } = await this.supabase
 
     if (menuData.price !== undefined) {
       updatePayload.price = menuData.price;
+    }
+
+    if (menuData.category !== undefined) {
+      updatePayload.category = menuData.category;
     }
 
     if (thumbnailUrl !== undefined) {

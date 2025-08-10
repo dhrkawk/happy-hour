@@ -36,6 +36,7 @@ export class MenuApiClient {
     const formData = new FormData();
     formData.append('name', menuData.name);
     formData.append('price', menuData.price.toString());
+    formData.append('category', menuData.category);
     if (thumbnailFile) {
       formData.append('thumbnail', thumbnailFile);
     }
@@ -58,6 +59,7 @@ export class MenuApiClient {
     const formData = new FormData();
     if (menuData.name) formData.append('name', menuData.name);
     if (menuData.price !== undefined) formData.append('price', menuData.price.toString());
+    if (menuData.category !== undefined) formData.append('category', menuData.category);
     if (thumbnailFile) {
       formData.append('thumbnail', thumbnailFile);
     }

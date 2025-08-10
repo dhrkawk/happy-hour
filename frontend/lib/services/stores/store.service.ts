@@ -103,4 +103,35 @@ export class StoreService {
 
       return data?.owner_id === userId;
     }
+
+    async getStoreMenuCategories(storeId: string): Promise<string[] | null> {
+      const { data, error } = await this.supabase
+        .from('stores')
+        .select('menu_category')
+        .eq('id', storeId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching store menu categories:', error);
+        throw new Error(`Failed to fetch store menu categories: ${error.message}`);
+      }
+
+      return data?.menu_category || null;
+    }
+
+    async updateStoreMenuCategories(storeId: string, categories: string[]): Promise<string[]> {
+      const { data, error } = await this.supabase
+        .from('stores')
+        .update({ menu_category: categories })
+        .eq('id', storeId)
+        .select('menu_category')
+        .single();
+
+      if (error) {
+        console.error('Error updating store menu categories:', error);
+        throw new Error(`Failed to update store menu categories: ${error.message}`);
+      }
+
+      return data.menu_category || [];
+    }
 }

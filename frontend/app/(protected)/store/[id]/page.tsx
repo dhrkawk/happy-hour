@@ -24,6 +24,7 @@ export default function StorePage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("menu");
   const [isLiked, setIsLiked] = useState(false);
+  const [selectedMenuCategory, setSelectedMenuCategory] = useState<string | null>(null);
 
   useEffect(() => {
     if (coordinates) {
@@ -176,6 +177,28 @@ export default function StorePage() {
       <div className="px-4 py-4 pb-32">
         {activeTab === "menu" && (
           <div className="space-y-3">
+            {/* Category Filter Buttons */}
+            {viewmodel.menu_category && viewmodel.menu_category.length > 0 && (
+              <div className="flex overflow-x-auto space-x-2 pb-2 no-scrollbar">
+                <Button
+                  variant={selectedMenuCategory === null ? "default" : "outline"}
+                  onClick={() => setSelectedMenuCategory(null)}
+                  className="flex-shrink-0"
+                >
+                  전체
+                </Button>
+                {viewmodel.menu_category.map((category) => (
+                  <Button
+                    key={category}
+                    variant={selectedMenuCategory === category ? "default" : "outline"}
+                    onClick={() => setSelectedMenuCategory(category)}
+                    className="flex-shrink-0"
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
+            )}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800">할인 메뉴</h3>
               {cart && cart.items.length > 0 && (
@@ -185,8 +208,12 @@ export default function StorePage() {
                 </div>
               )}
             </div>
-            {(viewmodel.menu ?? []).length > 0 ? (
-              (viewmodel.menu ?? []).map((item) => {
+            {(viewmodel.menu ?? []).filter(menu => 
+              selectedMenuCategory === null || menu.category === selectedMenuCategory
+            ).length > 0 ? (
+              (viewmodel.menu ?? []).filter(menu => 
+                selectedMenuCategory === null || menu.category === selectedMenuCategory
+              ).map((item) => {
                 const quantity = getCartQuantity(item.id)
                 return (
                   <Card key={item.id} className="border-teal-100">
