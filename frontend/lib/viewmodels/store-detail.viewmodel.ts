@@ -11,6 +11,7 @@ export interface StoreMenuViewModel {
   discountId: string | null;
   discountRate: number;
   discountEndTime: string;
+  category: string;
 }
 
 export interface StoreDetailViewModel {
@@ -23,6 +24,7 @@ export interface StoreDetailViewModel {
   storeThumbnail: string | "no-image.jpg"; // 기본 이미지 경로
   lat: number;
   lng: number;
+  menu_category: string[] | null;
 
   // 가공된 데이터
   distance: string;       // km 단위
@@ -58,6 +60,7 @@ export function createStoreDetailViewModel(
       discountId: discount ? `${discount.discount_rate}-${discount.end_time}` : null,
       discountRate: discount?.discount_rate ?? 0,
       discountEndTime: discount?.end_time ?? "",
+      category: menu.category, // Add category here
     };
   });
 
@@ -79,5 +82,6 @@ export function createStoreDetailViewModel(
       ? formatTimeLeft(representativeMenu.discountEndTime)
       : "정보 없음",
     menu: processedMenus,
+    menu_category: entity.menu_category,
   };
 }

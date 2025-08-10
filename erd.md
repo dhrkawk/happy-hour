@@ -46,6 +46,7 @@ price	int4	가격
 thumbnail	text	이미지 URL
 created_at	timestamptz	생성일자
 description	text 메뉴 설명
+category    text(default="기타") 메뉴 카테고리
 
 ⸻
 
