@@ -199,7 +199,7 @@ export default function StorePage() {
               <span>{viewmodel.category}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="bg-orange-500 text-white text-sm">{viewmodel.discount}% 할인</Badge>
+              {viewmodel.discount != 0 ? <Badge className="bg-orange-500 text-white text-sm">{viewmodel.discount}% 할인</Badge>:null}
               <div className="flex items-center gap-1 text-red-500 font-medium text-sm">
                 <Clock className="w-4 h-4" />
                 <span>{viewmodel.timeLeft}</span>
@@ -290,13 +290,11 @@ export default function StorePage() {
                                 <h4 className="font-medium text-gray-800">{item.name}</h4>
                                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
                                 <div className="flex items-center gap-2 mt-2">
-                                  <span className="text-sm text-gray-400 line-through">
-                                    {item.originalPrice.toLocaleString()}원
-                                  </span>
+                                  {item.discountRate != 0 ? <span className="text-sm text-gray-400 line-through"> {item.originalPrice.toLocaleString()}원 </span> : null}
                                   <span className="text-lg font-bold text-teal-600">
                                     {item.discountPrice.toLocaleString()}원
                                   </span>
-                                  <Badge className="bg-orange-500 text-white text-xs">{item.discountRate}% 할인</Badge>
+                                  {(item.discountRate != 0) ? <Badge className="bg-orange-500 text-white text-xs">{item.discountRate}% 할인</Badge> : null} 
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 ml-4">

@@ -53,9 +53,11 @@ export function StoreCard({ vm }: Props) {
                     {vm.originalPrice.toLocaleString()}원
                   </div>
                 ) : null}
-                <div className="text-sm font-bold text-teal-600">
+                {vm.maxDiscountRate ? (
+                  <div className="text-sm font-bold text-teal-600">
                   {vm.discountPrice.toLocaleString()}원
-                </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
