@@ -16,7 +16,7 @@ export default function ManageMenusPage() {
   const menuApiClient = new MenuApiClient(storeId);
 
   const [menus, setMenus] = useState<MenuListItemViewModel[]>([]);
-  const [form, setForm] = useState<MenuFormViewModel>({ name: "", price: 0 });
+  const [form, setForm] = useState<MenuFormViewModel>({ name: "", price: 0, category: "기타" });
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isNew, setIsNew] = useState(true);
@@ -58,7 +58,7 @@ export default function ManageMenusPage() {
   }, []);
 
   const openCreateDialog = () => {
-    setForm({ name: "", price: 0 });
+    setForm({ name: "", price: 0, category: "기타" });
     setThumbnail(null);
     setIsNew(true);
     setSelectedMenu(null);
@@ -66,7 +66,7 @@ export default function ManageMenusPage() {
   };
 
   const openEditDialog = (menu: MenuListItemViewModel) => {
-    setForm({ name: menu.name, price: menu.price });
+    setForm({ name: menu.name, price: menu.price, category: menu.category });
     setSelectedMenu(menu);
     setIsNew(false);
     setDialogOpen(true);
@@ -165,6 +165,10 @@ export default function ManageMenusPage() {
             <div className="space-y-2">
               <Label htmlFor="price">메뉴 가격</Label>
               <Input id="price" name="price" type="number" placeholder="예: 3500" value={form.price} onChange={handleChange} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">메뉴 카테고리</Label>
+              <Input id="category" name="category" placeholder="예: 음료, 식사, 기타" value={form.category} onChange={handleChange} required />
             </div>
             {error && <div className="text-red-500 text-sm font-medium text-center">{error}</div>}
             <DialogFooter className="flex justify-end pt-4">

@@ -7,7 +7,7 @@ import { Database } from '@/lib/supabase/types';
 // 매장의 메뉴 목록 조회
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   console.log("API Route /api/stores/[id]/menus GET called");
-  const storeId = params.id;
+  const storeId = (await params).id;
   const supabase = await createClient();
   console.log("Supabase client created:", !!supabase); // Check if supabase is truthy
   const menuService = new MenuService(supabase);
@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 // 매장에 메뉴 등록
 export async function POST(request: Request, { params }: { params: { id: string } }) {
-  const storeId = params.id;
+  const storeId = (await params).id;
   const supabase = await createClient();
 
   const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -44,13 +44,14 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const formData = await request.formData();
     const name = formData.get('name') as string;
     const price = parseFloat(formData.get('price') as string);
+    const category = formData.get('category') as string || "기타";
     const thumbnailFile = formData.get('thumbnail') as File | null;
 
     if (!name || isNaN(price)) {
       return NextResponse.json({ error: 'Name and price are required' }, { status: 400 });
     }
 
-    const newMenu = await menuService.registerMenu({ name, price }, storeId, thumbnailFile);
+    const newMenu = await menuService.registerMenu({ name, price, category }, storeId, thumbnailFile);
     return NextResponse.json(newMenu, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

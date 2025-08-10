@@ -1,6 +1,7 @@
 export interface MenuFormViewModel {
   name: string;
   price: number;
+  category: string;
 }
 
 export interface MenuListItemViewModel {
@@ -8,4 +9,5 @@ export interface MenuListItemViewModel {
   name: string;
   price: number;
   thumbnailUrl: string;
+  category: string;
 }
