@@ -1,6 +1,16 @@
 import type { StoreDetailEntity } from '@/lib/entities/stores/store-detail.entity';
 import { formatTimeLeft, calculateDistance } from '@/lib/utils';
 
+export interface StoreGiftViewModel {
+  id: string;
+  giftQty: number;
+  startAt: string;
+  endAt: string;
+  maxRedemptions: number | null;
+  remaining: number | null;
+  displayNote: string | null;
+  menus: StoreMenuViewModel[];
+}
 export interface StoreMenuViewModel {
   id: string;
   name: string;
@@ -32,6 +42,7 @@ export interface StoreDetailViewModel {
   discount: number;       // 대표 할인율 (예: 첫 번째 할인 메뉴 기준)
   timeLeft: string;       // "3시간 남음" 형태
   menu?: StoreMenuViewModel[];
+  gifts?: StoreGiftViewModel[]; 
 }
 
 export function createStoreDetailViewModel(
@@ -46,6 +57,7 @@ export function createStoreDetailViewModel(
     ? `${Math.round(distKm * 1000)}m`
     : `${distKm.toFixed(1)}km`;
 
+  // 메뉴 가공
   const processedMenus: StoreMenuViewModel[] = entity.menus.map((menu) => {
     const discount = menu.discount;
     const discountRate = discount?.discount_rate ?? 0;
@@ -73,6 +85,26 @@ export function createStoreDetailViewModel(
 
   const representativeMenu = processedMenus[0];
 
+  // gift 가공
+  const gifts: StoreGiftViewModel[] = entity.gifts.map((gift) => {
+    // gift.option_menu_ids에 해당하는 메뉴만 필터링
+    const giftMenus = processedMenus.filter((menu) =>
+      gift.option_menu_ids.includes(menu.id)
+    );
+
+    return {
+      id: gift.id,
+      giftQty: gift.gift_qty,
+      startAt: gift.start_at,
+      endAt: gift.end_at,
+      maxRedemptions: gift.max_redemptions,
+      remaining: gift.remaining,
+      displayNote: gift.display_note,
+      menus: giftMenus,
+    };
+  });
+      
+
   return {
     id: entity.id,
     name: entity.name,
@@ -90,5 +122,6 @@ export function createStoreDetailViewModel(
       : "정보 없음",
     menu: processedMenus,
     menu_category: entity.menu_category,
+    gifts: gifts.length > 0 ? gifts : undefined, // gifts가 없으면 null로 설정
   };
 }
