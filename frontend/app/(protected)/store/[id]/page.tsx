@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect, useRef } from "react"
-import { ArrowLeft, MapPin, Clock, Heart, Share2, Phone, Plus, Minus, ShoppingCart, Loader2 } from "lucide-react"
+import { ArrowLeft, MapPin, Clock, Heart, Share2, Phone, Plus, Minus, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { useAppContext } from "@/contexts/app-context"
 import { createCartItem } from "@/lib/viewmodels/cart-item.viewmodel";
 import { StoreDetailViewModel, StoreMenuViewModel } from "@/lib/viewmodels/store-detail.viewmodel";
 import { StoreApiClient } from "@/lib/services/stores/store.api-client";
+import { useGiftContext } from "@/contexts/gift-context"; // ★ 추가
 
 export default function StorePage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function StorePage() {
   const { appState, addToCart, updateItemQuantity, removeFromCart, getCartTotals } = useAppContext();
   const { location, cart } = appState;
   const { coordinates } = location;
+
   const [viewmodel, setViewModel] = useState<StoreDetailViewModel>();
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("menu");
@@ -28,78 +30,142 @@ export default function StorePage() {
   const [categorizedMenus, setCategorizedMenus] = useState<Record<string, StoreMenuViewModel[]>>({});
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // ★ GiftContext 훅
+  const {
+    selectGift,
+    unselectGift,
+    getSelectedMenuId,
+    toQueryParam,
+    // clearStoreGifts, // 필요 시 사용
+  } = useGiftContext();
+
+  // =========================
+  // 증정 섹션 VM
+  // =========================
+  type GiftSectionVM = {
+    id: string;
+    displayNote: string | null;
+    endAt: string;
+    remaining: number | null;
+    menus: StoreMenuViewModel[]; // 0원 표시로 가공된 메뉴
+  };
+
+  const [giftSections, setGiftSections] = useState<GiftSectionVM[]>([]);
+
   // Intersection Observer for sticky tabs
   useEffect(() => {
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setSelectedMenuCategory(entry.target.id);
-          }
-        });
-      },
-      {
-        rootMargin: "-50% 0px -50% 0px", // Adjust this to control when intersection occurs
-        threshold: 0,
-      }
+      (entries) => entries.forEach((entry) => entry.isIntersecting && setSelectedMenuCategory(entry.target.id)),
+      { rootMargin: "-50% 0px -50% 0px", threshold: 0 }
     );
 
-    // Observe all category sections
     Object.keys(categorizedMenus).forEach((category) => {
       const ref = sectionRefs.current[category];
-      if (ref) {
-        observer.observe(ref);
-      }
+      if (ref) observer.observe(ref);
     });
 
     return () => {
-      // Disconnect observer on component unmount
       Object.keys(categorizedMenus).forEach((category) => {
         const ref = sectionRefs.current[category];
-        if (ref) {
-          observer.unobserve(ref);
-        }
+        if (ref) observer.unobserve(ref);
       });
     };
-  }, [categorizedMenus]); // Re-run when categorizedMenus changes
+  }, [categorizedMenus]);
 
   useEffect(() => {
-    if (coordinates) {
-      const fetchStoreDetail = async () => {
-        try {
-          const storeDetail: StoreDetailViewModel = await storeApiClient.getStoreById(storeId, coordinates);
+    if (!coordinates) return;
 
-          // Group menus by category
-          const grouped: Record<string, StoreMenuViewModel[]> = {};
-          const allCategories = ["할인", ...(storeDetail.menu_category || []), "기타"];
+    const fetchStoreDetail = async () => {
+      try {
+        // 필요 시: 다른 가게 들어올 때 기존 선택 초기화
+        // clearStoreGifts(storeId);
 
-          allCategories.forEach(cat => {
-            grouped[cat] = [];
-          });
+        const storeDetail: StoreDetailViewModel = await storeApiClient.getStoreById(storeId, coordinates);
 
-          (storeDetail.menu || []).forEach(menu => {
-            if (menu.discountRate > 0) {
-              grouped["할인"].push(menu);
-            }
-            if (menu.category && grouped[menu.category]) {
-              grouped[menu.category].push(menu);
-            } else if (menu.discountRate === 0) { // Only add to 기타 if not discounted and no specific category
-              grouped["기타"].push(menu);
-            }
-          });
+        // Group menus by category
+        const grouped: Record<string, StoreMenuViewModel[]> = {};
+        const allCategories = ["할인", ...(storeDetail.menu_category || []), "기타"];
+        allCategories.forEach(cat => { grouped[cat] = []; });
 
-          setCategorizedMenus(grouped);
-          setViewModel(storeDetail);
-          setSelectedMenuCategory("할인"); // Set initial active category to 할인
-        } catch (err: any) {
-          console.error("가게 정보를 불러오는 중 오류 발생:", err);
-          setError(err.message || "가게 정보를 불러오는 데 실패했습니다.");
-        }
-      };
-      fetchStoreDetail();
+        (storeDetail.menu || []).forEach(menu => {
+          if (menu.discountRate > 0) grouped["할인"].push(menu);
+          if (menu.category && grouped[menu.category]) grouped[menu.category].push(menu);
+          else if (menu.discountRate === 0) grouped["기타"].push(menu);
+        });
+        setCategorizedMenus(grouped);
+
+        // 증정 메뉴를 100% 할인(0원)으로 표시하도록 가공
+        const asGiftMenu = (m: StoreMenuViewModel, gId: string, gEnd: string): StoreMenuViewModel => ({
+          ...m,
+          discountRate: 100,
+          discountPrice: 0,
+          discountDisplayText: "증정",
+          discountId: `gift-${gId}`,
+          discountEndTime: gEnd || m.discountEndTime,
+          thumbnail: m.thumbnail || "no-image.jpg",
+        });
+
+        const sections: GiftSectionVM[] = (storeDetail.gifts ?? [])
+          .map(g => {
+            const gm = (g.menus ?? []).map(m => asGiftMenu(m, g.id, g.endAt));
+            return {
+              id: g.id,
+              displayNote: g.displayNote ?? null,
+              endAt: g.endAt,
+              remaining: g.remaining,
+              menus: gm,
+            };
+          })
+          .filter(s => s.menus.length > 0);
+
+        setGiftSections(sections);
+
+        setViewModel(storeDetail);
+        setSelectedMenuCategory("할인");
+      } catch (err: any) {
+        console.error("가게 정보를 불러오는 중 오류 발생:", err);
+        setError(err.message || "가게 정보를 불러오는 데 실패했습니다.");
+      }
+    };
+
+    fetchStoreDetail();
+  }, [coordinates, storeId]);
+
+  // 체크박스 토글: giftId 당 1개 선택
+  const onToggleGiftCheckbox = (giftId: string, menu: StoreMenuViewModel, checked: boolean, meta: { displayNote?: string|null, endAt?: string|null, remaining?: number|null }) => {
+    if (checked) {
+      selectGift({
+        storeId,
+        giftId,
+        menu: {
+          id: menu.id,
+          name: menu.name,
+          thumbnail: menu.thumbnail,
+          originalPrice: menu.originalPrice,
+          description: menu.description,
+          category: menu.category,
+        },
+        displayNote: meta.displayNote ?? null,
+        endAt: meta.endAt ?? null,
+        remaining: meta.remaining ?? null,
+      });
+    } else {
+      unselectGift(storeId, giftId);
     }
-  }, [coordinates])
+  };
 
+  const calcTimeLeft = (endISO: string) => {
+    const diff = new Date(endISO).getTime() - Date.now();
+    if (diff <= 0) return "마감";
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (d > 0) return `${d}일 남음`;
+    if (h > 0) return `${h}시간 남음`;
+    const m = Math.ceil((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${m}분 남음`;
+  };
+
+  // 메뉴 카트 관련 (기존 그대로)
   const handleAddToCart = (menu: StoreMenuViewModel) => {
     if (!viewmodel) return;
     const cartItem = createCartItem(menu);
@@ -108,11 +174,8 @@ export default function StorePage() {
 
   const handleRemoveFromCart = (menuId: string) => {
     const currentQuantity = getCartQuantity(menuId);
-    if (currentQuantity > 1) {
-      updateItemQuantity(menuId, currentQuantity - 1);
-    } else {
-      removeFromCart(menuId);
-    }
+    if (currentQuantity > 1) updateItemQuantity(menuId, currentQuantity - 1);
+    else removeFromCart(menuId);
   };
 
   const getCartQuantity = (menuId: string) => {
@@ -121,10 +184,9 @@ export default function StorePage() {
 
   const { totalItems, totalPrice } = getCartTotals();
 
+  // 예약 버튼: gift 선택을 쿼리로 전달
   const handleReservation = () => {
-    if (!cart || cart.items.length === 0) {
-      return;
-    }
+    if (!cart || cart.items.length === 0) return;
     router.push(`/reservation/${cart.storeId}`);
   };
 
@@ -236,6 +298,7 @@ export default function StorePage() {
       <div className="px-4 py-4 pb-32">
         {activeTab === "menu" && (
           <div className="space-y-3">
+
             {/* Sticky Category Tabs */}
             {viewmodel?.menu_category && viewmodel.menu_category.length > 0 && (
               <div className="sticky top-0 bg-white z-10 py-2 border-b border-gray-100 -mx-4 px-4">
@@ -267,6 +330,89 @@ export default function StorePage() {
               </div>
             )}
 
+            {/* =========================
+                증정 섹션 (체크박스 선택, 카트 미사용)
+               ========================= */}
+            {giftSections.length > 0 && (
+              <div className="space-y-3 mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">증정</h3>
+                <div className="space-y-3">
+                  {giftSections.map(section => {
+                    const timeLeft = calcTimeLeft(section.endAt);
+                    return (
+                      <Card key={section.id} className="border-teal-200">
+                        <CardContent className="p-4">
+                          {/* 증정 헤더 */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-teal-600 text-white text-xs">증정</Badge>
+                              {section.displayNote && <span className="text-sm text-gray-700">{section.displayNote}</span>}
+                              <span className="text-xs text-gray-500">(한 개 선택)</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm">
+                              {section.remaining != null && <span className="text-gray-600">남은 수량 {section.remaining}</span>}
+                              <span className="text-red-500 font-medium">{timeLeft}</span>
+                            </div>
+                          </div>
+
+                          {/* 체크박스 리스트 */}
+                          <div className="space-y-2">
+                            {section.menus.map(m => {
+                              const checked = getSelectedMenuId(storeId, section.id) === m.id;
+                              return (
+                                <label
+                                  key={m.id}
+                                  className={`flex items-center gap-3 p-3 border rounded-md cursor-pointer transition
+                                    ${checked ? "border-teal-500 bg-teal-50" : "border-gray-200 bg-white hover:bg-gray-50"}`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    className="w-4 h-4"
+                                    checked={checked}
+                                    onChange={(e) =>
+                                      onToggleGiftCheckbox(
+                                        section.id,
+                                        m,
+                                        e.target.checked,
+                                        { displayNote: section.displayNote, endAt: section.endAt, remaining: section.remaining }
+                                      )
+                                    }
+                                  />
+                                  <div className="w-14 h-14 flex-shrink-0">
+                                    <img
+                                      src={m.thumbnail || "/no-image.jpg"}
+                                      alt={m.name}
+                                      className="w-full h-full object-cover rounded-md"
+                                    />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-medium text-gray-800">{m.name}</h4>
+                                      <Badge className="bg-teal-600 text-white text-xs">증정</Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-sm text-gray-400 line-through">
+                                        {m.originalPrice.toLocaleString()}원
+                                      </span>
+                                      <span className="text-sm font-semibold text-teal-600">0원</span>
+                                    </div>
+                                    {m.description && (
+                                      <p className="text-xs text-gray-500 mt-1 line-clamp-1">{m.description}</p>
+                                    )}
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+                <div className="border-b-2 border-gray-200 my-4"></div>
+              </div>
+            )}
+
             {/* Menu Sections */}
             {Object.keys(categorizedMenus).map((category, index) => (
               <React.Fragment key={category}>
@@ -290,11 +436,17 @@ export default function StorePage() {
                                 <h4 className="font-medium text-gray-800">{item.name}</h4>
                                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
                                 <div className="flex items-center gap-2 mt-2">
-                                  {item.discountRate != 0 ? <span className="text-sm text-gray-400 line-through"> {item.originalPrice.toLocaleString()}원 </span> : null}
+                                  {item.discountRate != 0 ? (
+                                    <span className="text-sm text-gray-400 line-through">
+                                      {item.originalPrice.toLocaleString()}원
+                                    </span>
+                                  ) : null}
                                   <span className="text-lg font-bold text-teal-600">
                                     {item.discountPrice.toLocaleString()}원
                                   </span>
-                                  {(item.discountRate != 0) ? <Badge className="bg-orange-500 text-white text-xs">{item.discountRate}% 할인</Badge> : null} 
+                                  {item.discountRate != 0 ? (
+                                    <Badge className="bg-orange-500 text-white text-xs">{item.discountRate}% 할인</Badge>
+                                  ) : null}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 ml-4">
@@ -321,7 +473,6 @@ export default function StorePage() {
                                 ) : (
                                   <Button
                                     variant="outline"
-                                  
                                     size="sm"
                                     onClick={() => handleAddToCart(item)}
                                     className="bg-teal-50 border-teal-200 text-teal-600 hover:bg-teal-100"
@@ -381,6 +532,16 @@ export default function StorePage() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-teal-100 p-4 shadow-lg max-w-xl mx-auto">
         {cart && cart.items.length > 0 ? (
           <div className="space-y-3">
+            {/* 선택한 증정 개수(합계 미반영) */}
+            {(() => {
+              // storeId에 대한 현재 선택 개수 계산
+              // getSelectedMenuId를 giftSections 순회해서 세면 간단
+              const count = giftSections.reduce((acc, s) => acc + (getSelectedMenuId(storeId, s.id) ? 1 : 0), 0);
+              return count > 0 ? (
+                <div className="text-sm text-teal-700">증정 선택 {count}건</div>
+              ) : null;
+            })()}
+
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">선택한 메뉴 {totalItems}개</span>
               <span className="font-bold text-lg text-teal-600">{totalPrice.toLocaleString()}원</span>

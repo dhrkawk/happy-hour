@@ -3,6 +3,7 @@ import { BookingCardViewModel, createBookingCardViewModel } from "@/lib/viewmode
 import { ReservationEntity } from "@/lib/entities/reservation.entity";
 import { Cart } from "@/contexts/app-context";
 import { ReservationDetailViewModel, createReservationDetailViewModel } from "@/lib/viewmodels/reservation-detail.viewmodel";
+import { GiftSelection } from "@/contexts/gift-context";
 
 export class ReservationApiClient {
   private baseUrl: string = '/api/reservations';
@@ -30,16 +31,27 @@ export class ReservationApiClient {
     return createReservationDetailViewModel(entity);
   }
 
-  async registerReservation(cart: Cart): Promise<{ reservation_id: string }> {
+  async registerReservation(cart: Cart, gifts: GiftSelection[] = []): Promise<{ reservation_id: string }> {
+    const cartItems = cart.items.map(item => ({
+      menu_name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      discount_rate: item.discountRate,
+      is_free: false,
+    }));
+
+    const giftItems = gifts.map(g => ({
+      menu_name: g.menu.name,
+      quantity: 1,
+      price: 0,
+      discount_rate: 100,
+      is_free: true,
+    }));
+
     const body = {
       store_id: cart.storeId,
-      reserved_time: new Date().toISOString(), // Set current time as reservation time
-      items: cart.items.map(item => ({
-        menu_name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        discount_rate: item.discountRate,
-      })),
+      reserved_time: new Date().toISOString(),
+      items: [...cartItems, ...giftItems],
     };
 
     const response = await fetch(this.baseUrl, {

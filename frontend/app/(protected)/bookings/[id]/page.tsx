@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import { ArrowLeft, MapPin, Clock, Phone, Loader2, ShoppingCart, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAppContext } from "@/contexts/app-context";
 import { useGetReservationById } from "@/hooks/use-get-reservation-by-id";
 import { ReservationApiClient } from "@/lib/services/reservations/reservation.api-client";
+import { useGiftContext } from "@/contexts/gift-context";
 
 const apiClient = new ReservationApiClient();
 
@@ -22,6 +23,7 @@ export default function BookingDetailPage() {
   const id = params.id as string;
   const [isCanceling, setIsCanceling] = useState(false);
   const { appState, clearCart } = useAppContext();
+  const { clearStoreGifts } = useGiftContext();
   const didClearRef = useRef(false);
 
   const { booking, error, isLoading, mutate } = useGetReservationById(id);
@@ -32,6 +34,7 @@ export default function BookingDetailPage() {
     const hasCart = !!appState.cart && appState.cart.items.length > 0;
     if (hasCart && (booking.status === "confirmed" || booking.status === "pending")) {
       clearCart();
+      clearStoreGifts(appState.cart!.storeId);
     }
     didClearRef.current = true;
   }, [booking, appState.cart, clearCart]);
@@ -138,10 +141,14 @@ export default function BookingDetailPage() {
                         <p className="text-sm text-gray-500">수량: {item.quantity}개</p>
                       </div>
                       <div className="text-right">
-                        {item.discountRate > 0 && (
+                        {item.discountRate != 100 ? (
                           <Badge variant="destructive">{item.discountRate}% 할인</Badge>
+                        ) : (
+                          <Badge variant="outline">증정</Badge>
                         )}
-                        <p className="font-semibold text-gray-800 mt-1">{(finalPrice * item.quantity).toLocaleString()}원</p>
+                        <p className="font-semibold text-gray-800 mt-1">
+                          {(finalPrice * item.quantity).toLocaleString()}원
+                        </p>
                       </div>
                     </div>
                   );
