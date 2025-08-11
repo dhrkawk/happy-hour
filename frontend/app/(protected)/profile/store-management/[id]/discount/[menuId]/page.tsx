@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
 import { MenuEntity } from "@/lib/entities/menus/menu.entity";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 export default function ManageDiscountPage() {
   const { id: storeId, menuId } = useParams() as { id: string; menuId: string };
@@ -116,6 +117,10 @@ export default function ManageDiscountPage() {
         [name]: name === "quantity" ? Number(value) : value,
       }));
     }
+  };
+
+  const handleDateTimeChange = (name: 'start_time' | 'end_time', value: string) => {
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
 
@@ -306,11 +311,11 @@ export default function ManageDiscountPage() {
             </div>
             <div>
               <Label htmlFor="start_time">시작 시간</Label>
-              <Input name="start_time" type="datetime-local" value={form.start_time} onChange={handleChange} required />
+              <DateTimePicker id="start_time" value={form.start_time} onChange={(value) => handleDateTimeChange("start_time", value)} />
             </div>
             <div>
               <Label htmlFor="end_time">종료 시간</Label>
-              <Input name="end_time" type="datetime-local" value={form.end_time} onChange={handleChange} required />
+              <DateTimePicker id="end_time" value={form.end_time} onChange={(value) => handleDateTimeChange("end_time", value)} />
             </div>
             <DialogFooter className="flex justify-between pt-4">
               <Button type="submit" className="bg-teal-600 text-white">

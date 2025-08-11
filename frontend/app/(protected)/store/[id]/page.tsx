@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useAppContext } from "@/contexts/app-context"
 import { createCartItem } from "@/lib/viewmodels/cart-item.viewmodel";
-import { StoreDetailViewModel, createStoreDetailViewModel, StoreMenuViewModel } from "@/lib/viewmodels/store-detail.viewmodel";
+import { StoreDetailViewModel, StoreMenuViewModel } from "@/lib/viewmodels/store-detail.viewmodel";
 import { StoreApiClient } from "@/lib/services/stores/store.api-client";
 
 export default function StorePage() {

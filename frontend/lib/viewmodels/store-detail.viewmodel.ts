@@ -34,6 +34,7 @@ export interface StoreDetailViewModel {
   menu?: StoreMenuViewModel[];
 }
 
+// V2 - 새로운 함수: Service에서 계산된 값을 사용하는 수정된 로직
 export function createStoreDetailViewModel(
   entity: StoreDetailEntity,
   userLocation: { lat: number; lng: number } | null
@@ -46,33 +47,30 @@ export function createStoreDetailViewModel(
     ? `${Math.round(distKm * 1000)}m`
     : `${distKm.toFixed(1)}km`;
 
+  // 메뉴 목록에 표시될 개별 메뉴 아이템들을 가공합니다.
   const processedMenus: StoreMenuViewModel[] = entity.menus.map((menu) => {
     const discount = menu.discount;
-    const discountRate = discount?.discount_rate ?? 0;
-    const discountDisplayText = discountRate > 0 ? `${discountRate}% 할인` : '';
+    // 개별 메뉴의 할인율은 활성 상태일 때만 표시합니다.
+    const discountRate = (discount && discount.is_active) ? discount.discount_rate : 0;
 
     return {
       id: menu.id,
       name: menu.name,
       originalPrice: menu.price,
-      discountPrice: discount
-        ? Math.round(menu.price * (1 - discount.discount_rate / 100))
+      discountPrice: discountRate > 0
+        ? Math.round(menu.price * (1 - discountRate / 100))
         : menu.price,
       description: menu.description ?? "",
       thumbnail: menu.thumbnail,
       discountId: discount ? `${discount.discount_rate}-${discount.end_time}` : null,
       discountRate: discountRate,
       discountEndTime: discount?.end_time ?? "",
-      category: menu.category, // Add category here
-      discountDisplayText: discountDisplayText,
+      category: menu.category,
+      discountDisplayText: discountRate > 0 ? `${discountRate}% 할인` : '',
     };
   });
 
-  // Sort menus: discounted items first
-  processedMenus.sort((a, b) => b.discountRate - a.discountRate);
-
-  const representativeMenu = processedMenus[0];
-
+  // Service에서 미리 계산한 대표 할인 정보를 사용합니다.
   return {
     id: entity.id,
     name: entity.name,
@@ -84,9 +82,9 @@ export function createStoreDetailViewModel(
     lat: entity.lat,
     lng: entity.lng,
     distance: distanceText,
-    discount: representativeMenu?.discountRate ?? 0,
-    timeLeft: representativeMenu?.discountEndTime
-      ? formatTimeLeft(representativeMenu.discountEndTime)
+    discount: entity.representativeDiscountRate ?? 0,
+    timeLeft: entity.representativeDiscountEndTime
+      ? formatTimeLeft(entity.representativeDiscountEndTime)
       : "정보 없음",
     menu: processedMenus,
     menu_category: entity.menu_category,

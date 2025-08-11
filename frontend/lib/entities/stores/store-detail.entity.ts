@@ -3,6 +3,7 @@ export interface Discount {
   start_time: string;          // 시작 시각 (ISO string)
   end_time: string;            // 종료 시각
   quantity: number;            // 남은 수량
+  is_active: boolean;          // 활성 상태
 }
 
 export interface StoreMenu {
@@ -29,4 +30,8 @@ export interface StoreDetailEntity {
   menu_category: string[] | null;
 
   menus: StoreMenu[];          // 전체 메뉴 목록
+
+  // Service에서 계산될 대표 할인 정보
+  representativeDiscountRate: number | null;
+  representativeDiscountEndTime: string | null;
 }

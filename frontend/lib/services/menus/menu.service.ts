@@ -61,18 +61,24 @@ const { data, error } = await this.supabase
   async getMenusByStoreId(storeId: string): Promise<MenuListItemViewModel[]> {
     const { data, error } = await this.supabase
       .from('store_menus')
-      .select('*')
+      .select('*, discounts(count)')
       .eq('store_id', storeId);
 
     if (error) throw new Error(`Failed to fetch menus: ${error.message}`);
 
-    return data.map(menu => ({
-      id: menu.id,
-      name: menu.name,
-      price: menu.price,
-      thumbnailUrl: menu.thumbnail || '/no-image.jpg',
-      category: menu.category,
-    })) as MenuListItemViewModel[];
+    return data.map(menu => {
+      // Supabase returns the count in an array, handle case where no discounts exist.
+      const discountCount = menu.discounts[0]?.count || 0;
+
+      return {
+        id: menu.id,
+        name: menu.name,
+        price: menu.price,
+        thumbnailUrl: menu.thumbnail || '/no-image.jpg',
+        category: menu.category,
+        discountCount: discountCount,
+      };
+    }) as MenuListItemViewModel[];
   }
 
   async getMenuById(menuId: string): Promise<MenuEntity | null> {
