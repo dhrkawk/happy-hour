@@ -1,18 +1,30 @@
 export interface Discount {
-  discount_rate: number;       // 할인율
-  start_time: string;          // 시작 시각 (ISO string)
-  end_time: string;            // 종료 시각
-  quantity: number;            // 남은 수량
+  discount_rate: number;
+  start_time: string;
+  end_time: string;
+  quantity: number;
 }
 
 export interface StoreMenu {
-  id: string;                  // 메뉴 ID
-  name: string;                // 메뉴 이름
-  price: number;               // 원래 가격
-  description: string;         // 메뉴 설명
-  thumbnail: string;           // 메뉴 이미지
-  category: string;            // 메뉴 카테고리
-  discount: Discount | null;   // 1:1 연결된 할인 정보
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  thumbnail: string;
+  category: string;
+  discount: Discount | null;
+}
+
+export interface StoreGift {
+  id: string;
+  gift_qty: number;
+  start_at: string;
+  end_at: string;
+  is_active: boolean;
+  max_redemptions: number | null;
+  remaining: number | null;
+  display_note: string | null;
+  option_menu_ids: string[]; // menu_id 배열
 }
 
 export interface StoreDetailEntity {
@@ -24,9 +36,9 @@ export interface StoreDetailEntity {
   phone: string;
   category: string;
   activated: boolean;
-  storeThumbnail: string | "no-image.jpg"; // 기본 이미지 경로
+  storeThumbnail: string | 'no-image.jpg';
   ownerId: string;
   menu_category: string[] | null;
-
-  menus: StoreMenu[];          // 전체 메뉴 목록
+  menus: StoreMenu[];
+  gifts: StoreGift[];
 }

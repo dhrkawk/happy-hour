@@ -28,6 +28,18 @@ export default function StorePage() {
   const [categorizedMenus, setCategorizedMenus] = useState<Record<string, StoreMenuViewModel[]>>({});
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // 상단 state들 아래
+  type GiftSectionVM = {
+    id: string;
+    displayNote: string | null;
+    endAt: string;
+    remaining: number | null;
+    menus: StoreMenuViewModel[];     // 이 gift에 속한 메뉴(0원으로 표시)
+  };
+
+  const [giftSections, setGiftSections] = useState<GiftSectionVM[]>([]);
+  const [giftSelections, setGiftSelections] = useState<Record<string, string>>({}); // giftId -> selected menuId
+
   // Intersection Observer for sticky tabs
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -89,6 +101,35 @@ export default function StorePage() {
           });
 
           setCategorizedMenus(grouped);
+          const asGiftMenu = (m: StoreMenuViewModel, gId: string, gEnd: string): StoreMenuViewModel => ({
+            ...m,
+            discountRate: 100,
+            discountPrice: 0,
+            discountDisplayText: "증정",
+            discountId: `gift-${gId}`,               // 일반 할인과 구분
+            discountEndTime: gEnd || m.discountEndTime,
+            thumbnail: m.thumbnail || "no-image.jpg",
+          });
+
+          const sections: GiftSectionVM[] = (storeDetail.gifts ?? []).map(g => {
+            const gm = (g.menus ?? []).map(m => asGiftMenu(m, g.id, g.endAt));
+            return {
+              id: g.id,
+              displayNote: g.displayNote ?? null,
+              endAt: g.endAt,
+              remaining: g.remaining,
+              menus: gm,
+            };
+          }).filter(s => s.menus.length > 0);
+
+          setGiftSections(sections);
+
+          // 기본 선택(여러 개면 첫 번째 자동 선택)
+          const initial: Record<string, string> = {};
+          sections.forEach(s => {
+            if (s.menus.length > 1) initial[s.id] = s.menus[0].id;
+          });
+          setGiftSelections(initial);
           setViewModel(storeDetail);
           setSelectedMenuCategory("할인"); // Set initial active category to 할인
         } catch (err: any) {
@@ -99,6 +140,36 @@ export default function StorePage() {
       fetchStoreDetail();
     }
   }, [coordinates])
+
+  const calcTimeLeft = (endISO: string) => {
+  const diff = new Date(endISO).getTime() - Date.now();
+  if (diff <= 0) return "마감";
+  const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  if (d > 0) return `${d}일 남음`;
+  if (h > 0) return `${h}시간 남음`;
+  const m = Math.ceil((diff % (1000 * 60 * 60)) / (1000 * 60));
+  return `${m}분 남음`;
+};
+
+const handleSelectGiftMenu = (giftId: string, menuId: string) => {
+  setGiftSelections(prev => ({ ...prev, [giftId]: menuId }));
+};
+
+const handleAddSelectedGift = (giftId: string) => {
+  if (!viewmodel) return;
+  const section = giftSections.find(s => s.id === giftId);
+  if (!section) return;
+
+  const menus = section.menus;
+  const selectedId = menus.length === 1 ? menus[0].id : giftSelections[giftId];
+  const chosen = menus.find(m => m.id === selectedId);
+  if (!chosen) return;
+
+  // 100% 할인(0원)으로 이미 가공됨
+  const cartItem = createCartItem(chosen);
+  addToCart({ id: viewmodel.id, name: viewmodel.name }, cartItem);
+};
 
   const handleAddToCart = (menu: StoreMenuViewModel) => {
     if (!viewmodel) return;
@@ -267,6 +338,123 @@ export default function StorePage() {
               </div>
             )}
 
+            {/* GIFT SECTION (최상단) */}
+            {/* ===== GIFT SECTION (증정별 그룹, 최상단) ===== */}
+            {giftSections.length > 0 && (
+              <div className="space-y-3 mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">증정</h3>
+                <div className="space-y-3">
+                  {giftSections.map(section => {
+                    const timeLeft = calcTimeLeft(section.endAt);
+                    const multiple = section.menus.length > 1;
+                    const selectedId = multiple ? (giftSelections[section.id] ?? section.menus[0].id) : section.menus[0].id;
+
+                    return (
+                      <Card key={section.id} className="border-teal-200">
+                        <CardContent className="p-4">
+                          {/* 증정 헤더 */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-teal-600 text-white text-xs">증정</Badge>
+                              {section.displayNote && (
+                                <span className="text-sm text-gray-700">{section.displayNote}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-sm">
+                              {section.remaining != null && (
+                                <span className="text-gray-600">남은 수량 {section.remaining}</span>
+                              )}
+                              <span className="text-red-500 font-medium">{timeLeft}</span>
+                            </div>
+                          </div>
+
+                          {/* 증정 품목 선택(여러 개일 때) */}
+                          {multiple && (
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {section.menus.map(m => (
+                                <button
+                                  key={m.id}
+                                  onClick={() => handleSelectGiftMenu(section.id, m.id)}
+                                  className={`px-3 py-2 rounded-md border text-sm transition
+                                    ${selectedId === m.id
+                                      ? "border-teal-500 bg-teal-50 text-teal-700"
+                                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"}`}
+                                >
+                                  {m.name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* 선택된 품목 미리보기 카드(기존 카드 UI 재사용) */}
+                          {(() => {
+                            const m = section.menus.find(mm => mm.id === selectedId)!;
+                            const quantity = getCartQuantity(m.id);
+
+                            return (
+                              <div className="flex items-center">
+                                <div className="w-20 h-20 flex-shrink-0 mr-4">
+                                  <img
+                                    src={m.thumbnail || "/no-image.jpg"}
+                                    alt={m.name}
+                                    className="w-full h-full object-cover rounded-md"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-gray-800">{m.name}</h4>
+                                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">{m.description}</p>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <span className="text-sm text-gray-400 line-through">
+                                      {m.originalPrice.toLocaleString()}원
+                                    </span>
+                                    <span className="text-lg font-bold text-teal-600">0원</span>
+                                    <Badge className="bg-teal-600 text-white text-xs">증정</Badge>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                  {quantity > 0 ? (
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-8 h-8 p-0 bg-transparent"
+                                        onClick={() => handleRemoveFromCart(m.id)}
+                                      >
+                                        <Minus className="w-4 h-4" />
+                                      </Button>
+                                      <span className="w-8 text-center font-medium">{quantity}</span>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-8 h-8 p-0 bg-transparent"
+                                        onClick={() => handleAddSelectedGift(section.id)}
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleAddSelectedGift(section.id)}
+                                      className="bg-teal-50 border-teal-200 text-teal-600 hover:bg-teal-100"
+                                    >
+                                      <Plus className="w-4 h-4 mr-1" />
+                                      담기
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+                <div className="border-b-2 border-gray-200 my-4"></div>
+              </div>
+            )}
             {/* Menu Sections */}
             {Object.keys(categorizedMenus).map((category, index) => (
               <React.Fragment key={category}>
