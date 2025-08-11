@@ -86,7 +86,14 @@ export default async function DiscountPage({ params }: DiscountPageProps) {
                 <div key={menu.id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 flex justify-between items-center hover:shadow-md transition-shadow">
                   <div>
                     <h2 className="text-base font-semibold text-gray-800">{menu.name}</h2>
-                    <p className="text-sm text-gray-500">{menu.price.toLocaleString()}원</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-gray-500">{menu.price.toLocaleString()}원</p>
+                      {menu.discountCount > 0 && (
+                        <span className="text-xs text-teal-600 font-semibold bg-teal-50 px-2 py-0.5 rounded-full">
+                          {menu.discountCount}개의 할인정보
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <Link href={`/profile/store-management/${storeId}/discount/${menu.id}`}>
                     <Button variant="outline" size="sm" className="text-sm">
@@ -98,14 +105,21 @@ export default async function DiscountPage({ params }: DiscountPageProps) {
             </div>
           ))}
           {/* Render "기타" category if it has menus */}
-          {menus.filter(menu => menu.category === "기타").length > 0 && (
+          {menus.filter(menu => !storeCategories.includes(menu.category)).length > 0 && (
             <div className="space-y-2">
               <h3 className="text-xl font-semibold text-gray-700 mt-4">기타</h3>
-              {menus.filter(menu => menu.category === "기타").map((menu) => (
+              {menus.filter(menu => !storeCategories.includes(menu.category)).map((menu) => (
                 <div key={menu.id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 flex justify-between items-center hover:shadow-md transition-shadow">
                   <div>
                     <h2 className="text-base font-semibold text-gray-800">{menu.name}</h2>
-                    <p className="text-sm text-gray-500">{menu.price.toLocaleString()}원</p>
+                     <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-gray-500">{menu.price.toLocaleString()}원</p>
+                      {menu.discountCount > 0 && (
+                        <span className="text-xs text-teal-600 font-semibold bg-teal-50 px-2 py-0.5 rounded-full">
+                          {menu.discountCount}개의 할인정보
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <Link href={`/profile/store-management/${storeId}/discount/${menu.id}`}>
                     <Button variant="outline" size="sm" className="text-sm">

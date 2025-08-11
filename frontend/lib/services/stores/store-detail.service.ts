@@ -3,14 +3,17 @@ import type { Database } from '@/lib/supabase/types';
 import type { StoreDetailEntity, StoreMenu, Discount, StoreGift } from '@/lib/entities/stores/store-detail.entity';
 
 const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
+  // 1. Raw data를 Entity에 맞게 매핑 (is_active 포함)
   const menus: StoreMenu[] = (store.store_menus || []).map((menu: any) => {
     const discountData = menu.discounts?.[0];
+
     const discount: Discount | null = discountData
       ? {
           discount_rate: discountData.discount_rate,
           start_time: discountData.start_time,
           end_time: discountData.end_time,
           quantity: discountData.quantity,
+          is_active: discountData.is_active, // is_active 필드 추가
         }
       : null;
 
@@ -39,6 +42,23 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
     };
   });
 
+  // 2. 활성 할인 중 대표 할인 찾기
+  let representativeDiscountRate: number | null = null;
+  let representativeDiscountEndTime: string | null = null;
+
+  const activeDiscounts = menus
+    .map(menu => menu.discount)
+    .filter((d): d is Discount => d !== null && d.is_active);
+
+  if (activeDiscounts.length > 0) {
+    const maxDiscount = activeDiscounts.reduce((max, current) => 
+      current.discount_rate > max.discount_rate ? current : max
+    );
+    representativeDiscountRate = maxDiscount.discount_rate;
+    representativeDiscountEndTime = maxDiscount.end_time;
+  }
+
+  // 3. 최종 Entity 반환
   return {
     id: store.id,
     name: store.name,
@@ -53,6 +73,9 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
     menu_category: store.menu_category,
     menus,
     gifts,
+    // 계산된 대표 할인 정보 추가
+    representativeDiscountRate,
+    representativeDiscountEndTime,
   };
 };
 
