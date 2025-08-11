@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ReservationApiClient } from '@/lib/services/reservations/reservation.api-client';
 import { Cart } from '@/contexts/app-context';
+import { GiftSelection } from '@/contexts/gift-context';
 
 const apiClient = new ReservationApiClient();
 
@@ -9,11 +10,11 @@ export function useCreateReservation() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const createReservation = async (cart: Cart) => {
+  const createReservation = async (cart: Cart, gifts: GiftSelection[] = []) => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await apiClient.registerReservation(cart);
+      const result = await apiClient.registerReservation(cart, gifts);
       setIsLoading(false);
       return result;
     } catch (err) {

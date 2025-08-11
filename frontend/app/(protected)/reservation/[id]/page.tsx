@@ -1,13 +1,15 @@
 "use client"
 
-import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, ShoppingCart, Loader2, AlertCircle } from "lucide-react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { ArrowLeft, ShoppingCart, Loader2, AlertCircle, Gift } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useAppContext } from "@/contexts/app-context";
 import { useCreateReservation } from "@/hooks/use-create-reservation";
+import { useEffect, useRef } from "react";
+import { useGiftContext } from "@/contexts/gift-context"; // ★ 추가
 
 export default function BookingCreationPage() {
   const router = useRouter();
@@ -20,11 +22,15 @@ export default function BookingCreationPage() {
   const { cart } = appState;
   const { totalItems, totalPrice } = getCartTotals();
 
+  // ★ GiftContext 사용
+  const { getSelectionsForStore, fromQueryParam } = useGiftContext();
+  const gifts = getSelectionsForStore(storeId);
+
   const handleBooking = async () => {
     if (!cart) return;
-
     try {
-      const result = await createReservation(cart);
+      // 필요 시: createReservation(cart, gifts)로 확장 가능
+      const result = await createReservation(cart, gifts);
       router.push(`/bookings/${result.reservation_id}`);
     } catch (err: any) {
       toast({ variant: "destructive", title: "예약 실패", description: err.message });
@@ -103,9 +109,26 @@ export default function BookingCreationPage() {
                 </div>
               </div>
             ))}
+              {gifts.map((g) => (
+                <div
+                  key={`${g.giftId}-${g.menu.id}`}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-800">{g.menu.name}</h4>
+                    <p className="text-sm text-gray-500">증정</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-semibold text-teal-600">0원</span>
+                  </div>
+                </div>
+              ))}
+              <p className="text-xs text-gray-500">
+                ※ 증정 품목은 결제 금액에 포함되지 않습니다. (재고/유효성은 가게에서 확인됩니다)
+              </p>
             <div className="border-t pt-3 mt-3">
               <div className="flex items-center justify-between font-bold text-lg">
-                <span>총 {totalItems}개</span>
+                <span>총 {totalItems + gifts.length}개</span>
                 <span className="text-teal-600">{totalPrice.toLocaleString()}원</span>
               </div>
             </div>
@@ -118,7 +141,7 @@ export default function BookingCreationPage() {
             <ul className="space-y-1 text-sm text-orange-600 list-disc list-inside">
               <li>예약 시간은 현재 시간으로 자동 설정됩니다.</li>
               <li>방문 시 가게에 예약 내역을 보여주세요.</li>
-              <li>할인 메뉴의 경우, 재고가 소진되면 예약이 취소될 수 있습니다.</li>
+              <li>할인/증정의 경우, 재고가 소진되면 예약이 취소될 수 있습니다.</li>
             </ul>
           </CardContent>
         </Card>
