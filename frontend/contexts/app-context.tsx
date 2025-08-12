@@ -46,7 +46,7 @@ interface AppContextType {
   removeFromCart: (menuId: string) => void;
   updateItemQuantity: (menuId: string, quantity: number) => void;
   clearCart: () => void;
-  getCartTotals: () => { totalItems: number; totalPrice: number };
+  getCartTotals: () => { totalItems: number; totalPrice: number; originalPrice: number };
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -244,12 +244,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const getCartTotals = useCallback(() => {
     const cart = appState.cart;
-    if (!cart) return { totalItems: 0, totalPrice: 0 };
+    if (!cart) return { totalItems: 0, totalPrice: 0, originalPrice: 0 };
 
     const totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const originalPrice = cart.items.reduce((sum, item) => sum + item.originalPrice * item.quantity, 0);
 
-    return { totalItems, totalPrice };
+    return { totalItems, totalPrice, originalPrice };
   }, [appState.cart]);
 
 

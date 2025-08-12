@@ -20,16 +20,15 @@ export default function BookingCreationPage() {
   const storeId = params.id as string;
 
   const { cart } = appState;
-  const { totalItems, totalPrice } = getCartTotals();
+  const { totalItems, totalPrice, originalPrice } = getCartTotals();
 
   // ★ GiftContext 사용
-  const { getSelectionsForStore, fromQueryParam } = useGiftContext();
+  const { getSelectionsForStore, totalSavings } = useGiftContext();
   const gifts = getSelectionsForStore(storeId);
 
   const handleBooking = async () => {
     if (!cart) return;
     try {
-      // 필요 시: createReservation(cart, gifts)로 확장 가능
       const result = await createReservation(cart, gifts);
       router.push(`/bookings/${result.reservation_id}`);
     } catch (err: any) {
@@ -130,6 +129,10 @@ export default function BookingCreationPage() {
               <div className="flex items-center justify-between font-bold text-lg">
                 <span>총 {totalItems + gifts.length}개</span>
                 <span className="text-teal-600">{totalPrice.toLocaleString()}원</span>
+              </div>
+              <div className="flex items-center justify-between font-bold text-lg">
+                <span>총 절약 금액</span>
+                <span className="text-teal-600">{(originalPrice - totalPrice + totalSavings(storeId)).toLocaleString()}원</span>
               </div>
             </div>
           </CardContent>

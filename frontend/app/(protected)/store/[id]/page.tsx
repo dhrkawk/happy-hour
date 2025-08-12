@@ -35,7 +35,6 @@ export default function StorePage() {
     selectGift,
     unselectGift,
     getSelectedMenuId,
-    toQueryParam,
     // clearStoreGifts, // 필요 시 사용
   } = useGiftContext();
 

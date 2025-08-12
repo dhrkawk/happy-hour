@@ -1,5 +1,6 @@
 "use client";
 
+import { get } from "http";
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 
 // ===== Types =====
@@ -34,9 +35,7 @@ type GiftContextType = {
   selectGift: (sel: GiftSelection) => void;             // giftId 당 1개 선택 강제
   unselectGift: (storeId: string, giftId: string) => void;
   clearStoreGifts: (storeId: string) => void;
-  // 직렬화/역직렬화(예약 페이지 전달 시 유용)
-  toQueryParam: (storeId: string) => string;            // JSON string
-  fromQueryParam: (storeId: string, raw: string) => void;
+  totalSavings: (storeId: string) => number;        // 해당 가게에서 선택된 메뉴들의 절약 금액 합계
 };
 
 const GiftContext = createContext<GiftContextType | undefined>(undefined);
@@ -108,57 +107,15 @@ export const GiftProvider = ({ children }: { children: React.ReactNode }) => {
     });
   }, []);
 
-  // 직렬화: 예약 페이지로 넘길 때 사용 (이름/썸네일까지 포함됨)
-  const toQueryParam = useCallback((storeId: string) => {
-    const arr = Object.values(state.byStore[storeId] ?? {});
-    return JSON.stringify(
-      arr.map(s => ({
-        giftId: s.giftId,
-        storeId: s.storeId,
-        menuId: s.menu.id,
-        name: s.menu.name,
-        thumbnail: s.menu.thumbnail ?? undefined,
-        displayNote: s.displayNote ?? undefined,
-        endAt: s.endAt ?? undefined,
-      }))
-    );
-  }, [state]);
-
-  // 역직렬화: 외부에서 파라미터로 받은 경우 복원 (선택사항)
-  const fromQueryParam = useCallback((storeId: string, raw: string) => {
-    try {
-      const arr = JSON.parse(raw) as Array<{
-        giftId: string;
-        storeId?: string;
-        menuId: string;
-        name?: string;
-        thumbnail?: string;
-        displayNote?: string;
-        endAt?: string;
-      }>;
-      setState(prev => {
-        const base = prev.byStore[storeId] ?? {};
-        const nextStore = { ...base };
-        for (const g of arr) {
-          nextStore[g.giftId] = {
-            storeId,
-            giftId: g.giftId,
-            displayNote: g.displayNote ?? null,
-            endAt: g.endAt ?? null,
-            remaining: null,
-            menu: {
-              id: g.menuId,
-              name: g.name ?? `메뉴 ${g.menuId.slice(0, 6)}…`,
-              thumbnail: g.thumbnail ?? null,
-            },
-          };
-        }
-        return { byStore: { ...prev.byStore, [storeId]: nextStore } };
-      });
-    } catch {
-      // ignore
-    }
-  }, []);
+  const totalSavings = useCallback((storeId: string) => {
+    const selections = getSelectionsForStore(storeId);
+    return selections.reduce((total, sel) => {
+      if (sel.menu.originalPrice && sel.menu.originalPrice > 0) {
+        return sel.menu.originalPrice + total;
+      }
+      return total;
+    }, 0);
+  }, [getSelectionsForStore]);
 
   const value = useMemo<GiftContextType>(() => ({
     getSelectionsForStore,
@@ -166,16 +123,14 @@ export const GiftProvider = ({ children }: { children: React.ReactNode }) => {
     selectGift,
     unselectGift,
     clearStoreGifts,
-    toQueryParam,
-    fromQueryParam,
+    totalSavings,
   }), [
     getSelectionsForStore,
     getSelectedMenuId,
     selectGift,
     unselectGift,
     clearStoreGifts,
-    toQueryParam,
-    fromQueryParam,
+    totalSavings,
   ]);
 
   return <GiftContext.Provider value={value}>{children}</GiftContext.Provider>;
