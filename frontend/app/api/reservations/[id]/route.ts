@@ -4,8 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { ReservationService } from '@/lib/services/reservations/reservation.service';
 
 // GET a single reservation by ID
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
-  const reservationId = params.id;
+export async function GET(_request: NextRequest, context: { params: { id: string } }) {
+  const reservationId = context.params.id;
 
   try {
     const supabase = await createClient();
@@ -21,9 +21,9 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 }
 
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
   const body = await request.json();
-  const reservationId = params.id;
+  const reservationId = context.params.id;
   const status = body.status;
 
   if (status !== 'cancelled') {
