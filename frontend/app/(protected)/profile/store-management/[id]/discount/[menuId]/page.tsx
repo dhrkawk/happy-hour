@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation"; // Added useRouter
+// import Link from "next/link"; // Removed Link
+import { ArrowLeft, Loader2 } from "lucide-react"; // Added ArrowLeft
 import { DiscountApiClient } from "@/lib/services/discounts/discount.api-client";
 import {
   DiscountFormViewModel,
@@ -19,12 +21,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
 import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
 import { MenuEntity } from "@/lib/entities/menus/menu.entity";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 export default function ManageDiscountPage() {
+  const router = useRouter(); // Added this line
   const { id: storeId, menuId } = useParams() as { id: string; menuId: string };
   const statuses = ["all", "scheduled", "active", "expired"] as const;
   type Status = typeof statuses[number];
@@ -183,9 +185,14 @@ export default function ManageDiscountPage() {
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto px-4 py-6">
       {/* 헤더 */}
       <div className="flex justify-between items-center mb-4">
-        <div>
-          <h2 className="text-lg font-bold text-teal-600">할인 히스토리</h2>
-          {menu && <p className="text-sm text-gray-500">메뉴: {menu.name} (원가: {menu.price.toLocaleString()}원)</p>}
+        <div className="flex items-center gap-2"> {/* Added div for alignment */}
+          <Button variant="ghost" size="icon" onClick={() => router.push(`/profile/store-management/${storeId}/discount`)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h2 className="text-lg font-bold text-teal-600">할인 히스토리</h2>
+            {menu && <p className="text-sm text-gray-500">메뉴: {menu.name} (원가: {menu.price.toLocaleString()}원)</p>}
+          </div>
         </div>
         <Button onClick={openCreateDialog} size="sm">
           + 새 할인

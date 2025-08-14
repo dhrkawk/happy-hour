@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation"; // Added useRouter
+// import Link from "next/link"; // Removed Link
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { createClient } from "@/lib/supabase/client";
 import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
 import { MenuListItemViewModel } from "@/lib/viewmodels/menus/menu.viewmodel";
-import { Gift, Calendar, Clock, Edit, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { Gift, Calendar, Clock, Edit, Trash2, CheckCircle2, XCircle, ArrowLeft } from "lucide-react"; // Added ArrowLeft
 
 // === Types ===
 type GiftRecord = {
@@ -227,7 +228,12 @@ export default function ManageGiftsPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 gap-6">
       <div className="w-full max-w-2xl flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-teal-600">증정품 관리</h2>
+        <div className="flex items-center gap-2"> {/* Added div for alignment */}
+          <Button variant="ghost" size="icon" onClick={() => router.push(`/profile/store-management/${storeId}`)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-2xl font-bold text-teal-600">증정품 관리</h2>
+        </div>
         <div className="flex gap-2">
           <Button onClick={openCreateDialog}>+ 새 증정 등록</Button>
         </div>

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { headers } from 'next/headers';
+import { ArrowLeft } from 'lucide-react'; // Added ArrowLeft
 import { MenuApiClient } from '@/lib/services/menus/menu.api-client';
 import { StoreService } from '@/lib/services/stores/store.service';
 import { MenuListItemViewModel } from '@/lib/viewmodels/menus/menu.viewmodel';
@@ -68,7 +69,14 @@ export default async function DiscountPage({ params }: DiscountPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 max-w-xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-teal-600 text-center">메뉴별 할인 관리</h1>
+      <div className="flex items-center gap-2 mb-4"> {/* Added div for alignment */}
+        <Link href={`/profile/store-management/${storeId}`}>
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </Link>
+        <h1 className="text-2xl font-bold text-teal-600 text-center flex-1">메뉴별 할인 관리</h1> {/* flex-1 to center text */}
+      </div>
 
       {error ? (
         <div className="text-center text-red-500 font-medium">{error}</div>
