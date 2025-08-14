@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useAppContext } from "@/contexts/app-context";
 import { useCreateReservation } from "@/hooks/use-create-reservation";
-import { useEffect, useRef } from "react";
 import { useGiftContext } from "@/contexts/gift-context"; // ★ 추가
 
 export default function BookingCreationPage() {
