@@ -271,7 +271,10 @@ export default function ManageMenusPage() {
 
       <CategoryManagementDialog
         isOpen={categoryDialogOpen}
-        onClose={() => setCategoryDialogOpen(false)}
+        onClose={() => {
+          setCategoryDialogOpen(false);
+          loadMenus(); // Re-fetch menus and categories after dialog closes
+        }}
         storeId={storeId}
       />
     </div>
