@@ -39,6 +39,7 @@ export interface StoreDetailEntity {
   activated: boolean;
   storeThumbnail: string | 'no-image.jpg';
   ownerId: string;
+  partnership: string | null;
   menu_category: string[] | null;
   menus: StoreMenu[];
   gifts: StoreGift[];

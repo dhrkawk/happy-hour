@@ -36,6 +36,7 @@ export interface StoreDetailViewModel {
   lat: number;
   lng: number;
   menu_category: string[] | null;
+  partnership: string | null;
 
   // 가공된 데이터
   distance: string;       // km 단위
@@ -119,5 +120,6 @@ export function createStoreDetailViewModel(
     menu: processedMenus,
     menu_category: entity.menu_category,
     gifts: gifts.length > 0 ? gifts : undefined, // gifts가 없으면 null로 설정
+    partnership: entity.partnership,
   };
 }

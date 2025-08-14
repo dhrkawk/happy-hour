@@ -9,6 +9,7 @@ export interface StoreEntity {
 	activated: boolean
 	storeThumbnail: string
 	ownerId: string
+	partnership: string | null
   
 	// 집계 필드
 	maxDiscountRate: number | null
