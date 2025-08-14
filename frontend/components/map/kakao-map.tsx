@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { StoreCardViewModel } from '@/lib/viewmodels/store-card.viewmodel'
+import { SEMANTIC_COLORS } from '@/lib/constants/colors';
 
-export const MARKER_COLOR_DEFAULT = '#9CA3AF';   // Gray-400
-export const MARKER_COLOR_DISCOUNT = '#F97316';  // Orange-500 (해피아워)
-export const MARKER_COLOR_PARTNERSHIP = '#3B82F6'; // Blue-500 (제휴 매장)
+export const MARKER_COLOR_DEFAULT = SEMANTIC_COLORS.default[500];   // Gray-400
+export const MARKER_COLOR_DISCOUNT = SEMANTIC_COLORS.discount[500];  // Orange-500 (해피아워)
+export const MARKER_COLOR_PARTNERSHIP = SEMANTIC_COLORS.partnership[500]; // Blue-500 (제휴 매장)
+export const MARKER_COLOR_USER = SEMANTIC_COLORS.user[500]; // Blue-500 (사용자 위치)
 
 const getMarkerColor = (store: StoreCardViewModel) => {
-  if (store.partnership) return MARKER_COLOR_PARTNERSHIP;
   if (store.maxDiscountRate > 0) return MARKER_COLOR_DISCOUNT;
   return MARKER_COLOR_DEFAULT;
 };
@@ -84,7 +85,7 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
     } else {
       const svgMarker = `
       <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
-        <circle cx="18" cy="18" r="16" fill="#3B82F6" stroke="white" stroke-width="2" />
+        <circle cx="18" cy="18" r="16" fill="${MARKER_COLOR_USER}" stroke="white" stroke-width="2" />
         <circle cx="18" cy="18" r="6" fill="white" />
       </svg>`;
       const markerImageSrc = `data:image/svg+xml;base64,${btoa(svgMarker)}`
@@ -162,7 +163,7 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
           content: nameLabel,
           position: storePosition,
           yAnchor: -0.3,
-          zIndex: 10,
+          zIndex: 20,
         });
         nameOverlay.setMap(mapInstance.current);
     

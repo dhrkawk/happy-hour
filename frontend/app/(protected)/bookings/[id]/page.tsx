@@ -142,9 +142,9 @@ export default function BookingDetailPage() {
                       </div>
                       <div className="text-right">
                         {item.discountRate != 100 ? (
-                          <Badge variant="destructive">{item.discountRate}% 할인</Badge>
+                          <Badge className="bg-semantic-discount-500 text-white text-xs">{item.discountRate}% 할인</Badge>
                         ) : (
-                          <Badge variant="outline">증정</Badge>
+                          <Badge className="bg-semantic-gift-500 text-white text-xs">증정</Badge>
                         )}
                         <p className="font-semibold text-gray-800 mt-1">
                           {(finalPrice * item.quantity).toLocaleString()}원

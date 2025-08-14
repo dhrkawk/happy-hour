@@ -32,17 +32,17 @@ export function StoreCard({ vm }: Props) {
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   {vm.discountDisplay ? (
-                    <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs">
+                    <Badge className="bg-semantic-discount-500 hover:bg-semantic-discount-600 text-white text-xs">
                       {vm.discountDisplay}
                     </Badge>
                   ) : null}
                   {vm.partnership ? (
-                    <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
+                    <Badge className="bg-semantic-partnership-500 hover:bg-semantic-partnership-600 text-white text-xs">
                       한양대 제휴
                     </Badge>
                   ) : null}
                   {vm.hasActiveGift ? (
-                    <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs">
+                    <Badge className="bg-semantic-gift-500 hover:bg-semantic-gift-600 text-white text-xs">
                       서비스 증정
                     </Badge>
                   ) : null}

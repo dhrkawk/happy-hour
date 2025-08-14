@@ -260,7 +260,7 @@ export default function StorePage() {
               <span>{viewmodel.category}</span>
             </div>
             <div className="flex items-center gap-2">
-              {viewmodel.discount != 0 ? <Badge className="bg-orange-500 text-white text-sm">{viewmodel.discount}% 할인</Badge>:null}
+              {viewmodel.discount != 0 ? <Badge className="bg-semantic-discount-500 text-white text-sm">{viewmodel.discount}% 할인</Badge>:null}
               <div className="flex items-center gap-1 text-red-500 font-medium text-sm">
                 <Clock className="w-4 h-4" />
                 <span>{viewmodel.timeLeft}</span>
@@ -355,7 +355,7 @@ export default function StorePage() {
                           {/* 증정 헤더 */}
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                              <Badge className="bg-teal-600 text-white text-xs">증정</Badge>
+                              <Badge className="bg-semantic-gift-500 text-white text-xs">증정</Badge>
                               {section.displayNote && <span className="text-sm text-gray-700">{section.displayNote}</span>}
                               <span className="text-xs text-gray-500">(한 개 선택)</span>
                             </div>
@@ -398,7 +398,7 @@ export default function StorePage() {
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-medium text-gray-800">{m.name}</h4>
-                                      <Badge className="bg-teal-600 text-white text-xs">증정</Badge>
+                                      <Badge className="bg-semantic-gift-500 text-white text-xs">증정</Badge>
                                     </div>
                                     <div className="flex items-center gap-2 mt-1">
                                       <span className="text-sm text-gray-400 line-through">
@@ -455,7 +455,7 @@ export default function StorePage() {
                                     {item.discountPrice.toLocaleString()}원
                                   </span>
                                   {item.discountRate != 0 ? (
-                                    <Badge className="bg-orange-500 text-white text-xs">{item.discountRate}% 할인</Badge>
+                                    <Badge className="bg-semantic-discount-500 text-white text-xs">{item.discountRate}% 할인</Badge>
                                   ) : null}
                                 </div>
                               </div>
