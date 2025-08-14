@@ -77,6 +77,16 @@ export class StoreCardViewModel {
         return b.maxDiscountRate - a.maxDiscountRate;
       });
     }
+
+    // 할인이 있는 것만 필터링
+    static filterByDiscount(viewModels: StoreCardViewModel[]): StoreCardViewModel[] {
+      return viewModels.filter((vm) => vm.maxDiscountRate > 0);
+    }
+
+    // 제휴가 있는 것만 필터링
+    static filterByPartnership(viewModels: StoreCardViewModel[]): StoreCardViewModel[] {
+      return viewModels.filter((vm) => vm.partnership !== null);
+    }
 }
 
 // ViewModel을 생성하는 팩토리 함수 (로직 구현)
