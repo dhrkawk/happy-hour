@@ -36,6 +36,11 @@ export function StoreCard({ vm }: Props) {
                       {vm.discountDisplay}
                     </Badge>
                   ) : null}
+                  {vm.partnership ? (
+                    <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
+                      한양대 제휴
+                    </Badge>
+                  ) : null}
                   {vm.hasActiveGift ? (
                     <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs">
                       서비스 증정

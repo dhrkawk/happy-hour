@@ -266,6 +266,17 @@ export default function StorePage() {
                 <span>{viewmodel.timeLeft}</span>
               </div>
             </div>
+            {viewmodel.partnership ? (
+              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm w-full">
+                <div className="flex items-center gap-2">
+                  <div className="text-blue-500 text-xl">🤝</div>
+                  <div className="text-blue-900 font-semibold text-sm">제휴 매장</div>
+                </div>
+                <div className="text-blue-800 text-sm mt-2">
+                  "여기는 한양대 제휴매장이고 학생증을 제시해주시면 김지성과, 김재원을 드려요."
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
         <p className="text-gray-600 text-sm leading-relaxed">{viewmodel.description}</p>

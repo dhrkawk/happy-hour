@@ -45,6 +45,7 @@ const mapRawToStoreEntity = (store: any): StoreEntity => {
     activated: store.activated,
     storeThumbnail: store.store_thumbnail,
     ownerId: store.owner_id,
+    partnership: store.partnership ?? null,
 
     maxDiscountRate,
     maxDiscountEndTime,
@@ -68,7 +69,7 @@ export class StoreService {
       const { data: stores, error } = await this.supabase
         .from('stores')
         .select(`
-          id, name, address, lat, lng, phone, category, activated, store_thumbnail, owner_id,
+          id, name, address, lat, lng, phone, category, activated, store_thumbnail, owner_id, partnership,
           store_menus (
             price,
             discounts (

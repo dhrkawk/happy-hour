@@ -71,6 +71,7 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
     storeThumbnail: store.store_thumbnail ?? 'no-image.jpg',
     ownerId: store.owner_id,
     menu_category: store.menu_category,
+    partnership: store.partnership ?? null, // partnership 필드 추가
     menus,
     gifts,
     // 계산된 대표 할인 정보 추가
