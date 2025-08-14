@@ -18,7 +18,7 @@ export default function StorePage() {
   const storeId = params.id as string;
   const storeApiClient = new StoreApiClient();
 
-  const { appState, addToCart, updateItemQuantity, removeFromCart, getCartTotals } = useAppContext();
+  const { appState, addToCart, updateItemQuantity, removeFromCart, getCartTotals, clearCart } = useAppContext();
   const { location, cart } = appState;
   const { coordinates } = location;
 
@@ -29,13 +29,15 @@ export default function StorePage() {
   const [selectedMenuCategory, setSelectedMenuCategory] = useState<string | null>(null);
   const [categorizedMenus, setCategorizedMenus] = useState<Record<string, StoreMenuViewModel[]>>({});
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // prevStoreIdRef is removed
 
   // ★ GiftContext 훅
   const {
     selectGift,
     unselectGift,
     getSelectedMenuId,
-    // clearStoreGifts, // 필요 시 사용
+    clearStoreGifts,
+    activeGiftStoreId, // Get activeGiftStoreId from context
   } = useGiftContext();
 
   // =========================
@@ -76,8 +78,15 @@ export default function StorePage() {
 
     const fetchStoreDetail = async () => {
       try {
-        // 필요 시: 다른 가게 들어올 때 기존 선택 초기화
-        // clearStoreGifts(storeId);
+        // 장바구니가 존재하고, 현재 가게 ID와 다를 경우에만 장바구니 비우기
+        if (cart && cart.storeId !== storeId) {
+          clearCart();
+        }
+
+        // 증정품: activeGiftStoreId가 존재하고 현재 storeId와 다를 경우 이전 가게의 증정품 비우기
+        if (activeGiftStoreId && activeGiftStoreId !== storeId) {
+          clearStoreGifts(activeGiftStoreId);
+        }
 
         const storeDetail: StoreDetailViewModel = await storeApiClient.getStoreById(storeId, coordinates);
 
@@ -128,7 +137,7 @@ export default function StorePage() {
     };
 
     fetchStoreDetail();
-  }, [coordinates, storeId]);
+  }, [coordinates, storeId, cart, clearCart]);
 
   // 체크박스 토글: giftId 당 1개 선택
   const onToggleGiftCheckbox = (giftId: string, menu: StoreMenuViewModel, checked: boolean, meta: { displayNote?: string|null, endAt?: string|null, remaining?: number|null }) => {

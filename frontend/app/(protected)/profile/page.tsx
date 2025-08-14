@@ -68,10 +68,6 @@ export default function ProfilePage() {
                 <h2 className="text-xl font-semibold text-gray-800">{userData.name}</h2>
                 <p className="text-gray-600">{userData.email}</p>
               </div>
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-1" />
-                편집
-              </Button>
             </div>
           </CardContent>
         </Card>

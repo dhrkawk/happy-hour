@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+// import Link from "next/link"; // Removed Link
+import { ArrowLeft } from "lucide-react"; // Added ArrowLeft
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -139,7 +141,12 @@ export default function ManageMenusPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 gap-6">
       <div className="w-full max-w-2xl flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-teal-600">메뉴 관리</h2>
+        <div className="flex items-center gap-2"> {/* Added div for alignment */}
+          <Button variant="ghost" size="icon" onClick={() => router.push(`/profile/store-management/${storeId}`)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-2xl font-bold text-teal-600">메뉴 관리</h2>
+        </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setCategoryDialogOpen(true)}>카테고리 관리</Button>
           <Button onClick={openCreateDialog}>+ 새 메뉴 등록</Button>
@@ -271,7 +278,10 @@ export default function ManageMenusPage() {
 
       <CategoryManagementDialog
         isOpen={categoryDialogOpen}
-        onClose={() => setCategoryDialogOpen(false)}
+        onClose={() => {
+          setCategoryDialogOpen(false);
+          loadMenus(); // Re-fetch menus and categories after dialog closes
+        }}
         storeId={storeId}
       />
     </div>

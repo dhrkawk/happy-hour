@@ -25,6 +25,7 @@ export type GiftSelection = {
 type GiftState = {
   // storeId 기준으로 giftId -> GiftSelection
   byStore: Record<string /*storeId*/, Record<string /*giftId*/, GiftSelection>>;
+  activeGiftStoreId?: string | null; // New: Tracks the storeId for which gifts are currently active
 };
 
 type GiftContextType = {
@@ -36,6 +37,7 @@ type GiftContextType = {
   unselectGift: (storeId: string, giftId: string) => void;
   clearStoreGifts: (storeId: string) => void;
   totalSavings: (storeId: string) => number;        // 해당 가게에서 선택된 메뉴들의 절약 금액 합계
+  activeGiftStoreId: string | null | undefined; // Expose activeGiftStoreId, allow undefined
 };
 
 const GiftContext = createContext<GiftContextType | undefined>(undefined);
@@ -58,7 +60,7 @@ function savePersist(state: GiftState) {
 }
 
 export const GiftProvider = ({ children }: { children: React.ReactNode }) => {
-  const [state, setState] = useState<GiftState>({ byStore: {} });
+  const [state, setState] = useState<GiftState>({ byStore: {}, activeGiftStoreId: null }); // Initialize activeGiftStoreId
 
   // 초기 로드
   useEffect(() => {
@@ -68,6 +70,7 @@ export const GiftProvider = ({ children }: { children: React.ReactNode }) => {
 
   // 저장
   useEffect(() => {
+    console.log("GiftContext: Saving state to sessionStorage:", state);
     savePersist(state);
   }, [state]);
 
@@ -81,31 +84,72 @@ export const GiftProvider = ({ children }: { children: React.ReactNode }) => {
 
   const selectGift = useCallback((sel: GiftSelection) => {
     setState(prev => {
-      const current = prev.byStore[sel.storeId] ?? {};
+      console.log("GiftContext: selectGift - selecting for storeId:", sel.storeId, "giftId:", sel.giftId);
+      console.log("GiftContext: selectGift - previous state.byStore:", prev.byStore);
+
+      let nextByStore = { ...prev.byStore };
+      let nextActiveGiftStoreId = sel.storeId; // Set active store to current selection
+
+      // "한 번에 한 가게의 증정품만 선택 가능" 제약을 강제
+      const currentStoreIds = Object.keys(prev.byStore);
+      if (currentStoreIds.length > 0 && !currentStoreIds.includes(sel.storeId)) {
+        // 새로운 선택이 다른 가게의 증정품이라면, 기존의 모든 증정품을 지웁니다.
+        nextByStore = {};
+      }
+
+      const current = nextByStore[sel.storeId] ?? {};
       // 같은 giftId에 대해 한 개만 선택되도록 강제
       const nextStore = { ...current, [sel.giftId]: sel };
-      return { byStore: { ...prev.byStore, [sel.storeId]: nextStore } };
+      const newState = {
+        byStore: { ...nextByStore, [sel.storeId]: nextStore },
+        activeGiftStoreId: nextActiveGiftStoreId, // Update activeGiftStoreId
+      };
+      console.log("GiftContext: selectGift - new state.byStore:", newState.byStore);
+      console.log("GiftContext: selectGift - new activeGiftStoreId:", newState.activeGiftStoreId);
+      return newState;
     });
   }, []);
 
   const unselectGift = useCallback((storeId: string, giftId: string) => {
     setState(prev => {
+      console.log("GiftContext: unselectGift - unselecting for storeId:", storeId, "giftId:", giftId);
+      console.log("GiftContext: unselectGift - previous state.byStore:", prev.byStore);
       const current = prev.byStore[storeId] ?? {};
       if (!current[giftId]) return prev;
       const nextStore = { ...current };
       delete nextStore[giftId];
-      return { byStore: { ...prev.byStore, [storeId]: nextStore } };
+      const newState = {
+        byStore: { ...prev.byStore, [storeId]: nextStore },
+        activeGiftStoreId: Object.keys(nextStore).length === 0 ? null : prev.activeGiftStoreId, // Clear activeGiftStoreId if no gifts left for this store
+      };
+      console.log("GiftContext: unselectGift - new state.byStore:", newState.byStore);
+      console.log("GiftContext: unselectGift - new activeGiftStoreId:", newState.activeGiftStoreId);
+      return newState;
     });
   }, []);
 
   const clearStoreGifts = useCallback((storeId: string) => {
     setState(prev => {
+      console.log("GiftContext: clearStoreGifts - clearing for storeId:", storeId);
+      console.log("GiftContext: clearStoreGifts - previous state.byStore:", prev.byStore);
       if (!prev.byStore[storeId]) return prev;
       const next = { ...prev.byStore };
       delete next[storeId];
-      return { byStore: next };
+      const newState = {
+        byStore: next,
+        activeGiftStoreId: prev.activeGiftStoreId === storeId ? null : prev.activeGiftStoreId, // Clear activeGiftStoreId if the cleared store was the active one
+      };
+      console.log("GiftContext: clearStoreGifts - new state.byStore:", newState.byStore);
+      console.log("GiftContext: clearStoreGifts - new activeGiftStoreId:", newState.activeGiftStoreId);
+      return newState;
     });
   }, []);
+
+  // Add logging to the useEffect that saves state
+  useEffect(() => {
+    console.log("GiftContext: Saving state to sessionStorage:", state);
+    savePersist(state);
+  }, [state]);
 
   const totalSavings = useCallback((storeId: string) => {
     const selections = getSelectionsForStore(storeId);
@@ -124,6 +168,7 @@ export const GiftProvider = ({ children }: { children: React.ReactNode }) => {
     unselectGift,
     clearStoreGifts,
     totalSavings,
+    activeGiftStoreId: state.activeGiftStoreId, // Expose activeGiftStoreId
   }), [
     getSelectionsForStore,
     getSelectedMenuId,
@@ -131,6 +176,7 @@ export const GiftProvider = ({ children }: { children: React.ReactNode }) => {
     unselectGift,
     clearStoreGifts,
     totalSavings,
+    state.activeGiftStoreId, // Add to dependencies
   ]);
 
   return <GiftContext.Provider value={value}>{children}</GiftContext.Provider>;
