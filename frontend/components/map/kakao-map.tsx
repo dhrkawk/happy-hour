@@ -110,8 +110,12 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
     if (!mapInstance.current || !stores || !isMapReady) return
 
     // 기존 마커 제거
-    storeMarkersInstance.current.forEach(marker => marker.setMap(null))
-    storeMarkersInstance.current = []
+    storeMarkersInstance.current.forEach(({ marker, nameOverlay, detailOverlay }) => {
+      marker.setMap(null);
+      nameOverlay.setMap(null);
+      detailOverlay?.setMap(null); // hover되기 전일 수도 있으므로 optional
+    });
+    storeMarkersInstance.current = [];
 
     stores.forEach(store => {
       if (store.lat && store.lng) {
@@ -206,7 +210,11 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
           onSelectStore(store.id);
         });
     
-        storeMarkersInstance.current.push(marker);
+        storeMarkersInstance.current.push({
+          marker,
+          nameOverlay,
+          detailOverlay,
+        });
       }
     });
   }, [stores, mapInstance.current, onSelectStore, isMapReady]); 

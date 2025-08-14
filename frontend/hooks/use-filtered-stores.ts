@@ -7,7 +7,7 @@ import { StoreCardViewModel } from "@/lib/viewmodels/store-card.viewmodel";
  */
 export function useFilteredStores(allStores: StoreCardViewModel[]) {
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
-  const [selectedSorting, setSelectedSorting] = useState<"거리순" | "할인순">("할인순");
+  const [selectedSorting, setSelectedSorting] = useState<"거리순" | "할인순" | "할인만" | "제휴만">("할인순");
 
   const finalViewModels = useMemo(() => {
     // 1. 카테고리 필터링
@@ -16,7 +16,11 @@ export function useFilteredStores(allStores: StoreCardViewModel[]) {
     // 2. 정렬
     if (selectedSorting === "거리순") {
       return StoreCardViewModel.sortByDistance(categoryFiltered);
-    } 
+    } else if (selectedSorting === "할인만") {
+      return StoreCardViewModel.filterByDiscount(categoryFiltered);
+    } else if (selectedSorting === "제휴만") {
+      return StoreCardViewModel.filterByPartnership(categoryFiltered);
+    }
     // 기본값은 할인순
     return StoreCardViewModel.sortByDiscount(categoryFiltered);
     

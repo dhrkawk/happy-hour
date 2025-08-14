@@ -92,7 +92,7 @@ export default function MapPage() {
             {finalViewModels.length})
           </h2>
           <div className="flex items-center gap-2">
-            {(["거리순", "할인순"] as const).map((label) => (
+            {(["거리순", "할인순", "할인만", "제휴만"] as const).map((label) => (
               <Badge
                 key={label}
                 variant="secondary"

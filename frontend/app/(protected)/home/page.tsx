@@ -73,7 +73,7 @@ export default function HomePage() {
             {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} ({finalViewModels.length})
           </h2>
           <div className="flex items-center gap-2">
-            {(["거리순", "할인순"] as const).map((label) => (
+            {(["거리순", "할인순", "할인만", "제휴만"] as const).map((label) => (
               <Badge
                 key={label}
                 variant="secondary"
