@@ -5,7 +5,8 @@ import { ReservationService } from '@/lib/services/reservations/reservation.serv
 
 // GET a single reservation by ID
 export async function GET(_request: NextRequest, context: { params: { id: string } }) {
-  const reservationId = context.params.id;
+  const params = await context.params; // Await params
+  const reservationId = params.id;
 
   try {
     const supabase = await createClient();
