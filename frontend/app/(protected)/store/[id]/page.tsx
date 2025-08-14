@@ -11,25 +11,26 @@ import { createCartItem } from "@/lib/viewmodels/cart-item.viewmodel";
 import { StoreDetailViewModel, StoreMenuViewModel } from "@/lib/viewmodels/store-detail.viewmodel";
 import { StoreApiClient } from "@/lib/services/stores/store.api-client";
 import { useGiftContext } from "@/contexts/gift-context"; // ★ 추가
+import { useGetStoreById } from "@/hooks/use-get-store-by-id"; // New import
 
 export default function StorePage() {
   const router = useRouter();
   const params = useParams();
   const storeId = params.id as string;
-  const storeApiClient = new StoreApiClient();
+  const storeApiClient = new StoreApiClient(); // Keep this for now, might be used by other functions
 
   const { appState, addToCart, updateItemQuantity, removeFromCart, getCartTotals, clearCart } = useAppContext();
   const { location, cart } = appState;
   const { coordinates } = location;
 
-  const [viewmodel, setViewModel] = useState<StoreDetailViewModel>();
-  const [error, setError] = useState<string | null>(null);
+  // Use the new hook for store data
+  const { store: viewmodel, isLoading, error } = useGetStoreById(storeId);
+
   const [activeTab, setActiveTab] = useState("menu");
   const [isLiked, setIsLiked] = useState(false);
   const [selectedMenuCategory, setSelectedMenuCategory] = useState<string | null>(null);
   const [categorizedMenus, setCategorizedMenus] = useState<Record<string, StoreMenuViewModel[]>>({});
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  // prevStoreIdRef is removed
 
   // ★ GiftContext 훅
   const {
@@ -73,71 +74,60 @@ export default function StorePage() {
     };
   }, [categorizedMenus]);
 
+  // This useEffect will now depend on 'viewmodel' from the hook
   useEffect(() => {
-    if (!coordinates) return;
+    if (!viewmodel) return; // Ensure viewmodel is loaded
 
-    const fetchStoreDetail = async () => {
-      try {
-        // 장바구니가 존재하고, 현재 가게 ID와 다를 경우에만 장바구니 비우기
-        if (cart && cart.storeId !== storeId) {
-          clearCart();
-        }
+    // 장바구니가 존재하고, 현재 가게 ID와 다를 경우에만 장바구니 비우기
+    if (cart && cart.storeId !== storeId) {
+      clearCart();
+    }
 
-        // 증정품: activeGiftStoreId가 존재하고 현재 storeId와 다를 경우 이전 가게의 증정품 비우기
-        if (activeGiftStoreId && activeGiftStoreId !== storeId) {
-          clearStoreGifts(activeGiftStoreId);
-        }
+    // 증정품: activeGiftStoreId가 존재하고 현재 storeId와 다를 경우 이전 가게의 증정품 비우기
+    if (activeGiftStoreId && activeGiftStoreId !== storeId) {
+      clearStoreGifts(activeGiftStoreId);
+    }
 
-        const storeDetail: StoreDetailViewModel = await storeApiClient.getStoreById(storeId, coordinates);
+    // Group menus by category
+    const grouped: Record<string, StoreMenuViewModel[]> = {};
+    const allCategories = ["할인", ...(viewmodel.menu_category || []), "기타"];
+    allCategories.forEach(cat => { grouped[cat] = []; });
 
-        // Group menus by category
-        const grouped: Record<string, StoreMenuViewModel[]> = {};
-        const allCategories = ["할인", ...(storeDetail.menu_category || []), "기타"];
-        allCategories.forEach(cat => { grouped[cat] = []; });
+    (viewmodel.menu || []).forEach(menu => {
+      if (menu.discountRate > 0) grouped["할인"].push(menu);
+      if (menu.category && grouped[menu.category]) grouped[menu.category].push(menu);
+      else if (menu.discountRate === 0) grouped["기타"].push(menu);
+    });
+    setCategorizedMenus(grouped);
 
-        (storeDetail.menu || []).forEach(menu => {
-          if (menu.discountRate > 0) grouped["할인"].push(menu);
-          if (menu.category && grouped[menu.category]) grouped[menu.category].push(menu);
-          else if (menu.discountRate === 0) grouped["기타"].push(menu);
-        });
-        setCategorizedMenus(grouped);
+    // 증정 메뉴를 100% 할인(0원)으로 표시하도록 가공
+    const asGiftMenu = (m: StoreMenuViewModel, gId: string, gEnd: string): StoreMenuViewModel => ({
+      ...m,
+      discountRate: 100,
+      discountPrice: 0,
+      discountDisplayText: "증정",
+      discountId: `gift-${gId}`,
+      discountEndTime: gEnd || m.discountEndTime,
+      thumbnail: m.thumbnail || "no-image.jpg",
+    });
 
-        // 증정 메뉴를 100% 할인(0원)으로 표시하도록 가공
-        const asGiftMenu = (m: StoreMenuViewModel, gId: string, gEnd: string): StoreMenuViewModel => ({
-          ...m,
-          discountRate: 100,
-          discountPrice: 0,
-          discountDisplayText: "증정",
-          discountId: `gift-${gId}`,
-          discountEndTime: gEnd || m.discountEndTime,
-          thumbnail: m.thumbnail || "no-image.jpg",
-        });
+    const sections: GiftSectionVM[] = (viewmodel.gifts ?? [])
+      .map(g => {
+        const gm = (g.menus ?? []).map(m => asGiftMenu(m, g.id, g.endAt));
+        return {
+          id: g.id,
+          displayNote: g.displayNote ?? null,
+          endAt: g.endAt,
+          remaining: g.remaining,
+          menus: gm,
+        };
+      })
+      .filter(s => s.menus.length > 0);
 
-        const sections: GiftSectionVM[] = (storeDetail.gifts ?? [])
-          .map(g => {
-            const gm = (g.menus ?? []).map(m => asGiftMenu(m, g.id, g.endAt));
-            return {
-              id: g.id,
-              displayNote: g.displayNote ?? null,
-              endAt: g.endAt,
-              remaining: g.remaining,
-              menus: gm,
-            };
-          })
-          .filter(s => s.menus.length > 0);
+    setGiftSections(sections);
 
-        setGiftSections(sections);
-
-        setViewModel(storeDetail);
-        setSelectedMenuCategory("할인");
-      } catch (err: any) {
-        console.error("가게 정보를 불러오는 중 오류 발생:", err);
-        setError(err.message || "가게 정보를 불러오는 데 실패했습니다.");
-      }
-    };
-
-    fetchStoreDetail();
-  }, [coordinates, storeId, cart, clearCart]);
+    setSelectedMenuCategory("할인");
+  }, [viewmodel, storeId, cart, clearCart, activeGiftStoreId, clearStoreGifts]);
 
   // 체크박스 토글: giftId 당 1개 선택
   const onToggleGiftCheckbox = (giftId: string, menu: StoreMenuViewModel, checked: boolean, meta: { displayNote?: string|null, endAt?: string|null, remaining?: number|null }) => {

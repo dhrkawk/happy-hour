@@ -1,6 +1,4 @@
 "use client";
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,65 +10,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AddressSearchMap from "@/components/map/address-search-map";
+import { useCreateStore } from "@/hooks/use-create-store";
 
 export default function StoreRegistrationPage() {
-  const router = useRouter();
-  const [form, setForm] = useState({
-    name: "",
-    category: "",
-    address: "",
-    lat: 0,
-    lng: 0,
-  });
-  const [storeThumbnail, setStoreThumbnail] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleAddressSelect = useCallback((address: string, lat: number, lng: number) => {
-    setForm((prevForm) => ({ ...prevForm, address, lat, lng }));
-  }, []);
-
-  const handleStoreThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setStoreThumbnail(e.target.files[0]);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const formData = new FormData();
-    formData.append("name", form.name);
-    formData.append("category", form.category);
-    formData.append("address", form.address);
-    formData.append("lat", form.lat.toString());
-    formData.append("lng", form.lng.toString());
-    if (storeThumbnail) {
-      formData.append("store_thumbnail", storeThumbnail);
-    }
-
-    try {
-      const res = await fetch("/api/stores-discounts", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "가게 등록에 실패했습니다.");
-      }
-      router.push("/profile");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    form,
+    loading,
+    error,
+    handleChange,
+    handleAddressSelect,
+    handleStoreThumbnailChange,
+    handleSubmit,
+    storeThumbnail,
+  } = useCreateStore();
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
