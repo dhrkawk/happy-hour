@@ -3,6 +3,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { StoreCardViewModel } from '@/lib/viewmodels/store-card.viewmodel'
 
+export const MARKER_COLOR_DEFAULT = '#9CA3AF';   // Gray-400
+export const MARKER_COLOR_DISCOUNT = '#F97316';  // Orange-500 (해피아워)
+export const MARKER_COLOR_PARTNERSHIP = '#3B82F6'; // Blue-500 (제휴 매장)
+
+const getMarkerColor = (store: StoreCardViewModel) => {
+  if (store.partnership) return MARKER_COLOR_PARTNERSHIP;
+  if (store.maxDiscountRate > 0) return MARKER_COLOR_DISCOUNT;
+  return MARKER_COLOR_DEFAULT;
+};
+
 declare global {
   interface Window {
     kakao: any
@@ -72,10 +82,14 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
     if (userMarkerInstance.current) {
       userMarkerInstance.current.setPosition(userPosition)
     } else {
-      const svgMarker = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#3B82F6" stroke="white" stroke-width="2"/></svg>'
+      const svgMarker = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="16" fill="#3B82F6" stroke="white" stroke-width="2" />
+        <circle cx="18" cy="18" r="6" fill="white" />
+      </svg>`;
       const markerImageSrc = `data:image/svg+xml;base64,${btoa(svgMarker)}`
-      const imageSize = new window.kakao.maps.Size(24, 24)
-      const imageOption = { offset: new window.kakao.maps.Point(12, 12) }
+      const imageSize = new window.kakao.maps.Size(20, 20)
+      const imageOption = { offset: new window.kakao.maps.Point(10, 10) }
 
       const markerImage = new window.kakao.maps.MarkerImage(markerImageSrc, imageSize, imageOption)
 
@@ -98,16 +112,24 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
     storeMarkersInstance.current.forEach(marker => marker.setMap(null))
     storeMarkersInstance.current = []
 
-    const storeSvgMarker = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#EF4444" stroke="white" stroke-width="2"/></svg>'
-    const storeMarkerImageSrc = `data:image/svg+xml;base64,${btoa(storeSvgMarker)}`
-    const storeImageSize = new window.kakao.maps.Size(24, 24)
-    const storeImageOption = { offset: new window.kakao.maps.Point(12, 12) }
-
-    const storeMarkerImage = new window.kakao.maps.MarkerImage(storeMarkerImageSrc, storeImageSize, storeImageOption)
-
     stores.forEach(store => {
       if (store.lat && store.lng) {
         const storePosition = new window.kakao.maps.LatLng(store.lat, store.lng);
+        const fillColor = getMarkerColor(store)
+        const width = 32
+        const height = 40
+
+        const storeSvgMarker = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 32 40" fill="none">
+          <path d="M16 0C7.16 0 0 7.16 0 16C0 26 16 40 16 40C16 40 32 26 32 16C32 7.16 24.84 0 16 0Z" fill="${fillColor}"/>
+          <circle cx="16" cy="16" r="6" fill="white"/>
+        </svg>`;
+        const storeMarkerImageSrc = `data:image/svg+xml;base64,${btoa(storeSvgMarker)}`
+        const storeImageSize = new window.kakao.maps.Size(32, 32)
+        const storeImageOption = { offset: new window.kakao.maps.Point(16, 20) }
+
+
+        const storeMarkerImage = new window.kakao.maps.MarkerImage(storeMarkerImageSrc, storeImageSize, storeImageOption)
     
         // 📍 1. 마커 생성
         const marker = new window.kakao.maps.Marker({
@@ -117,7 +139,9 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
         });
     
         // 🟦 2. 항상 표시되는 "이름" 오버레이
-        const nameLabel = document.createElement("div");
+        // 오버레이 이름 + 🤝 이모지 추가
+        const nameLabel = document.createElement("div")
+        const displayName = store.partnership ? `🤝 ${store.name}` : store.name
         nameLabel.innerHTML = `
           <div style="
             padding: 4px 8px;
@@ -132,7 +156,7 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
               -1px  1px 0 white,
                1px  1px 0 white;
           ">
-            ${store.name}
+            ${displayName}
           </div>`;
         const nameOverlay = new window.kakao.maps.CustomOverlay({
           content: nameLabel,
