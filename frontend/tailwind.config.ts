@@ -21,6 +21,28 @@ const config: Config = {
     },
     extend: {
       colors: {
+        semantic: {
+          discount: { // 주황색 - 할인, 해피아워 등
+            500: '#F97316',
+            600: '#EA580C',
+          },
+          user: { // 파란색 - 사용자, 내위치 등
+            500: '#2563EB',
+            600: '#1D4ED8',
+          },
+          gift: { // 초록색 - 선물, 혜택 등
+            500: '#10B981',
+            600: '#059669',
+          },
+          partnership: { // 파란색 - 제휴 매장
+            500: '#3B82F6',
+            600: '#2563EB',
+          },
+          default: { // 회색 - 일반, 중립
+            500: '#9CA3AF',
+            600: '#6B7280',
+          },
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -54,6 +76,7 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+
       },
       borderRadius: {
         lg: "var(--radius)",
