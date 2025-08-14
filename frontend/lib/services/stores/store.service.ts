@@ -12,7 +12,11 @@ const mapRawToStoreEntity = (store: any): StoreEntity => {
 
   store.store_menus?.forEach((menu: any) => {
     menu.discounts?.forEach((discount: any) => {
-      if (discount.is_active) {
+    if (
+      discount.is_active &&
+      new Date(discount.start_time) < new Date() &&
+      new Date() < new Date(discount.end_time)
+    ) {
         discountCount++
         if (maxDiscountRate === null || discount.discount_rate > maxDiscountRate) {
           maxDiscountRate = discount.discount_rate
@@ -73,7 +77,7 @@ export class StoreService {
           store_menus (
             price,
             discounts (
-              discount_rate, end_time, is_active
+              discount_rate, start_time, end_time, is_active
             )
           ),
           store_gifts (
