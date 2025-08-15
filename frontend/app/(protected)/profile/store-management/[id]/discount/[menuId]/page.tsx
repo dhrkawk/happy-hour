@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation"; // Added useRouter
-// import Link from "next/link"; // Removed Link
-import { ArrowLeft, Loader2 } from "lucide-react"; // Added ArrowLeft
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { DiscountApiClient } from "@/lib/services/discounts/discount.api-client";
 import {
   DiscountFormViewModel,
@@ -25,8 +24,20 @@ import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
 import { MenuEntity } from "@/lib/entities/menus/menu.entity";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 
+// Helper function to convert UTC date string to local YYYY-MM-DDTHH:mm format
+const convertToLocalInputFormat = (utcDateString: string) => {
+  if (!utcDateString) return "";
+  const date = new Date(utcDateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export default function ManageDiscountPage() {
-  const router = useRouter(); // Added this line
+  const router = useRouter();
   const { id: storeId, menuId } = useParams() as { id: string; menuId: string };
   const statuses = ["all", "scheduled", "active", "expired"] as const;
   type Status = typeof statuses[number];
@@ -40,6 +51,18 @@ export default function ManageDiscountPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<"all" | "scheduled" | "active" | "expired">("all");
+
+  const formatDateTimeForDisplay = (dateString: string) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleString([], {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -71,14 +94,14 @@ export default function ManageDiscountPage() {
   };
 
   const openEditDialog = (d: DiscountDetailViewModel) => {
-    if (!menu) return; // 메뉴 정보가 없으면 처리하지 않음
+    if (!menu) return;
     const calculatedFinalPrice = Math.round(menu.price * (1 - d.discount_rate / 100));
     setForm({
       menu_id: menuId,
       discount_rate: d.discount_rate,
       quantity: d.quantity,
-      start_time: new Date(d.start_time).toISOString().slice(0, 16),
-      end_time: new Date(d.end_time).toISOString().slice(0, 16),
+      start_time: convertToLocalInputFormat(d.start_time),
+      end_time: convertToLocalInputFormat(d.end_time),
       final_price: calculatedFinalPrice,
     });
     setIsNew(false);
@@ -125,15 +148,23 @@ export default function ManageDiscountPage() {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Convert local datetime string to UTC ISO string before sending
+      const formDataForApi = {
+        ...form,
+        start_time: new Date(form.start_time).toISOString(),
+        end_time: new Date(form.end_time).toISOString(),
+      };
+      
+      // Remove final_price before sending to API
+      const { final_price, ...restForm } = formDataForApi;
+
       if (isNew) {
-        await DiscountApiClient.registerDiscount(form);
+        await DiscountApiClient.registerDiscount(restForm);
       } else if (selected) {
-        const { final_price, ...restForm } = form; // final_price는 API로 보내지 않음
         await DiscountApiClient.updateDiscount(selected.id, restForm);
       }
       await loadData();
@@ -183,9 +214,9 @@ export default function ManageDiscountPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto px-4 py-6">
-      {/* 헤더 */}
+      {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2"> {/* Added div for alignment */}
+        <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => router.push(`/profile/store-management/${storeId}/discount`)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -199,7 +230,7 @@ export default function ManageDiscountPage() {
         </Button>
       </div>
 
-      {/* 상태 필터 */}
+      {/* Status Filter */}
       <div className="flex gap-2 mb-4">
         {statuses.map((status) => (
           <Button
@@ -218,7 +249,7 @@ export default function ManageDiscountPage() {
         ))}
       </div>
 
-      {/* 할인 카드 목록 */}
+      {/* Discount List */}
       {loading ? (
         <div className="flex items-center justify-center text-gray-500 h-32">
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> 불러오는 중...
@@ -255,7 +286,7 @@ export default function ManageDiscountPage() {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
-                  {new Date(d.start_time).toLocaleString()} ~ {new Date(d.end_time).toLocaleString()}
+                  {formatDateTimeForDisplay(d.start_time)} ~ {formatDateTimeForDisplay(d.end_time)}
                 </p>
               </div>
               {d.status === "active" && (
@@ -275,7 +306,7 @@ export default function ManageDiscountPage() {
         </div>
       )}
 
-      {/* 다이얼로그 */}
+      {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
