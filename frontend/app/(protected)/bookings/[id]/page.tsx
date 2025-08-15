@@ -133,7 +133,7 @@ export default function BookingDetailPage() {
               <h4 className="font-semibold text-gray-700 mb-3 flex items-center"><ShoppingCart className="w-5 h-5 mr-2 text-teal-600"/>예약 메뉴</h4>
               <div className="space-y-3">
                 {booking.items.map((item, index) => {
-                  const finalPrice = item.price;
+                  const finalPrice = item.price * (1 - item.discountRate / 100);
                   return (
                     <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded-md">
                       <div>
