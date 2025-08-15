@@ -57,7 +57,7 @@ category	text	메뉴 카테고리
 
 컬럼명	타입	설명
 id	uuid (PK)	할인 ID
-discount_rate	float8	할인율 (%)
+discount_rate	int4	할인율 (%)
 start_time	timestamptz	할인 시작 시간
 end_time	timestamptz	할인 종료 시간
 quantity	int4	남은 수량
