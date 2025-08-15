@@ -39,8 +39,8 @@ export async function POST(
     return NextResponse.json({ success: true, discount: newDiscount }, { status: 201 });
   } catch (error: any) {
     console.error("Discount registration failed:", error);
-    if (error.message.includes('동일한 기간에 활성 할인이 있습니다!')) {
-      return NextResponse.json({ error: error.message }, { status: 409 });
+    if (error.message.includes('해당 시간대에 겹치는 할인이 이미 존재합니다.')) {
+      return NextResponse.json({ error: error.message }, { status: 409 }); // 409 Conflict
     }
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }

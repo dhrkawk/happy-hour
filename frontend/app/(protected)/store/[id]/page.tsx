@@ -24,7 +24,7 @@ export default function StorePage() {
   const { coordinates } = location;
 
   // Use the new hook for store data
-  const { store: viewmodel, isLoading, error } = useGetStoreById(storeId);
+  const { store: viewmodel, isLoading, error } = useGetStoreById(storeId, coordinates);
 
   const [activeTab, setActiveTab] = useState("menu");
   const [isLiked, setIsLiked] = useState(false);
