@@ -10,13 +10,47 @@ export class DiscountService {
     this.supabase = supabaseClient;
   }
 
+  private async _checkForOverlappingDiscounts(
+    menuId: string,
+    startTime: string,
+    endTime: string,
+    excludeDiscountId?: string
+  ): Promise<void> {
+    const query = this.supabase
+      .from('discounts')
+      .select('id')
+      .eq('menu_id', menuId)
+      // Check for time overlap: (StartA < EndB) and (EndA > StartB)
+      .lt('start_time', endTime) // New discount's start is before existing's end
+      .gt('end_time', startTime); // New discount's end is after existing's start
+
+    if (excludeDiscountId) {
+      query.not('id', 'eq', excludeDiscountId);
+    }
+
+    const { data: overlappingDiscounts, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to check for overlapping discounts: ${error.message}`);
+    }
+
+    if (overlappingDiscounts && overlappingDiscounts.length > 0) {
+      throw new Error('해당 시간대에 겹치는 할인이 이미 존재합니다.');
+    }
+  }
+
   async createDiscount(discountData: DiscountFormViewModel): Promise<DiscountEntity> {
+    await this._checkForOverlappingDiscounts(
+      discountData.menu_id,
+      discountData.start_time,
+      discountData.end_time
+    );
+
     const now = new Date();
     const startTime = new Date(discountData.start_time);
     const endTime = new Date(discountData.end_time);
     const newDiscountIsActive = now >= startTime && now <= endTime;
 
-    // If the new discount is active, deactivate all other discounts for this menu
     if (newDiscountIsActive) {
       const { error: updateError } = await this.supabase
         .from('discounts')
@@ -28,7 +62,6 @@ export class DiscountService {
       }
     }
 
-    // 2. 할인 등록
     const { data, error } = await this.supabase
       .from('discounts')
       .insert({
@@ -37,7 +70,7 @@ export class DiscountService {
         start_time: discountData.start_time,
         end_time: discountData.end_time,
         quantity: discountData.quantity || null,
-        is_active: newDiscountIsActive, // Use the dynamically determined status
+        is_active: newDiscountIsActive,
       })
       .select()
       .single();
@@ -59,6 +92,15 @@ export class DiscountService {
   }
 
   async updateDiscount(discountId: string, discountData: Partial<DiscountFormViewModel>): Promise<DiscountEntity> {
+    if (discountData.start_time && discountData.end_time && discountData.menu_id) {
+        await this._checkForOverlappingDiscounts(
+            discountData.menu_id,
+            discountData.start_time,
+            discountData.end_time,
+            discountId
+        );
+    }
+
     const { data, error } = await this.supabase
       .from('discounts')
       .update({
@@ -88,8 +130,8 @@ export class DiscountService {
   async getDiscountsByStoreId(storeId: string): Promise<DiscountViewModel[]> {
     const { data, error } = await this.supabase
       .from('discounts')
-      .select('*, menu:store_menus!inner(name, store_id)') // Join with store_menus to get menu name and store_id
-      .eq('menu.store_id', storeId); // Filter on the joined store_menus table's store_id
+      .select('*, menu:store_menus!inner(name, store_id)')
+      .eq('menu.store_id', storeId);
 
     if (error) throw new Error(`Failed to fetch discounts: ${error.message}`);
 
@@ -104,27 +146,13 @@ export class DiscountService {
     })) as DiscountViewModel[];
   }
 
-  // async getDiscountById(discountId: string): Promise<DiscountEntity | null> {
-  //   const { data, error } = await this.supabase
-  //     .from('discounts')
-  //     .select('*, menu:store_menus(name)')
-  //     .eq('id', discountId)
-  //     .single();
-
-  //   if (error) {
-  //     if (error.code === 'PGRST116') return null; // No rows found
-  //     throw new Error(`Failed to fetch discount: ${error.message}`);
-  //   }
-  //   return data as DiscountEntity;
-  // }
-
-    async getDiscountsByMenuId(menuId: string): Promise<DiscountEntity[]> {
+  async getDiscountsByMenuId(menuId: string): Promise<DiscountEntity[]> {
     const { data, error } = await this.supabase
       .from('discounts')
       .select('*')
       .eq('menu_id', menuId)
-      .order('is_active', { ascending: false }) // 활성 할인이 먼저 오도록
-      .order('start_time', { ascending: true }); // 시작 시간 기준으로 정렬
+      .order('is_active', { ascending: false })
+      .order('start_time', { ascending: true });
 
     if (error) throw new Error(`Failed to fetch discounts by menu ID: ${error.message}`);
     return data as DiscountEntity[];

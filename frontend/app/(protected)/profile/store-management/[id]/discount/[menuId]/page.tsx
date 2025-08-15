@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation"; // Added useRouter
-// import Link from "next/link"; // Removed Link
-import { ArrowLeft, Loader2 } from "lucide-react"; // Added ArrowLeft
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { DiscountApiClient } from "@/lib/services/discounts/discount.api-client";
 import {
   DiscountFormViewModel,
@@ -24,44 +23,41 @@ import { Button } from "@/components/ui/button";
 import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
 import { MenuEntity } from "@/lib/entities/menus/menu.entity";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { useGetDiscountsByMenu } from "@/hooks/use-get-discounts-by-menu";
 
 export default function ManageDiscountPage() {
-  const router = useRouter(); // Added this line
+  const router = useRouter();
   const { id: storeId, menuId } = useParams() as { id: string; menuId: string };
   const statuses = ["all", "scheduled", "active", "expired"] as const;
   type Status = typeof statuses[number];
 
-  const [discounts, setDiscounts] = useState<DiscountDetailViewModel[]>([]);
+  // Refactored data fetching with custom hook
+  const { discounts, isLoading: isLoadingDiscounts, error: discountsError, mutate: mutateDiscounts } = useGetDiscountsByMenu(storeId, menuId);
+
   const [menu, setMenu] = useState<MenuEntity | null>(null);
+  const [isLoadingMenu, setIsLoadingMenu] = useState(true);
   const [selected, setSelected] = useState<DiscountDetailViewModel | null>(null);
   const [form, setForm] = useState<DiscountFormViewModel & { final_price?: number }>(createDiscountFormViewModel(menuId));
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isNew, setIsNew] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<"all" | "scheduled" | "active" | "expired">("all");
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const menuApiClient = new MenuApiClient(storeId);
-      const [discountData, menuData] = await Promise.all([
-        DiscountApiClient.getDiscountsByMenuId(storeId, menuId),
-        menuApiClient.getMenuById(menuId),
-      ]);
-      setDiscounts(discountData);
-      setMenu(menuData);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<Status>("all");
 
   useEffect(() => {
-    loadData();
-  }, [menuId]);
+    const fetchMenu = async () => {
+      setIsLoadingMenu(true);
+      try {
+        const menuApiClient = new MenuApiClient(storeId);
+        const menuData = await menuApiClient.getMenuById(menuId);
+        setMenu(menuData);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoadingMenu(false);
+      }
+    };
+    fetchMenu();
+  }, [storeId, menuId]);
 
   const openCreateDialog = () => {
     setForm(createDiscountFormViewModel(menuId));
@@ -71,7 +67,7 @@ export default function ManageDiscountPage() {
   };
 
   const openEditDialog = (d: DiscountDetailViewModel) => {
-    if (!menu) return; // 메뉴 정보가 없으면 처리하지 않음
+    if (!menu) return;
     const calculatedFinalPrice = Math.round(menu.price * (1 - d.discount_rate / 100));
     setForm({
       menu_id: menuId,
@@ -92,32 +88,18 @@ export default function ManageDiscountPage() {
       const finalPrice = Number(value);
       if (menu && menu.price > 0) {
         const discountRate = Math.round(((menu.price - finalPrice) / menu.price) * 100);
-        setForm((prev) => ({
-          ...prev,
-          discount_rate: discountRate,
-          final_price: finalPrice,
-        }));
+        setForm((prev) => ({ ...prev, discount_rate: discountRate, final_price: finalPrice }));
       }
     } else if (name === "discount_rate") {
       const discountRate = Number(value);
       if (menu && menu.price > 0) {
         const finalPrice = Math.round(menu.price * (1 - discountRate / 100));
-        setForm((prev) => ({
-          ...prev,
-          discount_rate: discountRate,
-          final_price: finalPrice,
-        }));
+        setForm((prev) => ({ ...prev, discount_rate: discountRate, final_price: finalPrice }));
       } else {
-        setForm((prev) => ({
-          ...prev,
-          discount_rate: discountRate,
-        }));
+        setForm((prev) => ({ ...prev, discount_rate: discountRate }));
       }
     } else {
-      setForm((prev) => ({
-        ...prev,
-        [name]: name === "quantity" ? Number(value) : value,
-      }));
+      setForm((prev) => ({ ...prev, [name]: name === "quantity" ? Number(value) : value }));
     }
   };
 
@@ -125,55 +107,50 @@ export default function ManageDiscountPage() {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
     try {
       if (isNew) {
         await DiscountApiClient.registerDiscount(form);
       } else if (selected) {
-        const { final_price, ...restForm } = form; // final_price는 API로 보내지 않음
+        const { final_price, ...restForm } = form;
         await DiscountApiClient.updateDiscount(selected.id, restForm);
       }
-      await loadData();
+      mutateDiscounts(); // Re-fetch discounts
       setDialogOpen(false);
     } catch (err: any) {
-      if (err.message.includes("동일한 기간에 활성 할인이 있습니다!")) {
-        alert("동일한 기간에 활성 할인이 있습니다!");
-      } else {
-        setError(err.message);
-      }
+      alert(err.message);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
     if (!selected) return;
     if (!confirm("정말로 삭제하시겠습니까?")) return;
-    setLoading(true);
+    setIsSubmitting(true);
     try {
       await DiscountApiClient.deleteDiscount(selected.id);
-      await loadData();
+      mutateDiscounts(); // Re-fetch discounts
       setDialogOpen(false);
     } catch (err: any) {
-      setError(err.message);
+      alert(err.message);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleEndDiscount = async (discountId: string) => {
     if (!confirm("정말로 할인을 종료하시겠습니까?")) return;
-    setLoading(true);
+    setIsSubmitting(true);
     try {
       await DiscountApiClient.endDiscount(discountId);
-      await loadData();
+      mutateDiscounts(); // Re-fetch discounts
     } catch (err: any) {
-      setError(err.message);
+      alert(err.message);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -181,11 +158,13 @@ export default function ManageDiscountPage() {
     ? discounts
     : discounts.filter((d) => d.status === selectedStatus);
 
+  const isLoading = isLoadingDiscounts || isLoadingMenu;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto px-4 py-6">
-      {/* 헤더 */}
+      {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2"> {/* Added div for alignment */}
+        <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => router.push(`/profile/store-management/${storeId}/discount`)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -199,7 +178,7 @@ export default function ManageDiscountPage() {
         </Button>
       </div>
 
-      {/* 상태 필터 */}
+      {/* Status Filter */}
       <div className="flex gap-2 mb-4">
         {statuses.map((status) => (
           <Button
@@ -208,30 +187,24 @@ export default function ManageDiscountPage() {
             size="sm"
             onClick={() => setSelectedStatus(status)}
           >
-            {{
-              all: "전체",
-              scheduled: "예정",
-              active: "진행 중",
-              expired: "종료됨",
-            }[status]}
+            {{ all: "전체", scheduled: "예정", active: "진행 중", expired: "종료됨" }[status]}
           </Button>
         ))}
       </div>
 
-      {/* 할인 카드 목록 */}
-      {loading ? (
+      {/* Discount List */}
+      {isLoading ? (
         <div className="flex items-center justify-center text-gray-500 h-32">
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> 불러오는 중...
         </div>
+      ) : discountsError ? (
+        <p className="text-center text-red-500">오류가 발생했습니다: {discountsError.message}</p>
       ) : filteredDiscounts.length === 0 ? (
         <p className="text-center text-gray-500">해당 상태의 할인 이력이 없습니다.</p>
       ) : (
         <div className="space-y-3">
           {filteredDiscounts.map((d) => (
-            <div
-              key={d.id}
-              className="p-4 border border-gray-200 rounded"
-            >
+            <div key={d.id} className="p-4 border border-gray-200 rounded">
               <div
                 className={d.status !== "expired" ? "cursor-pointer" : ""}
                 onClick={() => d.status !== "expired" && openEditDialog(d)}
@@ -240,18 +213,12 @@ export default function ManageDiscountPage() {
                   <p className="text-sm font-medium">{d.discount_rate}% 할인</p>
                   <span
                     className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      d.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : d.status === "scheduled"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-gray-200 text-gray-500"
+                      d.status === "active" ? "bg-green-100 text-green-700"
+                      : d.status === "scheduled" ? "bg-blue-100 text-blue-700"
+                      : "bg-gray-200 text-gray-500"
                     }`}
                   >
-                    {{
-                      active: "진행 중",
-                      scheduled: "예정됨",
-                      expired: "종료됨",
-                    }[d.status]}
+                    {{ active: "진행 중", scheduled: "예정됨", expired: "종료됨" }[d.status]}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
@@ -275,7 +242,7 @@ export default function ManageDiscountPage() {
         </div>
       )}
 
-      {/* 다이얼로그 */}
+      {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -294,23 +261,11 @@ export default function ManageDiscountPage() {
             )}
             <div>
               <Label htmlFor="final_price">할인될 최종 가격</Label>
-              <Input
-                name="final_price"
-                type="number"
-                value={form.final_price || ''}
-                onChange={handleChange}
-                required
-              />
+              <Input name="final_price" type="number" value={form.final_price || ''} onChange={handleChange} required />
             </div>
             <div>
               <Label htmlFor="discount_rate">할인율 (%)</Label>
-              <Input
-                name="discount_rate"
-                type="number"
-                value={form.discount_rate || ''}
-                onChange={handleChange}
-                required
-              />
+              <Input name="discount_rate" type="number" value={form.discount_rate || ''} onChange={handleChange} required />
             </div>
             <div>
               <Label htmlFor="quantity">수량 (선택)</Label>
@@ -325,11 +280,11 @@ export default function ManageDiscountPage() {
               <DateTimePicker id="end_time" value={form.end_time} onChange={(value) => handleDateTimeChange("end_time", value)} />
             </div>
             <DialogFooter className="flex justify-between pt-4">
-              <Button type="submit" className="bg-teal-600 text-white">
-                {loading ? "처리 중..." : isNew ? "할인 등록" : "수정 저장"}
+              <Button type="submit" className="bg-teal-600 text-white" disabled={isSubmitting}>
+                {isSubmitting ? "처리 중..." : isNew ? "할인 등록" : "수정 저장"}
               </Button>
               {!isNew && (
-                <Button type="button" onClick={handleDelete} className="bg-red-500 text-white">
+                <Button type="button" onClick={handleDelete} className="bg-red-500 text-white" disabled={isSubmitting}>
                   삭제
                 </Button>
               )}
