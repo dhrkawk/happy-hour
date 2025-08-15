@@ -4,16 +4,17 @@ import { StoreDetailViewModel } from '@/lib/viewmodels/store-detail.viewmodel';
 
 const apiClient = new StoreApiClient();
 
-export function useGetStoreById(id: string | null) {
+export function useGetStoreById(id: string | null, userLocation: { lat: number; lng: number; } | null) {
   const fetcher = async (url: string) => {
-    if (!id) return null;
-    const storeData = await apiClient.getStoreById(id);
+    if (!id || !userLocation) return null;
+    const storeData = await apiClient.getStoreById(id, userLocation);
     return storeData;
   };
 
   const { data, error, isLoading, mutate } = useSWR<StoreDetailViewModel | null>(
-    id ? `/api/stores/${id}` : null, // Only fetch if ID is available
-    fetcher
+    id && userLocation ? `/api/stores/${id}` : null, // Only fetch if ID and location are available
+    fetcher,
+    { revalidateOnFocus: false } // Optional: to prevent re-fetching on window focus
   );
 
   return {
