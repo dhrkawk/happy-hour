@@ -25,6 +25,18 @@ import { MenuEntity } from "@/lib/entities/menus/menu.entity";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { useGetDiscountsByMenu } from "@/hooks/use-get-discounts-by-menu";
 
+// Helper function to convert UTC date string to local YYYY-MM-DDTHH:mm format
+const convertToLocalInputFormat = (utcDateString: string) => {
+  if (!utcDateString) return "";
+  const date = new Date(utcDateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export default function ManageDiscountPage() {
   const router = useRouter();
   const { id: storeId, menuId } = useParams() as { id: string; menuId: string };
@@ -42,6 +54,18 @@ export default function ManageDiscountPage() {
   const [isNew, setIsNew] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Status>("all");
+
+  const formatDateTimeForDisplay = (dateString: string) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleString([], {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  };
 
   useEffect(() => {
     const fetchMenu = async () => {
@@ -68,13 +92,14 @@ export default function ManageDiscountPage() {
 
   const openEditDialog = (d: DiscountDetailViewModel) => {
     if (!menu) return;
+    if (!menu) return;
     const calculatedFinalPrice = Math.round(menu.price * (1 - d.discount_rate / 100));
     setForm({
       menu_id: menuId,
       discount_rate: d.discount_rate,
       quantity: d.quantity,
-      start_time: new Date(d.start_time).toISOString().slice(0, 16),
-      end_time: new Date(d.end_time).toISOString().slice(0, 16),
+      start_time: convertToLocalInputFormat(d.start_time),
+      end_time: convertToLocalInputFormat(d.end_time),
       final_price: calculatedFinalPrice,
     });
     setIsNew(false);
@@ -111,8 +136,18 @@ export default function ManageDiscountPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      // Convert local datetime string to UTC ISO string before sending
+      const formDataForApi = {
+        ...form,
+        start_time: new Date(form.start_time).toISOString(),
+        end_time: new Date(form.end_time).toISOString(),
+      };
+      
+      // Remove final_price before sending to API
+      const { final_price, ...restForm } = formDataForApi;
+
       if (isNew) {
-        await DiscountApiClient.registerDiscount(form);
+        await DiscountApiClient.registerDiscount(restForm);
       } else if (selected) {
         const { final_price, ...restForm } = form;
         await DiscountApiClient.updateDiscount(selected.id, restForm);
@@ -179,6 +214,7 @@ export default function ManageDiscountPage() {
       </div>
 
       {/* Status Filter */}
+      {/* Status Filter */}
       <div className="flex gap-2 mb-4">
         {statuses.map((status) => (
           <Button
@@ -222,7 +258,7 @@ export default function ManageDiscountPage() {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
-                  {new Date(d.start_time).toLocaleString()} ~ {new Date(d.end_time).toLocaleString()}
+                  {formatDateTimeForDisplay(d.start_time)} ~ {formatDateTimeForDisplay(d.end_time)}
                 </p>
               </div>
               {d.status === "active" && (

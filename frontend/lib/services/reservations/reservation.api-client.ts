@@ -35,7 +35,7 @@ export class ReservationApiClient {
     const cartItems = cart.items.map(item => ({
       menu_name: item.name,
       quantity: item.quantity,
-      price: item.price,
+      price: item.originalPrice,
       discount_rate: item.discountRate,
       is_free: false,
     }));
@@ -43,7 +43,7 @@ export class ReservationApiClient {
     const giftItems = gifts.map(g => ({
       menu_name: g.menu.name,
       quantity: 1,
-      price: 0,
+      price: g.menu.originalPrice,
       discount_rate: 100,
       is_free: true,
     }));
