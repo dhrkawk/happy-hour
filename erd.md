@@ -64,6 +64,7 @@ quantity	int4	남은 수량
 created_at	timestamptz	생성일자
 menu_id	uuid	할인 적용 메뉴 ID (store_menus.id 참조)
 is_active	boolean	활성화 여부
+final_price int4    할인이 반영된 최종 판매 가격
 
 
 ⸻
