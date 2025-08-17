@@ -93,6 +93,7 @@ price	integer	예약 당시 원 가격
 discount_rate	integer	예약 당시 할인율
 menu_name	text	예약 당시 메뉴 이름
 is_free	boolean	무료 여부
+final_price int4 예약 당시 최종가격
 
 
 ⸻

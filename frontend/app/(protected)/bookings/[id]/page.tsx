@@ -133,7 +133,7 @@ export default function BookingDetailPage() {
               <h4 className="font-semibold text-gray-700 mb-3 flex items-center"><ShoppingCart className="w-5 h-5 mr-2 text-teal-600"/>예약 메뉴</h4>
               <div className="space-y-3">
                 {booking.items.map((item, index) => {
-                  const finalPrice = item.price * (1 - item.discountRate / 100);
+                  const displayPrice = item.final_price ?? item.price;
                   return (
                     <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded-md">
                       <div>
@@ -147,7 +147,7 @@ export default function BookingDetailPage() {
                           <Badge className="bg-semantic-gift-500 text-white text-xs">증정</Badge>
                         )}
                         <p className="font-semibold text-gray-800 mt-1">
-                          {(finalPrice * item.quantity).toLocaleString()}원
+                          {(displayPrice * item.quantity).toLocaleString()}원
                         </p>
                       </div>
                     </div>

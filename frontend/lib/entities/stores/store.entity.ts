@@ -14,6 +14,7 @@ export interface StoreEntity {
 	// 집계 필드
 	maxDiscountRate: number | null
 	maxPrice: number | null
+	maxDiscountFinalPrice: number | null
 	maxDiscountEndTime: string | null
 	discountCount: number
   

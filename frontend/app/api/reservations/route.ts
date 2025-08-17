@@ -8,6 +8,7 @@ type ReservationItem = {
   quantity: number;
   price: number;
   discount_rate: number;
+  final_price: number | null;
 };
 
 export async function POST(req: NextRequest) {

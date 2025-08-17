@@ -19,6 +19,7 @@ const mapRawToReservationEntity = (raw: any): ReservationEntity => ({
     quantity: item.quantity,
     price: item.price,
     discountRate: item.discount_rate,
+    final_price: item.final_price,
   })) || [],
 });
 
@@ -74,7 +75,8 @@ export class ReservationService {
             menu_name,
             quantity,
             price,
-            discount_rate
+            discount_rate,
+            final_price
           )
         `)
         .eq('id', reservationId)
@@ -116,7 +118,8 @@ export class ReservationService {
             menu_name,
             quantity,
             price,
-            discount_rate
+            discount_rate,
+            final_price
           )
         `)
         .eq('store_id', storeId)
@@ -176,7 +179,8 @@ export class ReservationService {
             menu_name,
             quantity,
             price,
-            discount_rate
+            discount_rate,
+            final_price
           )
         `)
         .eq('id', reservationId)

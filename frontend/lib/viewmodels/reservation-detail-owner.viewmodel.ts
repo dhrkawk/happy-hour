@@ -31,8 +31,8 @@ const getStatusInfo = (status: string) => {
 
 export function createReservationDetailOwnerViewModel(entity: ReservationEntity): ReservationDetailOwnerViewModel {
   const totalAmount = entity.reservationItems?.reduce((acc, item) => {
-    const itemPrice = item.price * (1 - (item.discountRate || 0) / 100);
-    return acc + itemPrice * item.quantity;
+    const priceToUse = item.final_price ?? item.price;
+    return acc + priceToUse * item.quantity;
   }, 0) || 0;
 
   const statusInfo = getStatusInfo(entity.status);

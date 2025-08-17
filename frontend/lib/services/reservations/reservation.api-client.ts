@@ -37,6 +37,7 @@ export class ReservationApiClient {
       quantity: item.quantity,
       price: item.originalPrice,
       discount_rate: item.discountRate,
+      final_price: item.price, // Use item.price which is the discounted price
       is_free: false,
     }));
 
@@ -45,6 +46,7 @@ export class ReservationApiClient {
       quantity: 1,
       price: g.menu.originalPrice,
       discount_rate: 100,
+      final_price: 0, // Gifts are free
       is_free: true,
     }));
 
