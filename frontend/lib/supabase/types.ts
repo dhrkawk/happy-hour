@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -19,6 +19,8 @@ export type Database = {
           created_at: string
           discount_rate: number
           end_time: string
+          event_id: string | null
+          final_price: number
           id: string
           is_active: boolean
           menu_id: string | null
@@ -29,6 +31,8 @@ export type Database = {
           created_at?: string
           discount_rate: number
           end_time: string
+          event_id?: string | null
+          final_price: number
           id?: string
           is_active?: boolean
           menu_id?: string | null
@@ -39,6 +43,8 @@ export type Database = {
           created_at?: string
           discount_rate?: number
           end_time?: string
+          event_id?: string | null
+          final_price?: number
           id?: string
           is_active?: boolean
           menu_id?: string | null
@@ -46,6 +52,13 @@ export type Database = {
           start_time?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "discounts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "discounts_menu_id_fkey"
             columns: ["menu_id"]
@@ -55,9 +68,69 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string
+          happyhour_end_time: string
+          happyhour_start_time: string
+          id: string
+          is_active: boolean
+          max_discount_rate: number | null
+          max_final_price: number | null
+          max_original_price: number | null
+          start_date: string
+          store_id: string
+          title: string
+          weekdays: Database["public"]["Enums"]["weekday"][]
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date: string
+          happyhour_end_time: string
+          happyhour_start_time: string
+          id?: string
+          is_active?: boolean
+          max_discount_rate?: number | null
+          max_final_price?: number | null
+          max_original_price?: number | null
+          start_date: string
+          store_id: string
+          title?: string
+          weekdays: Database["public"]["Enums"]["weekday"][]
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          happyhour_end_time?: string
+          happyhour_start_time?: string
+          id?: string
+          is_active?: boolean
+          max_discount_rate?: number | null
+          max_final_price?: number | null
+          max_original_price?: number | null
+          start_date?: string
+          store_id?: string
+          title?: string
+          weekdays?: Database["public"]["Enums"]["weekday"][]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservation_items: {
         Row: {
           discount_rate: number | null
+          final_price: number
           id: string
           is_free: boolean
           menu_name: string | null
@@ -67,6 +140,7 @@ export type Database = {
         }
         Insert: {
           discount_rate?: number | null
+          final_price: number
           id?: string
           is_free?: boolean
           menu_name?: string | null
@@ -76,6 +150,7 @@ export type Database = {
         }
         Update: {
           discount_rate?: number | null
+          final_price?: number
           id?: string
           is_free?: boolean
           menu_name?: string | null
@@ -234,6 +309,7 @@ export type Database = {
           menu_category: string[] | null
           name: string
           owner_id: string | null
+          partnership: string | null
           phone: string | null
           store_thumbnail: string | null
         }
@@ -248,6 +324,7 @@ export type Database = {
           menu_category?: string[] | null
           name: string
           owner_id?: string | null
+          partnership?: string | null
           phone?: string | null
           store_thumbnail?: string | null
         }
@@ -262,6 +339,7 @@ export type Database = {
           menu_category?: string[] | null
           name?: string
           owner_id?: string | null
+          partnership?: string | null
           phone?: string | null
           store_thumbnail?: string | null
         }
@@ -316,10 +394,10 @@ export type Database = {
     Functions: {
       create_reservation_with_items: {
         Args: {
-          p_user_id: string
-          p_store_id: string
-          p_reserved_time: string
           p_items: Json
+          p_reserved_time: string
+          p_store_id: string
+          p_user_id: string
         }
         Returns: string
       }
@@ -328,6 +406,7 @@ export type Database = {
       gift_selection_policy: "FIXED" | "PICK_ONE_FROM_LIST"
       reservation_status: "pending" | "confirmed" | "cancelled" | "used"
       role: "admin" | "customer" | "store_owner"
+      weekday: "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
     }
     CompositeTypes: {
       reservation_item_type: {
@@ -462,6 +541,7 @@ export const Constants = {
       gift_selection_policy: ["FIXED", "PICK_ONE_FROM_LIST"],
       reservation_status: ["pending", "confirmed", "cancelled", "used"],
       role: ["admin", "customer", "store_owner"],
+      weekday: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
     },
   },
 } as const

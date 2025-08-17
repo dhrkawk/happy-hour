@@ -12,6 +12,7 @@ import { StoreDetailViewModel, StoreMenuViewModel } from "@/lib/viewmodels/store
 import { StoreApiClient } from "@/lib/services/stores/store.api-client";
 import { useGiftContext } from "@/contexts/gift-context"; // ★ 추가
 import { useGetStoreById } from "@/hooks/use-get-store-by-id"; // New import
+import { weekdayLabelMap } from "@/lib/utils";
 
 export default function StorePage() {
   const router = useRouter();
@@ -258,13 +259,6 @@ export default function StorePage() {
               <span>•</span>
               <span>{viewmodel.category}</span>
             </div>
-            <div className="flex items-center gap-2">
-              {viewmodel.discount != 0 ? <Badge className="bg-semantic-discount-500 text-white text-sm">{viewmodel.discount}% 할인</Badge>:null}
-              <div className="flex items-center gap-1 text-red-500 font-medium text-sm">
-                <Clock className="w-4 h-4" />
-                <span>{viewmodel.timeLeft}</span>
-              </div>
-            </div>
             {viewmodel.partnership ? (
               <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm w-full">
                 <div className="flex items-center gap-2">
@@ -276,7 +270,45 @@ export default function StorePage() {
                 </div>
               </div>
             ) : null}
+            {viewmodel.events && viewmodel.events.length > 0 ? (
+              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm w-full">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="text-blue-500 text-xl">📣</div>
+                  <div className="text-blue-900 font-semibold text-sm">이 매장의 진행 중인 이벤트</div>
+                </div>
+
+                <div className="flex flex-col gap-3 mt-2">
+                  {viewmodel.events.map((event) => (
+                    <div
+                      key={event.id}
+                      className="bg-white border border-blue-100 rounded-lg p-3 shadow-sm"
+                    >
+                      <div className="font-semibold text-blue-800 text-sm">{event.title}</div>
+
+                      {event.description && (
+                        <div className="text-xs text-blue-700 mt-1">{event.description}</div>
+                      )}
+
+                      <div className="text-xs text-blue-700 mt-2">
+                        기간: {new Date(event.startDate).toLocaleDateString()} ~ {new Date(event.endDate).toLocaleDateString()}
+                      </div>
+
+                      {event.happyHourStartTime && event.happyHourEndTime && (
+                        <div className="text-xs text-blue-700">
+                          시간: {event.happyHourStartTime} ~ {event.happyHourEndTime}
+                        </div>
+                      )}
+
+                      <div className="text-xs text-blue-700">
+                        요일: {event.weekdays.map((day) => weekdayLabelMap[day] || day).join(', ')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
+          
         </div>
         <p className="text-gray-600 text-sm leading-relaxed">{viewmodel.description}</p>
       </div>
