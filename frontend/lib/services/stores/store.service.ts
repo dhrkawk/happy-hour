@@ -5,32 +5,25 @@ import { Database } from '@/lib/supabase/types';
 
 // raw data를 entity로 전환
 const mapRawToStoreEntity = (store: any): StoreEntity => {
-  let maxDiscountRate: number | null = null
-  let maxDiscountEndTime: string | null = null
-  let maxPrice: number | null = null
-  let maxDiscountFinalPrice: number | null = null
-  let discountCount = 0
+  const now = new Date()
+  const today = now.toISOString().split('T')[0]
 
-  store.store_menus?.forEach((menu: any) => {
-    menu.discounts?.forEach((discount: any) => {
-    if (
-      discount.is_active &&
-      new Date(discount.start_time) < new Date() &&
-      new Date() < new Date(discount.end_time)
-    ) {
-        discountCount++
-        if (maxDiscountRate === null || discount.discount_rate > maxDiscountRate) {
-          maxDiscountRate = discount.discount_rate
-          maxDiscountEndTime = discount.end_time
-          maxPrice = menu.price
-          maxDiscountFinalPrice = discount.final_price
-        }
-      }
-    })
+  // 유효한 이벤트만 필터링
+  const validEvents = (store.events ?? []).filter((event: any) => {
+    return (
+      event.is_active &&
+      event.start_date <= today &&
+      event.end_date >= today
+    )
   })
 
+  const maxDiscountRate = validEvents.length > 0 ? Math.max(...validEvents.map((e: any) => e.max_discount_rate ?? 0)) : null
+  const maxDiscountEndTime = validEvents.length > 0 ? validEvents.find((e: any) => e.max_discount_rate === maxDiscountRate)?.end_date ?? null : null
+  const maxPrice = validEvents.length > 0 ? Math.max(...validEvents.map((e: any) => e.max_original_price ?? 0)) : null
+  const maxDiscountFinalPrice = validEvents.length > 0 ? Math.min(...validEvents.map((e: any) => e.max_final_price ?? 0)) : null
+  const discountCount = validEvents.length
+
   const gifts = store.store_gifts ?? []
-  const now = new Date()
   const hasActiveGift = gifts.some((g: any) => {
     if (!g.is_active) return false
     const start = new Date(g.start_at)
@@ -76,12 +69,12 @@ export class StoreService {
       const { data: stores, error } = await this.supabase
         .from('stores')
         .select(`
-          id, name, address, lat, lng, phone, category, activated, store_thumbnail, owner_id, partnership,
-          store_menus (
-            price,
-            discounts (
-              discount_rate, start_time, end_time, is_active, final_price
-            )
+          id, name, address, lat, lng, phone, category, store_thumbnail,
+          events (
+            id, title, start_date, end_date, is_active,
+            max_discount_rate,
+            max_final_price,
+            max_original_price
           ),
           store_gifts (
             id, is_active, start_at, end_at, remaining
