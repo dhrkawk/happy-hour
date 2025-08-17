@@ -1,9 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/types';
 import type { StoreDetailEntity, StoreMenu, Discount, StoreGift } from '@/lib/entities/stores/store-detail.entity';
+import { EventEntity } from '@/lib/entities/events/event.entity';
 
 const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
-  // 1. Raw data를 Entity에 맞게 매핑 (is_active 포함)
   const menus: StoreMenu[] = (store.store_menus || []).map((menu: any) => {
     const discountData = menu.discounts?.[0];
 
@@ -14,7 +14,7 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
           start_time: discountData.start_time,
           end_time: discountData.end_time,
           quantity: discountData.quantity,
-          is_active: discountData.is_active, // is_active 필드 추가
+          is_active: discountData.is_active,
         }
       : null;
 
@@ -29,37 +29,49 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
     };
   });
 
-  const gifts: StoreGift[] = (store.store_gifts || []).map((gift: any) => {
-    return {
-      id: gift.id,
-      gift_qty: gift.gift_qty,
-      start_at: gift.start_at,
-      end_at: gift.end_at,
-      is_active: gift.is_active,
-      max_redemptions: gift.max_redemptions ?? null,
-      remaining: gift.remaining ?? null,
-      display_note: gift.display_note ?? null,
-      option_menu_ids: gift.option_menu_ids || [],
-    };
-  });
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
 
-  // 2. 활성 할인 중 대표 할인 찾기
-  let representativeDiscountRate: number | null = null;
-  let representativeDiscountEndTime: string | null = null;
-
-  const activeDiscounts = menus
-    .map(menu => menu.discount)
-    .filter((d): d is Discount => d !== null && d.is_active);
-
-  if (activeDiscounts.length > 0) {
-    const maxDiscount = activeDiscounts.reduce((max, current) => 
-      current.discount_rate > max.discount_rate ? current : max
+  // 유효한 gift만 필터링
+  const validGifts = (store.store_gifts || []).filter(
+      (gift: any) =>
+        gift.is_active &&
+        gift.start_at <= now &&
+        gift.end_at >= now
     );
-    representativeDiscountRate = maxDiscount.discount_rate;
-    representativeDiscountEndTime = maxDiscount.end_time;
-  }
 
-  // 3. 최종 Entity 반환
+  const gifts: StoreGift[] = (validGifts || []).map((gift: any) => ({
+    id: gift.id,
+    gift_qty: gift.gift_qty,
+    start_at: gift.start_at,
+    end_at: gift.end_at,
+    is_active: gift.is_active,
+    max_redemptions: gift.max_redemptions ?? null,
+    remaining: gift.remaining ?? null,
+    display_note: gift.display_note ?? null,
+    option_menu_ids: gift.option_menu_ids || [],
+  }));
+
+  // 유효한 이벤트만 필터링
+  const validEvents = (store.events ?? []).filter((event: any) => {
+    return (
+      event.is_active &&
+      event.start_date <= today &&
+      event.end_date >= today
+    )
+  })
+
+  const events: EventEntity[] = validEvents.map((event: any) => ({
+    id: event.id,
+    title: event.title,
+    description: event.description ?? null,
+    start_date: event.start_date,
+    end_date: event.end_date,
+    happyhour_start_time: event.happyhour_start_time,
+    happyhour_end_time: event.happyhour_end_time,
+    weekdays: event.weekdays,
+  }));
+
   return {
     id: store.id,
     name: store.name,
@@ -68,16 +80,15 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
     lng: store.lng,
     phone: store.phone,
     category: store.category,
+    menu_category: store.menu_category || null,
     activated: store.activated,
-    storeThumbnail: store.store_thumbnail ?? 'no-image.jpg',
+    storeThumbnail: store.store_thumbnail,
     ownerId: store.owner_id,
-    menu_category: store.menu_category,
-    partnership: store.partnership ?? null, // partnership 필드 추가
+    partnership: store.partnership ?? null,
+
     menus,
     gifts,
-    // 계산된 대표 할인 정보 추가
-    representativeDiscountRate,
-    representativeDiscountEndTime,
+    events, // ✅ 추가
   };
 };
 
@@ -102,7 +113,18 @@ export class StoreDetailService {
           *,
           discounts (*)
         ),
-        store_gifts (*)
+        store_gifts (*),
+        events (
+          id,
+          title,
+          description,
+          start_date,
+          end_date,
+          happyhour_start_time,
+          happyhour_end_time,
+          weekdays,
+          is_active
+        )
       `)
       .eq('id', id)
       .single();
@@ -111,14 +133,6 @@ export class StoreDetailService {
       console.error(`Error fetching store detail for ID ${id}:`, error);
       return null;
     }
-
-    // 활성 gift만 남김
-    data.store_gifts = (data.store_gifts || []).filter(
-      (gift: any) =>
-        gift.is_active &&
-        gift.start_at <= now &&
-        gift.end_at >= now
-    );
 
     return mapRawToStoreDetailEntity(data);
   }

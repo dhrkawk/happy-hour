@@ -1,3 +1,4 @@
+import { EventEntity } from "../events/event.entity";
 export interface Discount {
   discount_rate: number;       // 할인율
   final_price: number | null;  // 최종 가격
@@ -44,8 +45,5 @@ export interface StoreDetailEntity {
   menu_category: string[] | null;
   menus: StoreMenu[];
   gifts: StoreGift[];
-
-  // Service에서 계산될 대표 할인 정보
-  representativeDiscountRate: number | null;
-  representativeDiscountEndTime: string | null;
+  events: EventEntity[];
 }

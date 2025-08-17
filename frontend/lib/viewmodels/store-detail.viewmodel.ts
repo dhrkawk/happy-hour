@@ -25,6 +25,17 @@ export interface StoreMenuViewModel {
   discountDisplayText: string;
 }
 
+export interface StoreEventViewModel {
+  id: string;
+  title: string;
+  description: string | null;
+  startDate: Date;
+  endDate: Date;
+  happyHourStartTime: string | null;
+  happyHourEndTime: string | null;
+  weekdays: string[];
+}
+
 export interface StoreDetailViewModel {
   id: string;
   name: string;
@@ -40,10 +51,9 @@ export interface StoreDetailViewModel {
 
   // 가공된 데이터
   distance: string;       // km 단위
-  discount: number;       // 대표 할인율 (예: 첫 번째 할인 메뉴 기준)
-  timeLeft: string;       // "3시간 남음" 형태
   menu?: StoreMenuViewModel[];
-  gifts?: StoreGiftViewModel[]; 
+  gifts?: StoreGiftViewModel[];
+  events?: StoreEventViewModel[]; // 이벤트 정보 추가
 }
 
 // V2 - 새로운 함수: Service에서 계산된 값을 사용하는 수정된 로직
@@ -99,7 +109,18 @@ export function createStoreDetailViewModel(
       menus: giftMenus,
     };
   });
-      
+
+  // 이벤트 정보 가공
+  const events: StoreEventViewModel[] = (entity.events || []).map((event) => ({
+    id: event.id,
+    title: event.title,
+    description: event.description ?? null,
+    startDate: event.start_date,
+    endDate: event.end_date,
+    happyHourStartTime: event.happyhour_start_time ?? null,
+    happyHourEndTime: event.happyhour_end_time ?? null,
+    weekdays: event.weekdays ?? [],
+  }));
 
   return {
     id: entity.id,
@@ -112,13 +133,10 @@ export function createStoreDetailViewModel(
     lat: entity.lat,
     lng: entity.lng,
     distance: distanceText,
-    discount: entity.representativeDiscountRate ?? 0,
-    timeLeft: entity.representativeDiscountEndTime
-      ? formatTimeLeft(entity.representativeDiscountEndTime)
-      : "정보 없음",
     menu: processedMenus,
     menu_category: entity.menu_category,
     gifts: gifts.length > 0 ? gifts : undefined, // gifts가 없으면 null로 설정
     partnership: entity.partnership,
+    events: events.length > 0 ? events : undefined, // events가 없으면 null로 설정
   };
 }
