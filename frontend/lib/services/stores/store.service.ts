@@ -8,6 +8,7 @@ const mapRawToStoreEntity = (store: any): StoreEntity => {
   let maxDiscountRate: number | null = null
   let maxDiscountEndTime: string | null = null
   let maxPrice: number | null = null
+  let maxDiscountFinalPrice: number | null = null
   let discountCount = 0
 
   store.store_menus?.forEach((menu: any) => {
@@ -22,6 +23,7 @@ const mapRawToStoreEntity = (store: any): StoreEntity => {
           maxDiscountRate = discount.discount_rate
           maxDiscountEndTime = discount.end_time
           maxPrice = menu.price
+          maxDiscountFinalPrice = discount.final_price
         }
       }
     })
@@ -54,6 +56,7 @@ const mapRawToStoreEntity = (store: any): StoreEntity => {
     maxDiscountRate,
     maxDiscountEndTime,
     maxPrice,
+    maxDiscountFinalPrice,
     discountCount,
 
     hasActiveGift,
@@ -77,7 +80,7 @@ export class StoreService {
           store_menus (
             price,
             discounts (
-              discount_rate, start_time, end_time, is_active
+              discount_rate, start_time, end_time, is_active, final_price
             )
           ),
           store_gifts (

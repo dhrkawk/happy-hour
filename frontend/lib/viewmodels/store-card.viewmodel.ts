@@ -118,7 +118,7 @@ export function createStoreCardViewModel(
     distance: distance,
     distanceText: distanceText,
     originalPrice: entity.maxPrice ? entity.maxPrice : 0,
-    discountPrice: entity.maxPrice ? entity.maxPrice * (1 - (entity.maxDiscountRate || 0) / 100) : 0,
+    discountPrice: entity.maxDiscountFinalPrice ?? (entity.maxPrice || 0),
     lat: entity.lat,
     lng: entity.lng,
     discountDisplay: discountDisplay,

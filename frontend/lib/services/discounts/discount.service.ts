@@ -71,6 +71,7 @@ export class DiscountService {
         end_time: discountData.end_time,
         quantity: discountData.quantity || null,
         is_active: newDiscountIsActive,
+        final_price: discountData.final_price,
       })
       .select()
       .single();
@@ -109,6 +110,7 @@ export class DiscountService {
         start_time: discountData.start_time,
         end_time: discountData.end_time,
         menu_id: discountData.menu_id,
+        final_price: discountData.final_price,
       })
       .eq('id', discountId)
       .select()

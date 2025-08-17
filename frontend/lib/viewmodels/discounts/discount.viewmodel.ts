@@ -6,6 +6,7 @@ export interface DiscountFormViewModel {
   start_time: string;
   end_time: string;
   menu_id: string;
+  final_price?: number | null;
 }
 
 export interface DiscountViewModel {
@@ -33,6 +34,7 @@ export interface DiscountDetailViewModel {
   id: string;
   menu_id: string;
   discount_rate: number;
+  final_price: number | null;
   start_time: string;
   end_time: string;
   quantity: number | null;
@@ -45,6 +47,7 @@ export function createDiscountDetailViewModel(entity: DiscountEntity): DiscountD
     id: entity.id,
     menu_id: entity.menu_id,
     discount_rate: entity.discount_rate,
+    final_price: entity.final_price,
     start_time: entity.start_time,
     end_time: entity.end_time,
     quantity: entity.quantity,
@@ -67,5 +70,6 @@ export function createDiscountFormViewModel(menu_id: string): DiscountFormViewMo
     quantity: null,
     start_time: formattedDateTime,
     end_time: formattedDateTime,
+    final_price: null,
   };
 }

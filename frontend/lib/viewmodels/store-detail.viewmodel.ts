@@ -64,14 +64,13 @@ export function createStoreDetailViewModel(
     const discount = menu.discount;
     // 개별 메뉴의 할인율은 활성 상태일 때만 표시합니다.
     const discountRate = (discount && discount.is_active) ? discount.discount_rate : 0;
+    const finalPrice = (discount && discount.is_active) ? discount.final_price : null;
 
     return {
       id: menu.id,
       name: menu.name,
       originalPrice: menu.price,
-      discountPrice: discountRate > 0
-        ? Math.round(menu.price * (1 - discountRate / 100))
-        : menu.price,
+      discountPrice: finalPrice ?? menu.price, // Use final_price if it exists
       description: menu.description ?? "",
       thumbnail: menu.thumbnail,
       discountId: discount ? `${discount.discount_rate}-${discount.end_time}` : null,

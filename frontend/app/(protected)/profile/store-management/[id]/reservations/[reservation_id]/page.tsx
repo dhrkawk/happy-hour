@@ -102,7 +102,7 @@ export default function StoreReservationDetailPage() {
               <h4 className="font-semibold text-gray-700 mb-3 flex items-center"><ShoppingCart className="w-5 h-5 mr-2 text-teal-600"/>예약 메뉴</h4>
               <div className="space-y-3">
                 {booking.items.map((item, index) => {
-                  const finalPrice = item.price * (1 - (item.discountRate || 0) / 100);
+                  const displayPrice = item.final_price ?? item.price;
                   return (
                     <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded-md">
                       <div>
@@ -113,7 +113,7 @@ export default function StoreReservationDetailPage() {
                         {item.discountRate > 0 && (
                           <Badge variant="destructive">{item.discountRate}% 할인</Badge>
                         )}
-                        <p className="font-semibold text-gray-800 mt-1">{(finalPrice * item.quantity).toLocaleString()}원</p>
+                        <p className="font-semibold text-gray-800 mt-1">{(displayPrice * item.quantity).toLocaleString()}원</p>
                       </div>
                     </div>
                   );

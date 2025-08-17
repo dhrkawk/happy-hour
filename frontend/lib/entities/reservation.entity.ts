@@ -21,4 +21,5 @@ export interface ReservationItem {
     quantity: number;
     price: number;
     discountRate: number;
+    final_price: number | null;
 }

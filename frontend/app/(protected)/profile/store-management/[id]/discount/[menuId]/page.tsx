@@ -49,7 +49,7 @@ export default function ManageDiscountPage() {
   const [menu, setMenu] = useState<MenuEntity | null>(null);
   const [isLoadingMenu, setIsLoadingMenu] = useState(true);
   const [selected, setSelected] = useState<DiscountDetailViewModel | null>(null);
-  const [form, setForm] = useState<DiscountFormViewModel & { final_price?: number }>(createDiscountFormViewModel(menuId));
+  const [form, setForm] = useState<DiscountFormViewModel>(createDiscountFormViewModel(menuId));
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isNew, setIsNew] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,15 +92,13 @@ export default function ManageDiscountPage() {
 
   const openEditDialog = (d: DiscountDetailViewModel) => {
     if (!menu) return;
-    if (!menu) return;
-    const calculatedFinalPrice = Math.round(menu.price * (1 - d.discount_rate / 100));
     setForm({
       menu_id: menuId,
       discount_rate: d.discount_rate,
       quantity: d.quantity,
       start_time: convertToLocalInputFormat(d.start_time),
       end_time: convertToLocalInputFormat(d.end_time),
-      final_price: calculatedFinalPrice,
+      final_price: d.final_price,
     });
     setIsNew(false);
     setSelected(d);
@@ -137,20 +135,17 @@ export default function ManageDiscountPage() {
     setIsSubmitting(true);
     try {
       // Convert local datetime string to UTC ISO string before sending
-      const formDataForApi = {
+      const apiPayload = {
         ...form,
         start_time: new Date(form.start_time).toISOString(),
         end_time: new Date(form.end_time).toISOString(),
+        final_price: form.final_price ? Number(form.final_price) : null,
       };
-      
-      // Remove final_price before sending to API
-      const { final_price, ...restForm } = formDataForApi;
 
       if (isNew) {
-        await DiscountApiClient.registerDiscount(restForm);
+        await DiscountApiClient.registerDiscount(apiPayload);
       } else if (selected) {
-        const { final_price, ...restForm } = form;
-        await DiscountApiClient.updateDiscount(selected.id, restForm);
+        await DiscountApiClient.updateDiscount(selected.id, apiPayload);
       }
       mutateDiscounts(); // Re-fetch discounts
       setDialogOpen(false);
@@ -246,7 +241,19 @@ export default function ManageDiscountPage() {
                 onClick={() => d.status !== "expired" && openEditDialog(d)}
               >
                 <div className="flex justify-between items-center">
-                  <p className="text-sm font-medium">{d.discount_rate}% 할인</p>
+                                    {menu && d.final_price ? (
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-gray-500 line-through">
+                        {menu.price.toLocaleString()}원
+                      </p>
+                      <p className="text-sm font-medium text-red-500">
+                        → {d.final_price.toLocaleString()}원
+                      </p>
+                      <p className="text-sm font-medium">({d.discount_rate}% 할인)</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-medium">{d.discount_rate}% 할인</p>
+                  )}
                   <span
                     className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                       d.status === "active" ? "bg-green-100 text-green-700"

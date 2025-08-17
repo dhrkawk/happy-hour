@@ -1,5 +1,6 @@
 export interface Discount {
   discount_rate: number;       // 할인율
+  final_price: number | null;  // 최종 가격
   start_time: string;          // 시작 시각 (ISO string)
   end_time: string;            // 종료 시각
   quantity: number;            // 남은 수량

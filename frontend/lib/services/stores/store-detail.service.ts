@@ -10,6 +10,7 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
     const discount: Discount | null = discountData
       ? {
           discount_rate: discountData.discount_rate,
+          final_price: discountData.final_price,
           start_time: discountData.start_time,
           end_time: discountData.end_time,
           quantity: discountData.quantity,
