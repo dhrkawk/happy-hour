@@ -160,6 +160,22 @@ export default function StoreManagementPage() {
             </CardContent>
           </Card>
         </Link>
+
+        <Link href={`/profile/store-management/${storeId}/discount-event`}>
+          <Card className="border-orange-100 hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Percent className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <span className="font-medium text-gray-800">할인 이벤트 관리</span>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
   )
