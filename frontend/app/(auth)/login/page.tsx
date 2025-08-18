@@ -55,7 +55,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* 로고 및 환영 메시지 */}
         <div className="text-center mb-8">
@@ -194,15 +194,6 @@ export default function LoginPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* 게스트 로그인 */}
-        <div className="mt-6 text-center">
-          <Link href="/">
-            <Button variant="ghost" className="text-gray-500 hover:text-gray-700">
-              로그인 없이 둘러보기
-            </Button>
-          </Link>
-        </div>
 
         {/* 하단 정보 */}
         <div className="mt-8 text-center text-xs text-gray-500">

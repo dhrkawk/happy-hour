@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react";
-import { ArrowLeft, MapPin, Hash, Clock, Loader2, ShoppingCart } from "lucide-react";
+import { ArrowLeft, MapPin, Hash, Clock, Loader2, ShoppingCart, Ticket } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,8 +56,8 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto">
-      <header className="bg-white shadow-sm border-b border-teal-100">
+    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
+      <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="px-4 py-4">
           <div className="flex items-center gap-3">
             <Link href="/home">
@@ -65,7 +65,7 @@ export default function BookingsPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
-            <h1 className="text-lg font-semibold text-gray-800">예약 현황</h1>
+            <h1 className="text-lg font-semibold text-gray-800">내 쿠폰함</h1>
           </div>
         </div>
       </header>
@@ -75,17 +75,14 @@ export default function BookingsPage() {
           {bookings.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">📅</div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">현재 예약된 내역이 없습니다</h3>
-              <p className="text-gray-600 mb-4">할인 중인 가게를 찾아 첫 예약을 해보세요!</p>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">현재 발급된 쿠폰이 없습니다</h3>
+              <p className="text-gray-600 mb-4">할인 중인 가게를 찾아 첫 쿠폰을 받아보세요!</p>
               <Link href="/home">
                 <Button className="bg-teal-500 hover:bg-teal-600 text-white">할인 가게 찾기</Button>
               </Link>
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">예약 내역 ({bookings.length})</h2>
-              </div>
 
               {bookings.map((booking) => {
                 const isCanceling = cancelingBookingId === booking.id;
@@ -93,7 +90,7 @@ export default function BookingsPage() {
                 return (
                   <Link href={`/bookings/${booking.id}`} key={booking.id} passHref>
                     <Card
-                      className={`border-teal-100 hover:shadow-md transition-all duration-300 ${
+                      className={`border-gray-100 hover:shadow-md transition-all duration-300 ${
                         isCanceling ? "opacity-50 scale-95" : ""
                       }`}
                     >
@@ -110,17 +107,16 @@ export default function BookingsPage() {
                             </div>
                              <p className="text-sm text-gray-500">{booking.statusDescription}</p>
                           </div>
-                          <div className="text-center">
-                            <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mx-auto mb-1">
-                              <Hash className="w-6 h-6 text-teal-600" />
-                            </div>
-                            <span className="text-xs text-gray-500">예약번호</span>
-                          </div>
                         </div>
 
                         {/* 예약번호 강조 표시 */}
-                        <div className="bg-teal-50 rounded-lg p-3 my-3 text-center">
-                          <p className="text-sm text-gray-600 mb-1">예약번호</p>
+                        <div
+                          className="p-4 my-4 text-center text-gray-800"
+                          style={{
+                            background: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 400 200'><path fill='%23f0fdff' stroke='%2300a69c' stroke-width='4' d='M0,20 a20,20 0 0 1 20,-20 h360 a20,20 0 0 1 20,20 v30 a10,10 0 0 0 0,20 v30 a10,10 0 0 0 0,20 v30 a20,20 0 0 1 -20,20 h-360 a20,20 0 0 1 -20,-20 v-30 a10,10 0 0 0 0,-20 v-30 a10,10 0 0 0 0,-20 v-30 z'/></svg>") center/100% 100% no-repeat`,
+                          }}
+                        >
+                          <p className="text-sm mb-1">쿠폰번호</p>
                           <p className="text-2xl font-bold text-teal-600 tracking-wider">{booking.bookingNumber}</p>
                         </div>
                         

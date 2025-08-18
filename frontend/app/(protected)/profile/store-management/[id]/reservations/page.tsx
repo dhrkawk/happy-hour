@@ -52,8 +52,8 @@ export default function StoreReservationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto">
-      <header className="bg-white shadow-sm border-b border-teal-100">
+    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
+      <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="px-4 py-4">
           <div className="flex items-center gap-3">
             <Link href={`/profile/store-management/${storeId}`}>
@@ -85,7 +85,7 @@ export default function StoreReservationsPage() {
 
               {bookings.map((booking) => (
                 <Link href={`/profile/store-management/${storeId}/reservations/${booking.id}`} key={booking.id} passHref>
-                  <Card className="border-teal-100 hover:shadow-md transition-all duration-300">
+                  <Card className="border-gray-100 hover:shadow-md transition-all duration-300">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">

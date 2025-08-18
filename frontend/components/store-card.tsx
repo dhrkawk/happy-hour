@@ -9,10 +9,10 @@ type Props = {
 
 export function StoreCard({ vm }: Props) {
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow border-teal-100">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow border-gray-100">
       <CardContent className="p-0">
         <div className="flex items-center">
-          <div className="w-20 h-20 bg-gray-200 flex-shrink-0">
+          <div className="w-20 h-20 bg-gray-100 flex-shrink-0">
             <img
               src={vm.thumbnailUrl}
               alt={vm.name}
