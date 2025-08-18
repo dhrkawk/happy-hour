@@ -214,7 +214,7 @@ export default function StorePage() {
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-teal-100 relative z-10">
+      <header className="bg-white shadow-sm border-b border-gray-100 relative z-10">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -381,7 +381,7 @@ export default function StorePage() {
                   {giftSections.map(section => {
                     const timeLeft = calcTimeLeft(section.endAt);
                     return (
-                      <Card key={section.id} className="border-teal-200">
+                      <Card key={section.id} className="border-gray-100">
                         <CardContent className="p-4">
                           {/* 증정 헤더 */}
                           <div className="flex items-center justify-between mb-3">
@@ -464,7 +464,7 @@ export default function StorePage() {
                       categorizedMenus[category].map((item) => {
                         const quantity = getCartQuantity(item.id);
                         return (
-                          <Card key={item.id} className="border-teal-100">
+                          <Card key={item.id} className="border-gray-100">
                             <CardContent className="p-4 flex items-center">
                               <div className="w-20 h-20 flex-shrink-0 mr-4">
                                 <img
@@ -588,14 +588,14 @@ export default function StorePage() {
               <span className="font-bold text-lg text-teal-600">{totalPrice.toLocaleString()}원</span>
             </div>
             <Button className="w-full bg-teal-500 hover:bg-teal-600 text-white py-4 text-lg font-semibold" onClick={handleReservation}>
-              {totalPrice.toLocaleString()}원으로 예약하기
+              {totalPrice.toLocaleString()}원 쿠폰 발급받기
             </Button>
           </div>
         ) : (
           <div className="text-center">
             <p className="text-gray-500 text-sm mb-3">메뉴를 선택해주세요</p>
             <Button disabled className="w-full bg-gray-300 text-gray-500 py-4 text-lg font-semibold cursor-not-allowed">
-              메뉴 선택 후 예약 가능
+              메뉴 선택 후 쿠폰 발급 가능
             </Button>
           </div>
         )}

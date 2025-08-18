@@ -30,13 +30,13 @@ export default function HomePage() {
   const isSkeletonLoading = !isOnboardingComplete || locationLoading || storesLoading;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto relative">
+    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
       {/* 헤더 */}
-      <header className="bg-white shadow-sm border-b border-teal-100 sticky top-0 z-10">
+      <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
         <div className="px-4 pt-4 pb-3">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold text-teal-600">해피아워</h1>
+              <h1 className="text-2xl font-bold text-teal-600">아워캠퍼스</h1>
               <div className="flex items-center gap-1 text-sm text-gray-600 mt-1 truncate">
                 <MapPin className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">{locationLoading ? "위치 찾는 중..." : address || locationError}</span>
@@ -77,12 +77,12 @@ export default function HomePage() {
               <Badge
                 key={label}
                 variant="secondary"
-                className="bg-teal-100 px-3 py-1 rounded-full"
+                className="bg-white vorder-gray-700 px-3 py-1 rounded-full"
               >
                 <Button
                   variant="link"
                   className={`text-sm p-0 h-auto ${
-                    selectedSorting === label ? "text-teal-600 font-semibold" : "text-gray-500"
+                    selectedSorting === label ? "text-gray-800 font-semibold" : "text-gray-500"
                   }`}
                   onClick={() => setSelectedSorting(label)}
                 >

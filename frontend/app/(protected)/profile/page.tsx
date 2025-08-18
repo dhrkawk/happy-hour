@@ -41,9 +41,9 @@ export default function ProfilePage() {
   const storeManagementLink = user.storeData?.id ? `/profile/store-management/${user.storeData.id}` : '#'
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto">
+    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
       {/* 헤더 */}
-      <header className="bg-white shadow-sm border-b border-teal-100">
+      <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="px-4 py-4">
           <div className="flex items-center gap-3">
             <Link href="/home">
@@ -58,7 +58,7 @@ export default function ProfilePage() {
 
       <div className="px-4 py-6 space-y-6 pb-24">
         {/* 프로필 정보 */}
-        <Card className="border-teal-200">
+        <Card className="border-gray-100">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <Avatar className="w-16 h-16">
@@ -74,13 +74,13 @@ export default function ProfilePage() {
 
         {/* 이용 통계 */}
         <div className="grid grid-cols-2 gap-4">
-          <Card className="border-teal-200">
+          <Card className="border-gray-100">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-teal-600 mb-1">{userData.totalBookings}</div>
               <div className="text-sm text-gray-600">총 예약 횟수</div>
             </CardContent>
           </Card>
-          <Card className="border-teal-200">
+          <Card className="border-gray-100">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-orange-500 mb-1">{userData.totalSavings.toLocaleString()}원</div>
               <div className="text-sm text-gray-600">총 절약 금액</div>
@@ -91,7 +91,7 @@ export default function ProfilePage() {
         {/* 메뉴 리스트 */}
         <div className="space-y-4">
           <Link href="/bookings">
-            <Card className="border-teal-100 hover:shadow-md transition-shadow">
+            <Card className="border-gray-100 hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -107,7 +107,7 @@ export default function ProfilePage() {
           </Link>
 
           <Link href="https://docs.google.com/forms/d/e/1FAIpQLSfTTfAocL37kA5gMaWD-DhltIz4P2zT3t8xYIB8UsLGJQtuBA/viewform?usp=dialog" target="_blank" rel="noopener noreferrer">
-            <Card className="border-teal-100 hover:shadow-md transition-shadow">
+            <Card className="border-gray-100 hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -125,7 +125,7 @@ export default function ProfilePage() {
           {isStoreOwnerOrAdmin && (
             user.storeData?.id ? (
               <Link href={storeManagementLink}>
-                <Card className="border-teal-100 hover:shadow-md transition-shadow">
+                <Card className="border-gray-100 hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">

@@ -90,8 +90,8 @@ export default function BookingDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto">
-      <header className="bg-white shadow-sm border-b border-teal-100 sticky top-0 z-10">
+    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
+      <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
         <div className="px-4 py-4">
           <div className="flex items-center gap-3">
             <Link href="/bookings">
@@ -105,7 +105,7 @@ export default function BookingDetailPage() {
       </header>
 
       <main className="px-4 py-4 pb-24">
-        <Card className="border-teal-100 shadow-md">
+        <Card className="border-gray-100 shadow-md">
           <CardContent className="p-5">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">

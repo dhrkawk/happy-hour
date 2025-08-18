@@ -81,9 +81,9 @@ export default function StoreManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white max-w-xl mx-auto">
+    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
       {/* 헤더 */}
-      <header className="bg-white shadow-sm border-b border-teal-100">
+      <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="px-4 py-4">
           <div className="flex items-center gap-3">
             <Link href="/profile">
@@ -98,7 +98,7 @@ export default function StoreManagementPage() {
 
       <div className="px-4 py-6 space-y-4">
         <Link href={`/profile/store-management/${storeId}/menus`}>
-          <Card className="border-teal-100 hover:shadow-md transition-shadow">
+          <Card className="border-gray-100 hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -114,7 +114,7 @@ export default function StoreManagementPage() {
         </Link>
 
         <Link href={`/profile/store-management/${storeId}/discount`}>
-          <Card className="border-orange-100 hover:shadow-md transition-shadow">
+          <Card className="border-gray-100 hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -130,7 +130,7 @@ export default function StoreManagementPage() {
         </Link>
 
         <Link href={`/profile/store-management/${storeId}/gifts`}>
-          <Card className="border-yellow-100 hover:shadow-md transition-shadow">
+          <Card className="border-gray-100 hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -146,7 +146,7 @@ export default function StoreManagementPage() {
         </Link>
 
         <Link href={`/profile/store-management/${storeId}/reservations`}>
-          <Card className="border-blue-100 hover:shadow-md transition-shadow">
+          <Card className="border-gray-100 hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -162,7 +162,7 @@ export default function StoreManagementPage() {
         </Link>
 
         <Link href={`/profile/store-management/${storeId}/discount-event`}>
-          <Card className="border-orange-100 hover:shadow-md transition-shadow">
+          <Card className="border-gray-100 hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
