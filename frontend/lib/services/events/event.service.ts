@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/supabase/types';
 import { EventEntity } from '@/lib/entities/events/event.entity';
+import { EventFormViewModel } from '@/lib/viewmodels/events/event-form.viewmodel';
 
 const mapRawToEventEntity = (raw: any): EventEntity => {
     return {
@@ -54,6 +55,19 @@ export class EventService {
             throw new Error(`Failed to fetch event: ${error.message}`);
         }
         return mapRawToEventEntity(data);
+    }
+
+    // event 생성
+    async insertEventAndRelated(payload: EventFormViewModel) {
+        const { error } = await this.supabase.rpc('insert_event_and_related', {
+            event_data: payload.eventData,
+            discounts: payload.discounts,
+            gifts: payload.gifts,
+        });
+
+        if (error) {
+            throw new Error(`Failed to insert event: ${error.message}`);
+        }
     }
 
     // TODO: event 업데이트

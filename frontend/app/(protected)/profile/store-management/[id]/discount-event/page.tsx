@@ -8,12 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DiscountApiClient } from "@/lib/services/discounts/discount.api-client";
 import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
 import { DiscountFormViewModel, createDiscountFormViewModel } from "@/lib/viewmodels/discounts/discount.viewmodel";
 import { MenuListItemViewModel } from "@/lib/viewmodels/menus/menu.viewmodel";
+import { useGetStoreById } from "@/hooks/use-get-store-by-id";
+import { useAppContext } from "@/contexts/app-context";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // --- Event Form ViewModel (Placeholder) ---
 interface DiscountEventForm {
@@ -39,13 +43,17 @@ interface EventDiscountItem {
 export default function ManageDiscountEventsPage() {
   const router = useRouter();
   const { id: storeId } = useParams() as { id: string };
+  const { appState } = useAppContext();
+  const { location } = appState;
+  const { store, isLoading: isStoreLoading, error: storeError } = useGetStoreById(storeId, location.coordinates);
+
 
   const [eventForm, setEventForm] = useState<DiscountEventForm>({
     name: "",
     startDate: "",
     endDate: "",
-    startTime: "00:00",
-    endTime: "23:59",
+    startTime: "09:00",
+    endTime: "21:00",
     daysOfWeek: [],
   });
   const [eventDiscounts, setEventDiscounts] = useState<EventDiscountItem[]>([]);
@@ -56,6 +64,7 @@ export default function ManageDiscountEventsPage() {
 
   // --- Data Fetching (Menus) ---
   useEffect(() => {
+    if (!storeId) return;
     const fetchMenus = async () => {
       try {
         const menuApiClient = new MenuApiClient(storeId);
@@ -74,7 +83,11 @@ export default function ManageDiscountEventsPage() {
     setEventForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleDateTimeChange = (name: 'startDate' | 'endDate' | 'startTime' | 'endTime', value: string) => {
+  const handleDateChange = (name: 'startDate' | 'endDate', value: string) => {
+    setEventForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleTimeChange = (name: 'startTime' | 'endTime', value: string) => {
     setEventForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -135,6 +148,34 @@ export default function ManageDiscountEventsPage() {
     }
   };
 
+  if (isStoreLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 gap-6">
+        <div className="w-full max-w-2xl space-y-4">
+          <Skeleton className="h-12 w-1/2" />
+          <Skeleton className="h-8 w-3/4" />
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-8 w-1/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (storeError) {
+    return <div className="text-red-500 text-center p-4">Error loading store data: {storeError.message}</div>;
+  }
+
+  if (!store) {
+    return <div className="text-center p-4">Store not found.</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 gap-6">
       <div className="w-full max-w-2xl flex justify-between items-center">
@@ -142,7 +183,10 @@ export default function ManageDiscountEventsPage() {
           <Button variant="ghost" size="icon" onClick={() => router.push(`/profile/store-management/${storeId}`)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-2xl font-bold text-teal-600">할인 이벤트 관리</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-teal-600">{store.name}</h2>
+            <p className="text-sm text-gray-500">{store.address}</p>
+          </div>
         </div>
         <Button onClick={() => setDialogOpen(true)}>+ 할인 이벤트 등록</Button>
       </div>
@@ -181,21 +225,21 @@ export default function ManageDiscountEventsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="startDate">시작 날짜</Label>
-                    <DateTimePicker id="startDate" value={eventForm.startDate} onChange={(value) => handleDateTimeChange("startDate", value)} type="date" />
+                    <DatePicker id="startDate" value={eventForm.startDate} onChange={(value) => handleDateChange("startDate", value)} />
                   </div>
                   <div>
                     <Label htmlFor="endDate">종료 날짜</Label>
-                    <DateTimePicker id="endDate" value={eventForm.endDate} onChange={(value) => handleDateTimeChange("endDate", value)} type="date" />
+                    <DatePicker id="endDate" value={eventForm.endDate} onChange={(value) => handleDateChange("endDate", value)} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="startTime">시작 시간</Label>
-                    <DateTimePicker id="startTime" value={eventForm.startTime} onChange={(value) => handleDateTimeChange("startTime", value)} type="time" />
+                    <TimePicker id="startTime" value={eventForm.startTime} onChange={(value) => handleTimeChange("startTime", value)} />
                   </div>
                   <div>
                     <Label htmlFor="endTime">종료 시간</Label>
-                    <DateTimePicker id="endTime" value={eventForm.endTime} onChange={(value) => handleDateTimeChange("endTime", value)} type="time" />
+                    <TimePicker id="endTime" value={eventForm.endTime} onChange={(value) => handleTimeChange("endTime", value)} />
                   </div>
                 </div>
                 <div>
