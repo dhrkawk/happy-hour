@@ -58,16 +58,23 @@ export class EventService {
     }
 
     // event 생성
-    async insertEventAndRelated(payload: EventFormViewModel) {
-        const { error } = await this.supabase.rpc('insert_event_and_related', {
-            event_data: payload.eventData,
-            discounts: payload.discounts,
-            gifts: payload.gifts,
-        });
+    async registerEvent(payload: EventFormViewModel) {
+    const formattedEventData = {
+        ...payload.eventData,
+        weekdays: payload.eventData.weekdays.join(',') as any, // 핵심 변경
+    }
+    console.log("Formatted event data:", payload);
 
-        if (error) {
-            throw new Error(`Failed to insert event: ${error.message}`);
-        }
+    const { error } = await this.supabase.rpc('insert_event_and_related', {
+        event_data: formattedEventData,
+        discounts: payload.discounts,
+        gifts: payload.gifts,
+    });
+
+    if (error) {
+        console.error("Error details:", error);
+        throw new Error(`Failed to insert event: insert_event_and_related() failed: ${error.message}`);
+    }
     }
 
     // TODO: event 업데이트

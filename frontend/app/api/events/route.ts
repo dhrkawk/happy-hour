@@ -1,11 +1,9 @@
-// TODO: 모든 이벤트 조회 -> 필요없을 것 같음.
-
-// TODO: 이벤트 생성
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { EventFormViewModel } from '@/lib/viewmodels/events/event-form.viewmodel';
 import { EventService } from '@/lib/services/events/event.service';
 
+// event 생성
 export async function POST(req: NextRequest) {
   const payload: EventFormViewModel = await req.json();
 
@@ -23,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const eventService = new EventService(supabase);
-    await eventService.insertEventAndRelated(payload);
+    await eventService.registerEvent(payload);
   } catch (error: any) {
     console.error('API route error:', error);
     return NextResponse.json(

@@ -33,7 +33,7 @@ export function StoreCard({ vm }: Props) {
                 <div className="flex items-center gap-2 mt-2">
                   {vm.discountDisplay ? (
                     <Badge className="bg-semantic-discount-500 hover:bg-semantic-discount-600 text-white text-xs">
-                      {vm.discountDisplay}
+                      최대 {vm.discountDisplay}
                     </Badge>
                   ) : null}
                   {vm.partnership ? (
