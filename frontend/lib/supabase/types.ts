@@ -18,38 +18,32 @@ export type Database = {
         Row: {
           created_at: string
           discount_rate: number
-          end_time: string
           event_id: string | null
           final_price: number
           id: string
           is_active: boolean
           menu_id: string | null
           quantity: number | null
-          start_time: string
         }
         Insert: {
           created_at?: string
           discount_rate: number
-          end_time: string
           event_id?: string | null
           final_price: number
           id?: string
           is_active?: boolean
           menu_id?: string | null
           quantity?: number | null
-          start_time: string
         }
         Update: {
           created_at?: string
           discount_rate?: number
-          end_time?: string
           event_id?: string | null
           final_price?: number
           id?: string
           is_active?: boolean
           menu_id?: string | null
           quantity?: number | null
-          start_time?: string
         }
         Relationships: [
           {
@@ -400,6 +394,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      insert_event_and_related: {
+        Args: { discounts: Json[]; event_data: Json; gifts: Json[] }
+        Returns: undefined
       }
     }
     Enums: {

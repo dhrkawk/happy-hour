@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/supabase/types';
 import { EventEntity } from '@/lib/entities/events/event.entity';
+import { EventFormViewModel } from '@/lib/viewmodels/events/event-form.viewmodel';
 
 const mapRawToEventEntity = (raw: any): EventEntity => {
     return {
@@ -54,6 +55,26 @@ export class EventService {
             throw new Error(`Failed to fetch event: ${error.message}`);
         }
         return mapRawToEventEntity(data);
+    }
+
+    // event 생성
+    async registerEvent(payload: EventFormViewModel) {
+    const formattedEventData = {
+        ...payload.eventData,
+        weekdays: payload.eventData.weekdays.join(',') as any, // 핵심 변경
+    }
+    console.log("Formatted event data:", payload);
+
+    const { error } = await this.supabase.rpc('insert_event_and_related', {
+        event_data: formattedEventData,
+        discounts: payload.discounts,
+        gifts: payload.gifts,
+    });
+
+    if (error) {
+        console.error("Error details:", error);
+        throw new Error(`Failed to insert event: insert_event_and_related() failed: ${error.message}`);
+    }
     }
 
     // TODO: event 업데이트
