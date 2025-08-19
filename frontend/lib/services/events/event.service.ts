@@ -77,26 +77,8 @@ export class EventService {
     }
     }
 
-    // TODO: event 업데이트
-    // async updateEvent(eventId: string, eventData: Partial<EventFormViewModel>): Promise<EventEntity> {
-    //     const { data, error } = await this.supabase
-    //         .from('events')
-    //         .update(eventData)
-    //         .eq('id', eventId)
-    //         .select()
-    //         .single();
+    // event soft delete
+    async deleteEvent() {
 
-    //     if (error) throw new Error(`Failed to update event: ${error.message}`);
-    //     return data as EventEntity;
-    // }
-
-    // TODO: event 삭제
-    // async deleteEvent(eventId: string): Promise<void> {
-    //     const { error } = await this.supabase
-    //         .from('events')
-    //         .delete()
-    //         .eq('id', eventId);
-
-    //     if (error) throw new Error(`Failed to delete event: ${error.message}`);
-    // }
+    }
 }

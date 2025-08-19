@@ -34,6 +34,7 @@ export interface StoreEventViewModel {
   happyHourStartTime: string | null;
   happyHourEndTime: string | null;
   weekdays: string[];
+  is_active: boolean;
 }
 
 export interface StoreDetailViewModel {
@@ -120,6 +121,7 @@ export function createStoreDetailViewModel(
     happyHourStartTime: event.happyhour_start_time ?? null,
     happyHourEndTime: event.happyhour_end_time ?? null,
     weekdays: event.weekdays ?? [],
+    is_active: event.is_active,
   }));
 
   return {

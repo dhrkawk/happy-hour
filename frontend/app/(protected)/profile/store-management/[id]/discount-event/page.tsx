@@ -21,8 +21,7 @@ import { useGetStoreById } from "@/hooks/use-get-store-by-id";
 import { EventApiClient } from "@/lib/services/events/event.api-client";
 import { EventFormViewModel } from "@/lib/viewmodels/events/event-form.viewmodel";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Clock, Edit, Gift } from "lucide-react";
-import { MenuListItemViewModel } from "@/lib/viewmodels/menus/menu.viewmodel";
+import { Calendar, Clock, Edit, Gift, CheckCircle2, XCircle } from "lucide-react";
 import { weekdayLabelMap } from "@/lib/utils";
 interface EventDiscountItem {
   menuId: string;
@@ -154,37 +153,53 @@ export default function ManageDiscountEventsPage() {
 
       <div className="w-full max-w-2xl space-y-4">
         {store.events && store.events.length > 0 ? (
-          store.events.map((event) => (
-            <Card key={event.id} className="p-4 flex items-start justify-between">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mt-1">
-                  <Gift className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">{event.title}</p>
-                  <p className="text-sm text-gray-700 mt-1">{event.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(event.startDate).toLocaleDateString()} ~ {new Date(event.endDate).toLocaleDateString()}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {event.happyHourStartTime} ~ {event.happyHourEndTime}
-                    </span>
+          store.events.map((event) => {
+            const now = new Date();
+            const isActive = new Date(event.startDate) <= now && now <= new Date(event.endDate);
+
+            return (
+              <Card key={event.id} className="p-4 flex items-start justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mt-1">
+                    <Gift className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-800">{event.title}</p>
+                      {isActive ? (
+                        <span className="inline-flex items-center gap-1 text-green-600 text-xs">
+                          <CheckCircle2 className="w-4 h-4" /> 활성
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-gray-500 text-xs">
+                          <XCircle className="w-4 h-4" /> 비활성
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-700 mt-1">{event.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(event.startDate).toLocaleDateString()} ~ {new Date(event.endDate).toLocaleDateString()}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        {event.happyHourStartTime} ~ {event.happyHourEndTime}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <Edit className="w-4 h-4 mr-1" /> 수정
-                </Button>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="w-4 h-4 mr-1" /> 삭제
-                </Button>
-              </div>
-            </Card>
-          ))
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm">
+                    <Edit className="w-4 h-4 mr-1" /> 수정
+                  </Button>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="w-4 h-4 mr-1" /> 삭제
+                  </Button>
+                </div>
+              </Card>
+            );
+          })
         ) : (
           <Card className="p-6">
             <p className="text-gray-600">등록된 이벤트가 없습니다. “할인 이벤트 등록”을 눌러 추가하세요.</p>

@@ -70,6 +70,7 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
     happyhour_start_time: event.happyhour_start_time,
     happyhour_end_time: event.happyhour_end_time,
     weekdays: event.weekdays,
+    is_active: event.is_active
   }));
 
   return {
