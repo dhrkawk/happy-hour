@@ -18,9 +18,7 @@ export interface StoreMenuViewModel {
   discountPrice: number;
   description: string;
   thumbnail: string | "no-image.jpg"; // 기본 이미지 경로
-  discountId: string | null;
   discountRate: number;
-  discountEndTime: string;
   category: string;
   discountDisplayText: string;
 }
@@ -84,9 +82,7 @@ export function createStoreDetailViewModel(
       discountPrice: finalPrice ?? menu.price, // Use final_price if it exists
       description: menu.description ?? "",
       thumbnail: menu.thumbnail,
-      discountId: discount ? `${discount.discount_rate}-${discount.end_time}` : null,
       discountRate: discountRate,
-      discountEndTime: discount?.end_time ?? "",
       category: menu.category,
       discountDisplayText: discountRate > 0 ? `${discountRate}% 할인` : '',
     };
