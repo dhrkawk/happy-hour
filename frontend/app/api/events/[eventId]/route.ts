@@ -4,6 +4,8 @@
 // TODO: 특정 이벤트 삭제
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { EventService } from '@/lib/services/events/event.service';
 
 // TODO: 특정 이벤트 상세 조회
 export async function GET(req: NextRequest, context: { params: { eventId: string } }) {
@@ -43,20 +45,20 @@ export async function PATCH(req: NextRequest, context: { params: { discountId: s
 }
 
 // TODO: 특정 이벤트 삭제
-export async function DELETE(req: NextRequest, context: { params: { discountId: string } }) {
-//   const supabase = await createClient();
-//   const { data: { user } } = await supabase.auth.getUser();
-//   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function DELETE(req: NextRequest, context: { params: { eventId: string } }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-//   const { discountId } = await context.params;
-//   const discountService = new DiscountService(supabase);
+  const { eventId } = context.params;
+  const eventService = new EventService(supabase);
 
-//   try {
-//     await discountService.deleteDiscount(discountId);
-//     return NextResponse.json({ success: true }, { status: 200 });
-//   } catch (error: any) {
-//     console.error('Discount deletion failed:', error);
-//     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
-//   }
+  try {
+    await eventService.deleteEvent(eventId);
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error: any) {
+    console.error('Event deletion failed:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  }
 }
 

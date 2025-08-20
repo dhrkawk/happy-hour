@@ -33,7 +33,8 @@ export class EventService {
         const { data, error } = await this.supabase
             .from('events')
             .select('*')
-            .eq('store_id', storeId);
+            .eq('store_id', storeId)
+            .order('start_date', { ascending: true });
 
         if (error) {
             throw new Error(`Failed to fetch events: ${error.message}`);
@@ -59,44 +60,34 @@ export class EventService {
 
     // event 생성
     async registerEvent(payload: EventFormViewModel) {
-    const formattedEventData = {
-        ...payload.eventData,
-        weekdays: payload.eventData.weekdays.join(',') as any, // 핵심 변경
+        const formattedEventData = {
+            ...payload.eventData,
+            weekdays: payload.eventData.weekdays.join(',') as any, // 핵심 변경
+        }
+        console.log("Formatted event data:", payload);
+
+        const { error } = await this.supabase.rpc('insert_event_and_related', {
+            event_data: formattedEventData,
+            discounts: payload.discounts,
+            gifts: payload.gifts,
+        });
+
+        if (error) {
+            console.error("Error details:", error);
+            throw new Error(`Failed to insert event: insert_event_and_related() failed: ${error.message}`);
+        }
     }
-    console.log("Formatted event data:", payload);
 
-    const { error } = await this.supabase.rpc('insert_event_and_related', {
-        event_data: formattedEventData,
-        discounts: payload.discounts,
-        gifts: payload.gifts,
-    });
+    // event soft delete
+    async deleteEvent(eventId: string) {
+        const { error } = await this.supabase.rpc('deactivate_event_and_related', {
+            p_event_id: eventId,
+        });
 
-    if (error) {
-        console.error("Error details:", error);
-        throw new Error(`Failed to insert event: insert_event_and_related() failed: ${error.message}`);
+        if (error) {
+        console.error('이벤트 비활성화 실패:', error);
+        } else {
+        console.log('이벤트와 관련된 데이터 비활성화 완료');
+        }
     }
-    }
-
-    // TODO: event 업데이트
-    // async updateEvent(eventId: string, eventData: Partial<EventFormViewModel>): Promise<EventEntity> {
-    //     const { data, error } = await this.supabase
-    //         .from('events')
-    //         .update(eventData)
-    //         .eq('id', eventId)
-    //         .select()
-    //         .single();
-
-    //     if (error) throw new Error(`Failed to update event: ${error.message}`);
-    //     return data as EventEntity;
-    // }
-
-    // TODO: event 삭제
-    // async deleteEvent(eventId: string): Promise<void> {
-    //     const { error } = await this.supabase
-    //         .from('events')
-    //         .delete()
-    //         .eq('id', eventId);
-
-    //     if (error) throw new Error(`Failed to delete event: ${error.message}`);
-    // }
 }

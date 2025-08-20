@@ -35,9 +35,9 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
   // 유효한 gift만 필터링
   const validGifts = (store.store_gifts || []).filter(
       (gift: any) =>
-        gift.is_active &&
+        (gift.is_active &&
         gift.start_at <= now &&
-        gift.end_at >= now
+        gift.end_at >= now)
     );
 
   const gifts: StoreGift[] = (validGifts || []).map((gift: any) => ({
@@ -55,9 +55,9 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
   // 유효한 이벤트만 필터링
   const validEvents = (store.events ?? []).filter((event: any) => {
     return (
-      event.is_active &&
+      (event.is_active &&
       event.start_date <= today &&
-      event.end_date >= today
+      event.end_date >= today)
     )
   })
 
@@ -70,6 +70,7 @@ const mapRawToStoreDetailEntity = (store: any): StoreDetailEntity => {
     happyhour_start_time: event.happyhour_start_time,
     happyhour_end_time: event.happyhour_end_time,
     weekdays: event.weekdays,
+    is_active: event.is_active
   }));
 
   return {
@@ -103,8 +104,6 @@ export class StoreDetailService {
    * 특정 가게 ID로 상세 정보 조회
    */
   async getStoreDetailById(id: string): Promise<StoreDetailEntity | null> {
-    const now = new Date().toISOString();
-
     const { data, error } = await this.supabase
       .from('stores')
       .select(`

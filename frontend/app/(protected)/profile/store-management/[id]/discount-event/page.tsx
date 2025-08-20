@@ -18,11 +18,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppContext } from "@/contexts/app-context";
 import { useGetStoreById } from "@/hooks/use-get-store-by-id";
+import { useGetEventsByStoreId } from "@/hooks/use-get-events-by-store-id";
 import { EventApiClient } from "@/lib/services/events/event.api-client";
 import { EventFormViewModel } from "@/lib/viewmodels/events/event-form.viewmodel";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Clock, Edit, Gift } from "lucide-react";
-import { MenuListItemViewModel } from "@/lib/viewmodels/menus/menu.viewmodel";
+import { Calendar, Clock, Edit, Gift, CheckCircle2, XCircle } from "lucide-react";
 import { weekdayLabelMap } from "@/lib/utils";
 interface EventDiscountItem {
   menuId: string;
@@ -38,6 +38,7 @@ export default function ManageDiscountEventsPage() {
   const { id: storeId } = useParams() as { id: string };
   const { appState } = useAppContext();
   const { store, isLoading: isStoreLoading, error: storeError } = useGetStoreById(storeId, appState.location.coordinates);
+  const { events, isLoading: isLoadingEvents, error: eventsError } = useGetEventsByStoreId(storeId);
 
   const [eventTitle, setEventTitle] = useState("");
   const [eventDescription, setEventDescription] = useState("");
@@ -89,6 +90,22 @@ export default function ManageDiscountEventsPage() {
     setEventDiscounts((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm("정말로 이 이벤트를 삭제하시겠습니까?")) return;
+
+    setIsSubmitting(true);
+    setError("");
+    try {
+      const eventApiClient = new EventApiClient();
+      await eventApiClient.deleteEvent(eventId);
+      router.refresh(); // Refresh the page to show the updated event list
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmitEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeId) return setError("Store ID is missing.");
@@ -129,15 +146,15 @@ export default function ManageDiscountEventsPage() {
       await eventApiClient.registerEvent(payload);
       setDialogOpen(false);
       router.refresh();
-    } catch (err: any) {
+    } catch (err: any){ 
       setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isStoreLoading) return <Skeleton className="h-screen w-full" />;
-  if (storeError) return <div className="text-red-500">Error: {storeError.message}</div>;
+  if (isStoreLoading || isLoadingEvents) return <Skeleton className="h-screen w-full" />;
+  if (storeError || eventsError) return <div className="text-red-500">Error: {storeError?.message || eventsError?.message}</div>;
   if (!store) return <div>Store not found.</div>;
 
   return (
@@ -153,38 +170,54 @@ export default function ManageDiscountEventsPage() {
       </div>
 
       <div className="w-full max-w-2xl space-y-4">
-        {store.events && store.events.length > 0 ? (
-          store.events.map((event) => (
-            <Card key={event.id} className="p-4 flex items-start justify-between">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mt-1">
-                  <Gift className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">{event.title}</p>
-                  <p className="text-sm text-gray-700 mt-1">{event.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(event.startDate).toLocaleDateString()} ~ {new Date(event.endDate).toLocaleDateString()}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {event.happyHourStartTime} ~ {event.happyHourEndTime}
-                    </span>
+        {events && events.length > 0 ? (
+          events.map((event) => {
+            const isActive = event.is_active;
+
+            return (
+              <Card key={event.id} className="p-4 flex items-start justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mt-1">
+                    <Gift className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-800">{event.title}</p>
+                      {isActive ? (
+                        <span className="inline-flex items-center gap-1 text-green-600 text-xs">
+                          <CheckCircle2 className="w-4 h-4" /> 활성
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-gray-500 text-xs">
+                          <XCircle className="w-4 h-4" /> 비활성
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-700 mt-1">{event.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(event.start_date).toLocaleDateString()} ~ {new Date(event.end_date).toLocaleDateString()}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        {new Date(`1970-01-01T${event.happyhour_start_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ~
+                        {new Date(`1970-01-01T${event.happyhour_end_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <Edit className="w-4 h-4 mr-1" /> 수정
-                </Button>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="w-4 h-4 mr-1" /> 삭제
-                </Button>
-              </div>
-            </Card>
-          ))
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm">
+                    <Edit className="w-4 h-4 mr-1" /> 수정
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDeleteEvent(event.id)}>
+                    <Trash2 className="w-4 h-4 mr-1" /> 삭제
+                  </Button>
+                </div>
+              </Card>
+            );
+          })
         ) : (
           <Card className="p-6">
             <p className="text-gray-600">등록된 이벤트가 없습니다. “할인 이벤트 등록”을 눌러 추가하세요.</p>

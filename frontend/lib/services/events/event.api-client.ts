@@ -17,4 +17,30 @@ export class EventApiClient {
 
     return response.json();
   }
+
+  async deleteEvent(eventId: string): Promise<any> {
+    const response = await fetch(`/api/events/${eventId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to delete event');
+    }
+
+    return response.json();
+  }
+
+  async getEventByStoreId(storeId: string): Promise<any> {
+    const response = await fetch(`/api/stores/${storeId}/events`, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch events');
+    }
+
+    return response.json();
+  }
 }
