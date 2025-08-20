@@ -266,7 +266,7 @@ export default function StorePage() {
                   <div className="text-blue-900 font-semibold text-sm">제휴 매장</div>
                 </div>
                 <div className="text-blue-800 text-sm mt-2">
-                  "여기는 한양대 제휴매장이고 학생증을 제시해주시면 김지성과, 김재원을 드려요."
+                  {viewmodel.partnership}
                 </div>
               </div>
             ) : null}
@@ -290,12 +290,12 @@ export default function StorePage() {
                       )}
 
                       <div className="text-xs text-blue-700 mt-2">
-                        기간: {new Date(event.startDate).toLocaleDateString()} ~ {new Date(event.endDate).toLocaleDateString()}
+                        기간: {new Date(event.start_date).toLocaleDateString()} ~ {new Date(event.end_date).toLocaleDateString()}
                       </div>
 
-                      {event.happyHourStartTime && event.happyHourEndTime && (
+                      {event.happyhour_start_time && event.happyhour_end_time && (
                         <div className="text-xs text-blue-700">
-                          시간: {event.happyHourStartTime} ~ {event.happyHourEndTime}
+                          시간: {event.happyhour_start_time} ~ {event.happyhour_end_time}
                         </div>
                       )}
 

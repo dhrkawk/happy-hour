@@ -395,6 +395,10 @@ export type Database = {
         }
         Returns: string
       }
+      deactivate_event_and_related: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
       insert_event_and_related: {
         Args: { discounts: Json[]; event_data: Json; gifts: Json[] }
         Returns: undefined

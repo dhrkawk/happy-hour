@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppContext } from "@/contexts/app-context";
 import { useGetStoreById } from "@/hooks/use-get-store-by-id";
+import { useGetEventsByStoreId } from "@/hooks/use-get-events-by-store-id";
 import { EventApiClient } from "@/lib/services/events/event.api-client";
 import { EventFormViewModel } from "@/lib/viewmodels/events/event-form.viewmodel";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +38,7 @@ export default function ManageDiscountEventsPage() {
   const { id: storeId } = useParams() as { id: string };
   const { appState } = useAppContext();
   const { store, isLoading: isStoreLoading, error: storeError } = useGetStoreById(storeId, appState.location.coordinates);
+  const { events, isLoading: isLoadingEvents, error: eventsError } = useGetEventsByStoreId(storeId);
 
   const [eventTitle, setEventTitle] = useState("");
   const [eventDescription, setEventDescription] = useState("");
@@ -88,6 +90,22 @@ export default function ManageDiscountEventsPage() {
     setEventDiscounts((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm("정말로 이 이벤트를 삭제하시겠습니까?")) return;
+
+    setIsSubmitting(true);
+    setError("");
+    try {
+      const eventApiClient = new EventApiClient();
+      await eventApiClient.deleteEvent(eventId);
+      router.refresh(); // Refresh the page to show the updated event list
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmitEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeId) return setError("Store ID is missing.");
@@ -128,15 +146,15 @@ export default function ManageDiscountEventsPage() {
       await eventApiClient.registerEvent(payload);
       setDialogOpen(false);
       router.refresh();
-    } catch (err: any) {
+    } catch (err: any){ 
       setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isStoreLoading) return <Skeleton className="h-screen w-full" />;
-  if (storeError) return <div className="text-red-500">Error: {storeError.message}</div>;
+  if (isStoreLoading || isLoadingEvents) return <Skeleton className="h-screen w-full" />;
+  if (storeError || eventsError) return <div className="text-red-500">Error: {storeError?.message || eventsError?.message}</div>;
   if (!store) return <div>Store not found.</div>;
 
   return (
@@ -152,10 +170,9 @@ export default function ManageDiscountEventsPage() {
       </div>
 
       <div className="w-full max-w-2xl space-y-4">
-        {store.events && store.events.length > 0 ? (
-          store.events.map((event) => {
-            const now = new Date();
-            const isActive = new Date(event.startDate) <= now && now <= new Date(event.endDate);
+        {events && events.length > 0 ? (
+          events.map((event) => {
+            const isActive = event.is_active;
 
             return (
               <Card key={event.id} className="p-4 flex items-start justify-between">
@@ -180,11 +197,12 @@ export default function ManageDiscountEventsPage() {
                     <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
                       <span className="inline-flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        {new Date(event.startDate).toLocaleDateString()} ~ {new Date(event.endDate).toLocaleDateString()}
+                        {new Date(event.start_date).toLocaleDateString()} ~ {new Date(event.end_date).toLocaleDateString()}
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        {event.happyHourStartTime} ~ {event.happyHourEndTime}
+                        {new Date(`1970-01-01T${event.happyhour_start_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ~
+                        {new Date(`1970-01-01T${event.happyhour_end_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </div>
@@ -193,7 +211,7 @@ export default function ManageDiscountEventsPage() {
                   <Button variant="outline" size="sm">
                     <Edit className="w-4 h-4 mr-1" /> 수정
                   </Button>
-                  <Button variant="destructive" size="sm">
+                  <Button variant="destructive" size="sm" onClick={() => handleDeleteEvent(event.id)}>
                     <Trash2 className="w-4 h-4 mr-1" /> 삭제
                   </Button>
                 </div>

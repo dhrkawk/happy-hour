@@ -29,10 +29,10 @@ export interface StoreEventViewModel {
   id: string;
   title: string;
   description: string | null;
-  startDate: Date;
-  endDate: Date;
-  happyHourStartTime: string | null;
-  happyHourEndTime: string | null;
+  start_date: Date;
+  end_date: Date;
+  happyhour_start_time: string | null;
+  happyhour_end_time: string | null;
   weekdays: string[];
   is_active: boolean;
 }
@@ -116,10 +116,10 @@ export function createStoreDetailViewModel(
     id: event.id,
     title: event.title,
     description: event.description ?? null,
-    startDate: event.start_date,
-    endDate: event.end_date,
-    happyHourStartTime: event.happyhour_start_time ?? null,
-    happyHourEndTime: event.happyhour_end_time ?? null,
+    start_date: event.start_date,
+    end_date: event.end_date,
+    happyhour_start_time: event.happyhour_start_time ?? null,
+    happyhour_end_time: event.happyhour_end_time ?? null,
     weekdays: event.weekdays ?? [],
     is_active: event.is_active,
   }));
