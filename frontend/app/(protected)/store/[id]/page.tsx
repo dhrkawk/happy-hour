@@ -18,7 +18,6 @@ export default function StorePage() {
   const router = useRouter();
   const params = useParams();
   const storeId = params.id as string;
-  const storeApiClient = new StoreApiClient(); // Keep this for now, might be used by other functions
 
   const { appState, addToCart, updateItemQuantity, removeFromCart, getCartTotals, clearCart } = useAppContext();
   const { location, cart } = appState;
@@ -107,8 +106,6 @@ export default function StorePage() {
       discountRate: 100,
       discountPrice: 0,
       discountDisplayText: "증정",
-      discountId: `gift-${gId}`,
-      discountEndTime: gEnd || m.discountEndTime,
       thumbnail: m.thumbnail || "no-image.jpg",
     });
 
@@ -462,6 +459,7 @@ export default function StorePage() {
                   <div className="space-y-3">
                     {categorizedMenus[category].length > 0 ? (
                       categorizedMenus[category].map((item) => {
+                        console.log("Rendering item:", item); // Debugging log
                         const quantity = getCartQuantity(item.id);
                         return (
                           <Card key={item.id} className="border-gray-100">

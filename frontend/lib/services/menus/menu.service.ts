@@ -130,7 +130,7 @@ const { data, error } = await this.supabase
     }
 
     if (menuData.category !== undefined) {
-      updatePayload.category = menuData.category;
+      // updatePayload.category = menuData.category;
     }
 
     if (thumbnailUrl !== undefined) {
