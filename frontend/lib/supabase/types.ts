@@ -165,6 +165,7 @@ export type Database = {
       reservations: {
         Row: {
           created_at: string | null
+          expired_time: string
           id: string
           reserved_time: string
           status: Database["public"]["Enums"]["reservation_status"]
@@ -174,6 +175,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          expired_time?: string
           id?: string
           reserved_time: string
           status?: Database["public"]["Enums"]["reservation_status"]
@@ -183,6 +185,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          expired_time?: string
           id?: string
           reserved_time?: string
           status?: Database["public"]["Enums"]["reservation_status"]
@@ -203,40 +206,34 @@ export type Database = {
       store_gifts: {
         Row: {
           created_at: string
-          display_note: string | null
+          description: string | null
           end_at: string
-          gift_qty: number
           id: string
           is_active: boolean
-          max_redemptions: number | null
           option_menu_ids: string[] | null
-          remaining: number | null
+          quantity: number
           start_at: string
           store_id: string
         }
         Insert: {
           created_at?: string
-          display_note?: string | null
+          description?: string | null
           end_at: string
-          gift_qty?: number
           id?: string
           is_active?: boolean
-          max_redemptions?: number | null
           option_menu_ids?: string[] | null
-          remaining?: number | null
+          quantity?: number
           start_at: string
           store_id: string
         }
         Update: {
           created_at?: string
-          display_note?: string | null
+          description?: string | null
           end_at?: string
-          gift_qty?: number
           id?: string
           is_active?: boolean
-          max_redemptions?: number | null
           option_menu_ids?: string[] | null
-          remaining?: number | null
+          quantity?: number
           start_at?: string
           store_id?: string
         }
@@ -386,6 +383,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_reservation: {
+        Args: { p_reservation_id: string; p_user_id: string }
+        Returns: undefined
+      }
       create_reservation_with_items: {
         Args: {
           p_items: Json
