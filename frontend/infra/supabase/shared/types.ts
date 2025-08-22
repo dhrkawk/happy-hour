@@ -423,6 +423,18 @@ export type Database = {
         }
         Returns: string
       }
+      decrement_discount_remaining: {
+        Args: { p_by: number; p_id: string }
+        Returns: undefined
+      }
+      decrement_gift_option_remaining: {
+        Args: { p_by: number; p_option_id: string }
+        Returns: undefined
+      }
+      delete_coupon_cascade: {
+        Args: { p_coupon_id: string }
+        Returns: undefined
+      }
       delete_event_cascade: {
         Args: { p_event_id: string }
         Returns: undefined

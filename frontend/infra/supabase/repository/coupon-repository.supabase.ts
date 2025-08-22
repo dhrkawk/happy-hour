@@ -134,13 +134,7 @@ export class SupabaseCouponRepository implements CouponRepository {
    * (외래키 ON DELETE CASCADE가 없으므로)
    */
   async delete(id: Id): Promise<void> {
-    // const { error } = await this.sb.rpc('delete_coupon_cascade', { p_coupon_id: id });
-    // if (error) throw error;
-
-    // // 대안(비-RPC): 두 쿼리 순차 실행 (동시성/실패 롤백 취약)
-    const { error: e1 } = await this.sb.from('coupon_items').delete().eq('coupon_id', id);
-    if (e1) throw e1;
-    const { error: e2 } = await this.sb.from('coupons').delete().eq('id', id);
-    if (e2) throw e2;
+    const { error } = await this.sb.rpc('delete_coupon_cascade', { p_coupon_id: id });
+    if (error) throw error;
   }
 }

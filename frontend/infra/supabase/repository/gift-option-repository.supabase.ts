@@ -110,23 +110,13 @@ export class SupabaseGiftOptionRepository implements GiftOptionRepository {
    *   await sb.rpc('decrement_gift_option_remaining', { p_id: id, p_by: by });
    */
   async decrementRemaining(id: Id, by: number): Promise<void> {
-    // if (by <= 0) return;
+    if (by <= 0) return;
 
     // // RPC 권장
-    // const { error } = await this.sb.rpc('decrement_gift_option_remaining', {
-    //   p_id: id,
-    //   p_by: by,
-    // });
-    // if (error) throw error;
-
-    // // (대안: 단순 낙관적 업데이트 — 동시성에 취약하므로 비권장)
-    const current = await this.getById(id);
-    if (!current) throw new Error('GiftOption not found');
-    const next = Math.max(0, (current.remaining ?? 0) - by);
-    const { error: err2 } = await this.sb
-      .from('gift_options')
-      .update({ remaining: next } satisfies Partial<Update>)
-      .eq('id', id);
-    if (err2) throw err2;
+    const { error } = await this.sb.rpc('decrement_gift_option_remaining', {
+      p_option_id: id,
+      p_by: by,
+    });
+    if (error) throw error;
   }
 }

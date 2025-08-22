@@ -160,19 +160,9 @@ export class SupabaseDiscountRepository implements DiscountRepository {
    * $$ security definer;
    */
   async decrementRemaining(id: Id, by: number): Promise<void> {
-    // if (by <= 0) return;
-    // const { error } = await this.sb.rpc('decrement_discount_remaining', { p_id: id, p_by: by });
-    // if (error) throw error;
-
-    // // (대안 — 동시성 취약)
-    const cur = await this.getById(id);
-    if (!cur) throw new Error('Discount not found');
-    const next = Math.max(0, (cur.remaining ?? 0) - by);
-    const { error: err2 } = await this.sb
-      .from('discounts')
-      .update({ remaining: next } satisfies Partial<Update>)
-      .eq('id', id);
-    if (err2) throw err2;
+    if (by <= 0) return;
+    const { error } = await this.sb.rpc('decrement_discount_remaining', { p_id: id, p_by: by });
+    if (error) throw error;
   }
 
   async delete(id: Id): Promise<void> {
