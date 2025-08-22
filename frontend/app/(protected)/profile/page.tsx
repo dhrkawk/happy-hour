@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import BottomNavigation from "@/components/bottom-navigation"
 import { useUser } from  "@/hooks/use-user"
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/infra/supabase/supabase/client"
 
 export default function ProfilePage() {
   const handleLogout = async () => {

@@ -6,7 +6,7 @@ import { MenuApiClient } from '@/lib/services/menus/menu.api-client';
 import { StoreService } from '@/lib/services/stores/store.service';
 import { MenuListItemViewModel } from '@/lib/viewmodels/menus/menu.viewmodel';
 import { Button } from "@/components/ui/button";
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/infra/supabase/shared/server';
 
 interface DiscountPageProps {
   params: {

@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/infra/supabase/shared/client";
 import { useState, useEffect } from "react";
 
 export function useOnboardingCheck() {

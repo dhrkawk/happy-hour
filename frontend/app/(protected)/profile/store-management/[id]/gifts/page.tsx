@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/infra/supabase/shared/client";
 import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
 import { MenuListItemViewModel } from "@/lib/viewmodels/menus/menu.viewmodel";
 import { Gift, Calendar, Clock, Edit, Trash2, CheckCircle2, XCircle, ArrowLeft } from "lucide-react"; // Added ArrowLeft

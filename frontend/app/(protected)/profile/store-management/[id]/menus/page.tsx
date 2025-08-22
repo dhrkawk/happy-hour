@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { MenuApiClient } from "@/lib/services/menus/menu.api-client";
 import { StoreService } from "@/lib/services/stores/store.service";
 import { MenuFormViewModel, MenuListItemViewModel } from "@/lib/viewmodels/menus/menu.viewmodel";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/infra/supabase/shared/client";
 import { CategoryManagementDialog } from "@/components/category-management-dialog";
 
 export default function ManageMenusPage() {

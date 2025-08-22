@@ -1,5 +1,5 @@
 // app/(protected)/layout.tsx
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/infra/supabase/shared/server'
 import { redirect } from 'next/navigation'
 
 export default async function ProtectedLayout({
