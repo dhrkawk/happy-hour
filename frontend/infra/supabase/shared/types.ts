@@ -410,7 +410,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_coupon_with_items: {
+        Args: { p_coupon: Json; p_items: Json }
+        Returns: string
+      }
+      create_event_aggregate: {
+        Args: {
+          p_discounts: Json
+          p_event: Json
+          p_gift_groups: Json
+          p_gift_options: Json
+        }
+        Returns: string
+      }
+      delete_event_cascade: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
+      delete_gift_group_cascade: {
+        Args: { p_group_id: string }
+        Returns: undefined
+      }
+      replace_event_discounts: {
+        Args: { p_discounts: Json; p_event_id: string }
+        Returns: undefined
+      }
+      upsert_event_gifts: {
+        Args: { p_event_id: string; p_groups: Json; p_options: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       coupon_status: "expired" | "cancelled" | "available"

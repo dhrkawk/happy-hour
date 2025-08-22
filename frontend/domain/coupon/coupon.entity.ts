@@ -1,7 +1,7 @@
 // domain/coupon/coupon.entity.ts
 import { Guard } from '../shared/guard';
 
-export type CouponStatus = 'pending' | 'approved' | 'used' | 'canceled' | string;
+export type CouponStatus = 'expired' | 'cancelled' | 'available' | undefined;
 
 export class Coupon {
   private constructor(
