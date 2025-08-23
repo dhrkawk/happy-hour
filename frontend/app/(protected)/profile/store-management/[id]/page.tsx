@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
-import { StoreEntity } from "@/lib/entities/stores/store.entity"
+import { Store } from "@/domain/store/store.entity"
 
 import { useParams } from "next/navigation";
 
@@ -14,7 +14,7 @@ export default function StoreManagementPage() {
   const params = useParams();
   const storeId = params.id as string;
 
-  const [storeData, setStoreData] = useState<StoreEntity | null>(null)
+  const [storeData, setStoreData] = useState<Store | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 

@@ -94,9 +94,28 @@ export class SupabaseStoreRepository implements StoreRepository {
     return this.list({ ownerId }, page, { field: 'created_at', order: 'desc' });
   }
 
-  async save(store: Store): Promise<void> {
-    const row = store.toRow() as StoreInsert;
-    const { error } = await this.sb.from('stores').upsert(row, { onConflict: 'id' });
+  async create(input: {
+    name: string; address: string; lat: number; lng: number; phone: string;
+    category?: string; store_thumbnail: string; owner_id: string;
+    menu_category?: string[] | null; partnership?: string | null;
+    is_active?: boolean; created_at?: string | Date;
+  }): Promise<string> {
+    const row: StoreInsert = Store.toInsertRow(input);
+    const { data, error } = await this.sb
+      .from('stores')
+      .insert(row)
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data.id;
+  }
+
+  async update(store: Store): Promise<void> {
+    const row: StoreUpdate = store.toUpdateRow();
+    const { error } = await this.sb
+      .from('stores')
+      .update(row)
+      .eq('id', store.id);
     if (error) throw error;
   }
 

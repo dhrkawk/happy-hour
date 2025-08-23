@@ -43,8 +43,32 @@ export class Store {
     );
   }
 
-  /** Entity → DB upsert row(snake_case) */
-  toRow() {
+  // Insert용 toRow (id 없음)
+  static toInsertRow(i: {
+    name: string; address: string; lat: number; lng: number; phone: string;
+    category?: string; store_thumbnail: string; owner_id: string;
+    menu_category?: string[] | null; partnership?: string | null; created_at?: string | Date;
+    is_active?: boolean;
+  }) {
+    return {
+      // id 없음! DB가 생성
+      name: i.name,
+      address: i.address,
+      lat: i.lat,
+      lng: i.lng,
+      phone: i.phone,
+      category: i.category ?? '',
+      store_thumbnail: i.store_thumbnail,
+      owner_id: i.owner_id,
+      menu_category: i.menu_category ?? [],
+      partnership: i.partnership ?? null,
+      created_at: (i.created_at ?? new Date().toISOString()) as string,
+      is_active: i.is_active ?? true,
+    };
+  }
+
+  // Update용 toRow (id 포함)
+  toUpdateRow() {
     return {
       id: this.id,
       name: this.name,
@@ -52,13 +76,13 @@ export class Store {
       lat: this.lat,
       lng: this.lng,
       phone: this.phone,
-      created_at: this.createdAt,
       category: this.category,
-      is_active: this.isActive,           // ← camel → snake
       store_thumbnail: this.storeThumbnail,
       owner_id: this.ownerId,
       menu_category: this.menuCategory,
-      partnership: this.partnership
+      partnership: this.partnership,
+      is_active: this.isActive,
+      created_at: this.createdAt,
     };
   }
 

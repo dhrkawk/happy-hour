@@ -1,86 +1,64 @@
-"use client";
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+// hooks/use-create-store.ts
+'use client';
 
-// Define the type for the form state
-interface StoreFormState {
-  name: string;
-  category: string;
-  address: string;
-  lat: number;
-  lng: number;
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { storeSubmitSchema, type StoreForm } from '@/app/(protected)/profile/store-registration/store.form';
+import { createClient } from '@/infra/supabase/shared/client';
+
+type CreateStoreResponse = { id: string };
+const BUCKET = 'store-thumbnails';
+
+async function uploadStoreThumbnail(file: File): Promise<string> {
+  const sb = createClient();
+  const ext = file.name.split('.').pop() || 'jpg';
+  const path = `stores/${crypto.randomUUID()}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, {
+    upsert: false,
+    cacheControl: '3600',
+    contentType: file.type || undefined,
+  });
+  if (error) throw error;
+  const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
 }
 
-export function useCreateStore() {
-  const router = useRouter();
-  const [form, setForm] = useState<StoreFormState>({
-    name: "",
-    category: "",
-    address: "",
-    lat: 0,
-    lng: 0,
-  });
-  const [storeThumbnail, setStoreThumbnail] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+export function useCreateStore(opts?: {
+  onSuccess?: (id: string) => void;
+  onError?: (err: Error) => void;
+}) {
+  const qc = useQueryClient();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  return useMutation({
+    mutationKey: ['stores', 'create'],
+    // form + file을 받아서 처리
+    mutationFn: async ({ form, file }: { form: StoreForm; file?: File | null }) => {
+      let payload = { ...form };
 
-  const handleAddressSelect = useCallback((address: string, lat: number, lng: number) => {
-    setForm((prevForm) => ({ ...prevForm, address, lat, lng }));
-  }, []);
+      // 1) 파일이 있으면 먼저 업로드해 URL 확보
+      if (file) {
+        const url = await uploadStoreThumbnail(file);
+        payload.storeThumbnail = url;
+      }
 
-  const handleStoreThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setStoreThumbnail(e.target.files[0]);
-    }
-  };
+      // 2) 최종 검증 (이때는 URL이 반드시 존재)
+      payload = storeSubmitSchema.parse(payload);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const formData = new FormData();
-    formData.append("name", form.name);
-    formData.append("category", form.category);
-    formData.append("address", form.address);
-    formData.append("lat", form.lat.toString());
-    formData.append("lng", form.lng.toString());
-    if (storeThumbnail) {
-      formData.append("store_thumbnail", storeThumbnail);
-    }
-
-    try {
-      // NOTE: The API endpoint seems to be `/api/stores` based on the backend structure,
-      // but the original code used `/api/stores-discounts`. I'll use the original one
-      // for now, but this might need to be corrected.
-      const res = await fetch("/api/stores", {
-        method: "POST",
-        body: formData,
+      // 3) API 호출
+      const res = await fetch('/api/stores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "가게 등록에 실패했습니다.");
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error ?? 'Failed to create store');
       }
-      router.push("/profile");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    form,
-    loading,
-    error,
-    handleChange,
-    handleAddressSelect,
-    handleStoreThumbnailChange,
-    handleSubmit,
-    storeThumbnail
-  };
+      return (await res.json()) as CreateStoreResponse;
+    },
+    onSuccess: async ({ id }) => {
+      await qc.invalidateQueries({ queryKey: ['stores', 'list'] });
+      opts?.onSuccess?.(id);
+    },
+    onError: (e) => opts?.onError?.(e as Error),
+  });
 }

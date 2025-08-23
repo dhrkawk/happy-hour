@@ -30,8 +30,14 @@ export interface StoreRepository {
   /** 페이지네이션용 총개수 (필요 시) */
   count(filter?: StoreFilter): Promise<number>;
 
-  /** 생성/수정(부분 업데이트 허용) — 어댑터에서 upsert(row) 사용 */
-  save(store: Store): Promise<void>;
+  create(input: {
+    name: string; address: string; lat: number; lng: number; phone: string;
+    category?: string; store_thumbnail: string; owner_id: string;
+    menu_category?: string[] | null; partnership?: string | null;
+    is_active?: boolean; created_at?: string | Date;
+  }): Promise<string>;          // ← DB가 만든 id 반환
+
+  update(store: Store): Promise<void>; // ← id 필수
 
   /** 삭제(소프트 삭제가 필요하면 별도 메서드로 분리) */
   delete(id: Id): Promise<void>;
