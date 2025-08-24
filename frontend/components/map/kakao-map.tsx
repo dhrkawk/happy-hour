@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { StoreListItemVM } from '@/hooks/stores/store-list.viewmodel'
+import type { StoreListItemVM } from '@/lib/store-list-vm'
 import { SEMANTIC_COLORS } from '@/lib/constants/colors'
 
 export const MARKER_COLOR_DEFAULT = SEMANTIC_COLORS.default[500]

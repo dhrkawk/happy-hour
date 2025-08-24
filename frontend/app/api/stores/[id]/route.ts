@@ -31,6 +31,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   // discounts 또는 gifts를 요구하면 aggregate 모드로 이벤트를 조립
   const aggregate = needDiscount || needGifts;
 
+  const {id} = await params;
   const sb = await createClient();
   const storeRepo = new SupabaseStoreRepository(sb);
   const menuRepo  = new SupabaseStoreMenuRepository(sb);
@@ -38,19 +39,19 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
   try {
     // 1) 스토어 단건
-    const store = await storeRepo.getById(params.id);
+    const store = await storeRepo.getById(id);
     if (!store) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     // 2) 선택 포함
     const tasks: Promise<any>[] = [];
-    if (needMenus) tasks.push(menuRepo.listByStore(params.id));
+    if (needMenus) tasks.push(menuRepo.listByStore(id));
     else tasks.push(Promise.resolve(null));
 
     if (needEvents) {
       if (aggregate) {
         tasks.push(
           eventAggRepo.listAggregatesByStore(
-            params.id,
+            id,
             undefined,
             { field: 'created_at', order: 'desc' },
             {
@@ -64,7 +65,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       } else {
         tasks.push(
           eventAggRepo.listEventsByStore(
-            params.id,
+            id,
             undefined,
             { field: 'created_at', order: 'desc' },
             {

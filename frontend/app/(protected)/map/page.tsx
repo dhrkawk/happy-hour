@@ -16,7 +16,7 @@ import { LocationErrorBanner } from "@/components/location-error-banner";
 import { useAppContext } from "@/contexts/app-context";
 import { useOnboardingCheck } from "@/hooks/use-onboarding-check";
 import { useGetStoreList } from "@/hooks/stores/use-get-store-list";
-import { buildStoreListVM, type SortMode } from "@/hooks/stores/store-list.viewmodel";
+import { buildStoreListVM, type SortMode } from "@/lib/store-list-vm";
 
 export default function MapPage() {
   const { appState, fetchLocation } = useAppContext();
