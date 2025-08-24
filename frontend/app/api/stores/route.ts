@@ -4,7 +4,6 @@ import { createClient } from '@/infra/supabase/shared/server';
 import { SupabaseStoreRepository } from '@/infra/supabase/repository/store-repository.supabase';
 import { SupabaseEventAggregateRepository } from '@/infra/supabase/repository/event-repository.supabase';
 import { z } from 'zod';
-import { Store } from '@/domain/store/store.entity';
 
 // ----- GET -----
 const parseBool = (v?: string | null) => v === '1' || v === 'true' || v === 'on';
@@ -14,14 +13,12 @@ const parseIntOr = (v: string | null, d: number) => {
 const parseCSV = (v?: string | null) =>
   (v ?? '').split(',').map(s => s.trim()).filter(Boolean);
 
-// (선택) Store → DTO
 function toStoreDto(s: {
   id: string; name: string; address: string; lat: number; lng: number;
   phone: string; createdAt: string; category: string; isActive: boolean;
   storeThumbnail: string; ownerId: string; menuCategory: string[]; partnership: string | null;
 }) { return { ...s }; }
 
-// GET /api/stores?...&withStats=events,activeEvents
 export async function GET(req: Request) {
   const url = new URL(req.url);
 
@@ -38,9 +35,11 @@ export async function GET(req: Request) {
   const field = (fieldRaw === 'name' ? 'name' : 'created_at') as 'created_at' | 'name';
   const order = (orderRaw === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc';
 
-  const withStats = new Set(parseCSV(url.searchParams.get('withStats')));
-  const needHasEvents        = withStats.has('events');
-  const needHasActiveEvents  = withStats.has('activeEvents');
+  const include = new Set(parseCSV(url.searchParams.get('include'))); // include=events
+  const includeEvents = include.has('events');
+
+  const eventIsActive = url.searchParams.get('eventIsActive');
+  const onlyActiveEvents = eventIsActive == null ? true : parseBool(eventIsActive); // 기본 활성만
 
   const sb = await createClient();
   const storeRepo = new SupabaseStoreRepository(sb);
@@ -61,32 +60,19 @@ export async function GET(req: Request) {
 
     const data = stores.map(toStoreDto);
 
-    // ---- 여기서 “레포지토리”를 통해 이벤트 존재 여부 계산 ----
-    if (data.length && (needHasEvents || needHasActiveEvents)) {
-      // 각 스토어별 카운트를 레포에서 가져와서 플래그로 변환
-      const tasks = data.map(async (s) => {
-        const [allCnt, activeCnt] = await Promise.all([
-          needHasEvents
-            ? eventAggRepo.countEventsByStore(s.id)  // 전체
-            : Promise.resolve(0),
-          needHasActiveEvents
-            ? eventAggRepo.countEventsByStore(s.id, { isActive: true }) // 활성만
-            : Promise.resolve(0),
-        ]);
-        return { id: s.id, hasEvents: allCnt > 0, hasActiveEvents: activeCnt > 0 };
-      });
+    if (includeEvents && data.length) {
+      const storeIds = data.map(s => s.id);
+      const grouped = await eventAggRepo.listEventsByStoreIds(
+        storeIds,
+        { field: 'created_at', order: 'desc' },
+        { isActive: onlyActiveEvents ? true : undefined }
+      );
 
-      const stats = await Promise.all(tasks);
-      const byId = new Map(stats.map(x => [x.id, x]));
-
-      for (const s of data as Array<typeof data[number] & { hasEvents?: boolean; hasActiveEvents?: boolean }>) {
-        const st = byId.get(s.id);
-        if (!st) continue;
-        if (needHasEvents) s.hasEvents = st.hasEvents;
-        if (needHasActiveEvents) s.hasActiveEvents = st.hasActiveEvents;
+      const byId = new Map(grouped.map(g => [g.storeId, g.events]));
+      for (const s of data as Array<typeof data[number] & { events?: any[] }>) {
+        s.events = byId.get(s.id) ?? [];
       }
     }
-    // ------------------------------------------------------
 
     const meta = {
       total,
@@ -95,12 +81,14 @@ export async function GET(req: Request) {
       hasMore: offset + data.length < total,
       sort: { field, order },
       filter,
-      withStats: Array.from(withStats),
+      include: Array.from(include),
+      eventFilter: includeEvents ? { isActive: onlyActiveEvents } : undefined,
     };
 
     return NextResponse.json({ data, meta });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Internal error' }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 

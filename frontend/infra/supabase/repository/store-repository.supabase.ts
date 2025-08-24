@@ -94,6 +94,7 @@ export class SupabaseStoreRepository implements StoreRepository {
     return this.list({ ownerId }, page, { field: 'created_at', order: 'desc' });
   }
 
+  // TODO: RLS 정책 넣어주기
   async create(input: {
     name: string; address: string; lat: number; lng: number; phone: string;
     category?: string; store_thumbnail: string; owner_id: string;

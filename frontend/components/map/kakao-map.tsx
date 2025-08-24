@@ -1,18 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { StoreCardViewModel } from '@/lib/viewmodels/store-card.viewmodel'
-import { SEMANTIC_COLORS } from '@/lib/constants/colors';
+import type { StoreListItemVM } from '@/hooks/stores/store-list.viewmodel'
+import { SEMANTIC_COLORS } from '@/lib/constants/colors'
 
-export const MARKER_COLOR_DEFAULT = SEMANTIC_COLORS.default[500];   // Gray-400
-export const MARKER_COLOR_DISCOUNT = SEMANTIC_COLORS.discount[500];  // Orange-500 (해피아워)
-export const MARKER_COLOR_PARTNERSHIP = SEMANTIC_COLORS.partnership[500]; // Blue-500 (제휴 매장)
-export const MARKER_COLOR_USER = SEMANTIC_COLORS.user[500]; // Blue-500 (사용자 위치)
-
-const getMarkerColor = (store: StoreCardViewModel) => {
-  if (store.maxDiscountRate > 0) return MARKER_COLOR_DISCOUNT;
-  return MARKER_COLOR_DEFAULT;
-};
+export const MARKER_COLOR_DEFAULT = SEMANTIC_COLORS.default[500]
+export const MARKER_COLOR_DISCOUNT = SEMANTIC_COLORS.discount[500]
+export const MARKER_COLOR_USER = SEMANTIC_COLORS.user[500]
 
 declare global {
   interface Window {
@@ -20,204 +14,212 @@ declare global {
   }
 }
 
-interface KakaoMapProps {
-  userLocation: {
-    lat: number
-    lng: number
-  } | null
-  stores: StoreCardViewModel[]
+type KakaoMapProps = {
+  userLocation: { lat: number; lng: number } | null
+  stores: StoreListItemVM[]
   selectedStoreId: string | null
   onSelectStore: (storeId: string | null) => void
 }
 
-export default function KakaoMap({ userLocation, stores, selectedStoreId, onSelectStore }: KakaoMapProps) {
+const getMarkerColor = (store: StoreListItemVM) => {
+  const hasActiveOrAnyEvent = (store.events?.length ?? 0) > 0
+  return hasActiveOrAnyEvent ? MARKER_COLOR_DISCOUNT : MARKER_COLOR_DEFAULT
+}
+
+export default function KakaoMap({
+  userLocation,
+  stores,
+  selectedStoreId,
+  onSelectStore,
+}: KakaoMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const userMarkerInstance = useRef<any>(null)
-  const storeMarkersInstance = useRef<any[]>([])
+  const storeMarkersInstance = useRef<
+    Array<{ marker: any; nameOverlay: any; detailOverlay?: any }>
+  >([])
   const [isMapReady, setIsMapReady] = useState(false)
 
   const initMap = (lat: number, lng: number) => {
     if (!mapContainer.current) return
-
     const center = new window.kakao.maps.LatLng(lat, lng)
-    const mapOption = {
-      center: center,
-      level: 3,
-    }
+    const mapOption = { center, level: 3 }
     mapInstance.current = new window.kakao.maps.Map(mapContainer.current, mapOption)
     setIsMapReady(true)
   }
 
+  // SDK 로딩 + 초기화
   useEffect(() => {
-    if (window.kakao && window.kakao.maps) {
-      if (!mapInstance.current && userLocation) {
-        initMap(userLocation.lat, userLocation.lng)
-      }
+    if (window.kakao?.maps) {
+      if (!mapInstance.current && userLocation) initMap(userLocation.lat, userLocation.lng)
       return
     }
-
     const script = document.createElement('script')
     script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAPS_APP_KEY}&autoload=false`
     script.async = true
     script.onload = () => {
       window.kakao.maps.load(() => {
-        if (!mapInstance.current && userLocation) {
-          initMap(userLocation.lat, userLocation.lng)
-        }
+        if (!mapInstance.current && userLocation) initMap(userLocation.lat, userLocation.lng)
       })
     }
     document.head.appendChild(script)
   }, [userLocation])
 
-  // 사용자 위치 마커 업데이트
+  // 사용자 위치 마커
   useEffect(() => {
     if (!mapInstance.current || !userLocation || !isMapReady) return
-
-    const userPosition = new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng)
+    const userPos = new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng)
 
     // 지도 중심 이동
-    mapInstance.current.panTo(userPosition)
+    mapInstance.current.panTo(userPos)
 
-    // 마커 생성 또는 위치 업데이트
     if (userMarkerInstance.current) {
-      userMarkerInstance.current.setPosition(userPosition)
-    } else {
-      const svgMarker = `
+      userMarkerInstance.current.setPosition(userPos)
+      return
+    }
+
+    const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
         <circle cx="18" cy="18" r="16" fill="${MARKER_COLOR_USER}" stroke="white" stroke-width="2" />
         <circle cx="18" cy="18" r="6" fill="white" />
-      </svg>`;
-      const markerImageSrc = `data:image/svg+xml;base64,${btoa(svgMarker)}`
-      const imageSize = new window.kakao.maps.Size(20, 20)
-      const imageOption = { offset: new window.kakao.maps.Point(10, 10) }
+      </svg>`
+    const markerImgSrc = `data:image/svg+xml;base64,${btoa(svg)}`
+    const imageSize = new window.kakao.maps.Size(20, 20)
+    const imageOption = { offset: new window.kakao.maps.Point(10, 10) }
+    const image = new window.kakao.maps.MarkerImage(markerImgSrc, imageSize, imageOption)
 
-      const markerImage = new window.kakao.maps.MarkerImage(markerImageSrc, imageSize, imageOption)
+    const marker = new window.kakao.maps.Marker({
+      position: userPos,
+      image,
+      zIndex: 20,
+    })
+    marker.setMap(mapInstance.current)
+    userMarkerInstance.current = marker
+  }, [userLocation, isMapReady])
 
+  // 스토어 마커
+  useEffect(() => {
+    if (!mapInstance.current || !isMapReady) return
+
+    // 기존 제거
+    storeMarkersInstance.current.forEach(({ marker, nameOverlay, detailOverlay }) => {
+      marker.setMap(null)
+      nameOverlay.setMap(null)
+      detailOverlay?.setMap(null)
+    })
+    storeMarkersInstance.current = []
+
+    stores.forEach((store) => {
+      if (!store.lat || !store.lng) return
+
+      const pos = new window.kakao.maps.LatLng(store.lat, store.lng)
+      const fillColor = getMarkerColor(store)
+
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40" fill="none">
+          <path d="M16 0C7.16 0 0 7.16 0 16C0 26 16 40 16 40C16 40 32 26 32 16C32 7.16 24.84 0 16 0Z" fill="${fillColor}"/>
+          <circle cx="16" cy="16" r="6" fill="white"/>
+        </svg>`
+      const imgSrc = `data:image/svg+xml;base64,${btoa(svg)}`
+      const imgSize = new window.kakao.maps.Size(32, 32)
+      const imgOpt = { offset: new window.kakao.maps.Point(16, 20) }
+      const img = new window.kakao.maps.MarkerImage(imgSrc, imgSize, imgOpt)
+
+      // 1) 마커
       const marker = new window.kakao.maps.Marker({
-        position: userPosition,
-        image: markerImage,
+        position: pos,
+        image: img,
+        map: mapInstance.current,
+      })
+
+      // 2) 항상 표시되는 이름 오버레이 (제휴라면 🤝 접두)
+      const nameEl = document.createElement('div')
+      const displayName = store.partnershipText ? `🤝 ${store.name}` : store.name
+      nameEl.innerHTML = `
+        <div style="
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          color: black;
+          font-weight: bold;
+          white-space: nowrap;
+          text-shadow:
+            -1px -1px 0 white,
+             1px -1px 0 white,
+            -1px  1px 0 white,
+             1px  1px 0 white;
+        ">
+          ${displayName}
+        </div>`
+      const nameOverlay = new window.kakao.maps.CustomOverlay({
+        content: nameEl,
+        position: pos,
+        yAnchor: -0.3,
+        zIndex: 20,
+      })
+      nameOverlay.setMap(mapInstance.current)
+
+      // 3) hover 상세 오버레이 (첫 이벤트 요약)
+      const firstEvent = store.events?.[0]
+      const maxRate = (firstEvent as any)?.maxDiscountRate // 확장된 VM에 있을 때 표시
+      const detailEl = document.createElement('div')
+      detailEl.innerHTML = `
+        <div style="
+          background: white;
+          border: 1px solid #ddd;
+          padding: 10px;
+          border-radius: 8px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+          font-size: 12px;
+          width: 220px;
+          line-height: 1.4;
+        ">
+          <strong style="color:#0f766e">${store.name}</strong><br/>
+          ${store.categoryText ? `카테고리: ${store.categoryText}<br/>` : ''}
+          ${store.distanceText ? `거리: ${store.distanceText}<br/>` : ''}
+          ${
+            firstEvent
+              ? `
+                <hr style="margin:6px 0;border:none;border-top:1px solid #eee" />
+                <div><strong>${firstEvent.title}</strong></div>
+                <div>${firstEvent.periodText}</div>
+                ${
+                  firstEvent.happyHourText
+                    ? `<div>해피아워: ${firstEvent.happyHourText}</div>`
+                    : ''
+                }
+                ${
+                  typeof maxRate === 'number'
+                    ? `<div style="color:#ef4444">최대 ${maxRate}% 할인</div>`
+                    : ''
+                }
+              `
+              : '<div>진행 중인 이벤트 없음</div>'
+          }
+        </div>`
+      const detailOverlay = new window.kakao.maps.CustomOverlay({
+        content: detailEl,
+        position: pos,
+        yAnchor: 1.1,
         zIndex: 20,
       })
 
-      marker.setMap(mapInstance.current)
-      userMarkerInstance.current = marker
-    }
-  }, [userLocation, mapInstance.current, isMapReady])
+      window.kakao.maps.event.addListener(marker, 'mouseover', () => {
+        detailOverlay.setMap(mapInstance.current)
+      })
+      window.kakao.maps.event.addListener(marker, 'mouseout', () => {
+        detailOverlay.setMap(null)
+      })
 
-  // 가게 마커 업데이트
-  useEffect(() => {
-    if (!mapInstance.current || !stores || !isMapReady) return
+      // 클릭 → 선택 + 중심 이동
+      window.kakao.maps.event.addListener(marker, 'click', () => {
+        mapInstance.current.panTo(pos)
+        onSelectStore(store.id)
+      })
 
-    // 기존 마커 제거
-    storeMarkersInstance.current.forEach(({ marker, nameOverlay, detailOverlay }) => {
-      marker.setMap(null);
-      nameOverlay.setMap(null);
-      detailOverlay?.setMap(null); // hover되기 전일 수도 있으므로 optional
-    });
-    storeMarkersInstance.current = [];
-
-    stores.forEach(store => {
-      if (store.lat && store.lng) {
-        const storePosition = new window.kakao.maps.LatLng(store.lat, store.lng);
-        const fillColor = getMarkerColor(store)
-        const width = 32
-        const height = 40
-
-        const storeSvgMarker = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 32 40" fill="none">
-          <path d="M16 0C7.16 0 0 7.16 0 16C0 26 16 40 16 40C16 40 32 26 32 16C32 7.16 24.84 0 16 0Z" fill="${fillColor}"/>
-          <circle cx="16" cy="16" r="6" fill="white"/>
-        </svg>`;
-        const storeMarkerImageSrc = `data:image/svg+xml;base64,${btoa(storeSvgMarker)}`
-        const storeImageSize = new window.kakao.maps.Size(32, 32)
-        const storeImageOption = { offset: new window.kakao.maps.Point(16, 20) }
-
-
-        const storeMarkerImage = new window.kakao.maps.MarkerImage(storeMarkerImageSrc, storeImageSize, storeImageOption)
-    
-        // 📍 1. 마커 생성
-        const marker = new window.kakao.maps.Marker({
-          position: storePosition,
-          image: storeMarkerImage,
-          map: mapInstance.current,
-        });
-    
-        // 🟦 2. 항상 표시되는 "이름" 오버레이
-        // 오버레이 이름 + 🤝 이모지 추가
-        const nameLabel = document.createElement("div")
-        const displayName = store.partnership ? `🤝 ${store.name}` : store.name
-        nameLabel.innerHTML = `
-          <div style="
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            color: black;
-            font-weight: bold;
-            white-space: nowrap;
-            text-shadow:
-              -1px -1px 0 white,
-               1px -1px 0 white,
-              -1px  1px 0 white,
-               1px  1px 0 white;
-          ">
-            ${displayName}
-          </div>`;
-        const nameOverlay = new window.kakao.maps.CustomOverlay({
-          content: nameLabel,
-          position: storePosition,
-          yAnchor: -0.3,
-          zIndex: 20,
-        });
-        nameOverlay.setMap(mapInstance.current);
-    
-        // 🟥 3. hover 시 표시되는 상세 오버레이
-        const detailBox = document.createElement("div");
-        detailBox.innerHTML = `
-          <div style="
-            background: white;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            font-size: 12px;
-            width: 200px;
-          ">
-            <strong style="color:#1E40AF">${store.name}</strong><br/>
-            ${store.timeLeftText}<br/>
-            카테고리: ${store.category}<br/>
-            최대 ${store.maxDiscountRate ?? 0}% 할인
-          </div>
-        `;
-        const detailOverlay = new window.kakao.maps.CustomOverlay({
-          content: detailBox,
-          position: storePosition,
-          yAnchor: 1.1,
-          zIndex: 20,
-        });
-    
-        // 🧠 hover 이벤트 등록
-        window.kakao.maps.event.addListener(marker, 'mouseover', () => {
-          detailOverlay.setMap(mapInstance.current);
-        });
-        window.kakao.maps.event.addListener(marker, 'mouseout', () => {
-          detailOverlay.setMap(null);
-        });
-    
-        // ✅ 클릭 시 store 선택
-        window.kakao.maps.event.addListener(marker, 'click', () => {
-          mapInstance.current.panTo(storePosition); // ✅ 중심 이동 추가!
-          onSelectStore(store.id);
-        });
-    
-        storeMarkersInstance.current.push({
-          marker,
-          nameOverlay,
-          detailOverlay,
-        });
-      }
-    });
-  }, [stores, mapInstance.current, onSelectStore, isMapReady]); 
+      storeMarkersInstance.current.push({ marker, nameOverlay, detailOverlay })
+    })
+  }, [stores, isMapReady, onSelectStore])
 
   if (!userLocation) {
     return (
@@ -227,9 +229,5 @@ export default function KakaoMap({ userLocation, stores, selectedStoreId, onSele
     )
   }
 
-  return (
-    <>
-      <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
-    </>
-  )
-  }
+  return <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+}

@@ -252,6 +252,38 @@ export class SupabaseEventAggregateRepository implements EventRepository {
     return (data ?? []).map(this.toEvent);
   }
 
+  async listEventsByStoreIds(
+    storeIds: Id[],
+    sort?: Sort<'created_at' | 'start_date' | 'end_date' | 'title'>,
+    filter?: { isActive?: boolean }
+  ): Promise<{ storeId: Id; events: Event[] }[]> {
+    if (!storeIds.length) return [];
+
+    let q = this.sb.from('events').select('*').in('store_id', storeIds) as any;
+    if (typeof filter?.isActive === 'boolean') {
+      q = q.eq('is_active', filter.isActive);
+    }
+    // 정렬 기본값
+    if (sort) {
+      q = q.order(sort.field, { ascending: sort.order === 'asc' });
+    } else {
+      q = q.order('created_at', { ascending: false });
+    }
+
+    const { data, error } = await q as { data: EventRow[] | null; error: any };
+    if (error) throw error;
+
+    // 그룹핑
+    const map = new Map<string, Event[]>();
+    for (const r of data ?? []) {
+      const arr = map.get(r.store_id) ?? [];
+      arr.push(this.toEvent(r));
+      map.set(r.store_id, arr);
+    }
+
+    return storeIds.map((id) => ({ storeId: id, events: map.get(id) ?? [] }));
+  }
+
   async countEventsByStore(storeId: Id, filter?: EventFilter): Promise<number> {
     let q = this.sb.from('events').select('*', { count: 'exact', head: true }).eq('store_id', storeId) as any;
     q = this.applyEventFilter(q, filter);

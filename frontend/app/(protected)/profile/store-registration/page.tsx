@@ -19,7 +19,7 @@ import {
   type StoreForm,
 } from '@/app/(protected)/profile/store-registration/store.form';
 
-import { useCreateStore } from '@/hooks/use-create-store';
+import { useCreateStore } from '@/hooks/stores/use-create-store';
 
 export default function StoreRegistrationPage() {
   const router = useRouter();
@@ -159,9 +159,6 @@ export default function StoreRegistrationPage() {
                   {file && <span className="text-sm text-gray-600">{file.name}</span>}
                 </div>
 
-                {/* URL 직접 입력을 허용하려면 열기 */}
-                {/* <Input placeholder="이미지 URL" {...form.register('storeThumbnail')} /> */}
-
                 {form.formState.errors.storeThumbnail && (
                   <p className="text-sm text-red-500">{form.formState.errors.storeThumbnail.message}</p>
                 )}
@@ -194,11 +191,11 @@ export default function StoreRegistrationPage() {
               </Button>
 
               {/* 디버깅용: 폼 에러 출력 */}
-              {Object.keys(form.formState.errors).length > 0 && (
+              {/* {Object.keys(form.formState.errors).length > 0 && (
                 <pre className="text-xs text-red-500 mt-2">
                   {JSON.stringify(form.formState.errors, null, 2)}
                 </pre>
-              )}
+              )} */}
             </form>
           </CardContent>
         </Card>

@@ -74,4 +74,10 @@ export interface EventRepository {
     ymd: string /* 'YYYY-MM-DD' */,
     weekdays?: string[] // 특정 요일 제한이 필요하면
   ): Promise<Event[]>;
+
+  listEventsByStoreIds(
+    storeIds: Id[],
+    sort?: Sort<'created_at' | 'start_date' | 'end_date' | 'title'>,
+    filter?: { isActive?: boolean }
+  ): Promise<{ storeId: Id; events: Event[] }[]>;
 }
