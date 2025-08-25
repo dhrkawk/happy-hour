@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Tables } from '@/infra/supabase/shared/types';
 
 import type { Id } from '@/domain/shared/repository';
-import type { UserProfileRepository } from '@/domain/repositories/user.repo';
+import type { UserProfileRepository } from '@/domain/repositories/profile.repo';
 import { UserProfile } from '@/domain/entities/entities';
 
 // Row 타입 별칭

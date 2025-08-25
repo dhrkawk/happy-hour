@@ -1,5 +1,5 @@
 import { CreateCouponTxDTO } from "../schemas/schemas"
-import { Coupon, CouponItem } from "../entities/entities"
+import { Coupon, CouponItem, CouponWithItems } from "../entities/entities"
 import { Id } from "../shared/repository"
 
 export interface CouponRepository {
@@ -16,5 +16,5 @@ export interface CouponRepository {
     getCouponsByUserId(userId: Id): Promise<Coupon[]>
 
     // GET api/coupons/[id]
-    getCouponWithItemsById(couponId: Id): Promise<Coupon & { items: CouponItem[] }>
+    getCouponWithItemsById(couponId: Id): Promise<CouponWithItems>
 }

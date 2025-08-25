@@ -5,7 +5,7 @@ import type { Database, Tables } from '@/infra/supabase/shared/types';
 import type { Id } from '@/domain/shared/repository';
 import type { CouponRepository } from '@/domain/repositories/coupon.repo';
 import type { CreateCouponTxDTO } from '@/domain/schemas/schemas';
-import { Coupon, CouponItem } from '@/domain/entities/entities';
+import { Coupon, CouponItem, CouponWithItems, buildCouponWithItems } from '@/domain/entities/entities';
 import { mapCreateCouponDtoToPayload } from '../shared/utils';
 
 // Row 타입 별칭
@@ -69,28 +69,31 @@ export class SupabaseCouponRepository implements CouponRepository {
     return rows.map(Coupon.fromRow);
   }
 
-  /**
-   * 단일 쿠폰 + 아이템들
-   */
-  async getCouponWithItemsById(couponId: Id): Promise<Coupon & { items: CouponItem[] }> {
-    // 1) 쿠폰 헤더
-    const { data: cRow, error: cErr } = await this.sb
-      .from('coupons')
-      .select('*')
-      .eq('id', couponId)
-      .maybeSingle<CouponRow>();
-    if (cErr) throw cErr;
-    if (!cRow) throw new Error('Coupon not found');
 
-    // 2) 쿠폰 아이템
-    const { data: iRows, error: iErr } = await this.sb
-      .from('coupon_items')
-      .select('*')
-      .eq('coupon_id', couponId);
-    if (iErr) throw iErr;
-
-    const coupon = Coupon.fromRow(cRow);
-    const items  = (iRows ?? []).map((r) => CouponItem.fromRow(r as CouponItemRow));
-    return { ...coupon, items };
-  }
+    /**
+     * 단일 쿠폰 + 아이템들
+     */
+    async getCouponWithItemsById(couponId: Id): Promise<CouponWithItems> {
+        // 1) 쿠폰 헤더
+        const { data: cRow, error: cErr } = await this.sb
+        .from('coupons')
+        .select('*')
+        .eq('id', couponId)
+        .maybeSingle<CouponRow>();
+        if (cErr) throw cErr;
+        if (!cRow) throw new Error('Coupon not found');
+    
+        // 2) 쿠폰 아이템
+        const { data: iRows, error: iErr } = await this.sb
+        .from('coupon_items')
+        .select('*')
+        .eq('coupon_id', couponId);
+        if (iErr) throw iErr;
+    
+        // 빌더에 raw row들을 전달
+        return buildCouponWithItems({
+        couponRow: cRow,
+        itemRows: (iRows ?? []) as CouponItemRow[],
+        });
+    }
 }
