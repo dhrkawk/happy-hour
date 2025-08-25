@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { StoreListItemVM } from '@/lib/store-list-vm'
+import type { StoreListItemVM } from '@/lib/vm/store.vm'
 import { SEMANTIC_COLORS } from '@/lib/constants/colors'
 
 export const MARKER_COLOR_DEFAULT = SEMANTIC_COLORS.default[500]
@@ -22,7 +22,7 @@ type KakaoMapProps = {
 }
 
 const getMarkerColor = (store: StoreListItemVM) => {
-  const hasActiveOrAnyEvent = (store.events?.length ?? 0) > 0
+  const hasActiveOrAnyEvent = store.hasEvent
   return hasActiveOrAnyEvent ? MARKER_COLOR_DISCOUNT : MARKER_COLOR_DEFAULT
 }
 
@@ -134,7 +134,7 @@ export default function KakaoMap({
 
       // 2) 항상 표시되는 이름 오버레이 (제휴라면 🤝 접두)
       const nameEl = document.createElement('div')
-      const displayName = store.partnershipText ? `🤝 ${store.name}` : store.name
+      const displayName = store.partnership ? `🤝 ${store.name}` : store.name
       nameEl.innerHTML = `
         <div style="
           padding: 4px 8px;
@@ -160,37 +160,37 @@ export default function KakaoMap({
       nameOverlay.setMap(mapInstance.current)
 
       // 3) hover 상세 오버레이 (첫 이벤트 요약)
-      const firstEvent = store.events?.[0]
-      const maxRate = (firstEvent as any)?.maxDiscountRate // 확장된 VM에 있을 때 표시
+      const maxRate = store.maxDiscountRate // 확장된 VM에 있을 때 표시
       const detailEl = document.createElement('div')
       detailEl.innerHTML = `
-        <div style="
-          background: white;
-          border: 1px solid #ddd;
-          padding: 10px;
-          border-radius: 8px;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-          font-size: 12px;
-          width: 220px;
-          line-height: 1.4;
-        ">
-          <strong style="color:#0f766e">${store.name}</strong><br/>
-          ${store.categoryText ? `카테고리: ${store.categoryText}<br/>` : ''}
-          ${store.distanceText ? `거리: ${store.distanceText}<br/>` : ''}
-          ${
-            firstEvent
-              ? `
-                <hr style="margin:6px 0;border:none;border-top:1px solid #eee" />
-                <div><strong>${firstEvent.title}</strong></div>
-                ${
-                  typeof maxRate === 'number'
-                    ? `<div style="color:#ef4444">최대 ${maxRate}% 할인</div>`
-                    : ''
-                }
-              `
-              : '<div>진행 중인 이벤트 없음</div>'
-          }
-        </div>`
+      <div style="
+        background: white;
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        font-size: 12px;
+        width: 220px;
+        line-height: 1.4;
+      ">
+        <strong style="color:#0f766e">${store.name}</strong><br/>
+        ${store.category ? `카테고리: ${store.category}<br/>` : ''}
+        ${store.distanceText ? `거리: ${store.distanceText}<br/>` : ''}
+    
+        ${
+          store.hasEvent
+            ? `
+              <hr style="margin:6px 0;border:none;border-top:1px solid #eee" />
+              ${
+                typeof maxRate === 'number' && maxRate > 0
+                  ? `<div style="color:#ef4444">최대 ${maxRate}% 할인</div>`
+                  : `<div>이벤트 진행 중</div>`
+              }
+            `
+            : `<div>진행 중인 이벤트 없음</div>`
+        }
+      </div>
+    `;
       const detailOverlay = new window.kakao.maps.CustomOverlay({
         content: detailEl,
         position: pos,
