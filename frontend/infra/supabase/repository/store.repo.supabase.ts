@@ -118,11 +118,15 @@ export class SupabaseStoreRepository implements StoreRepository {
     if (error) throw error;
   }
 
-  async getStoreIdByOwnerId(ownerId: Id): Promise<Id | null> {
+  async getMyStoreId(): Promise<Id | null> {
+    const { data: { user }, error: userErr } = await this.sb.auth.getUser();
+    if (userErr) throw userErr;
+    if (!user) return null;
+  
     const { data, error } = await this.sb
       .from('stores')
       .select('id')
-      .eq('owner_id', ownerId)
+      .eq('owner_id', user.id)
       .limit(1)
       .maybeSingle();
     if (error) throw error;

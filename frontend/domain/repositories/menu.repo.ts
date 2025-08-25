@@ -3,15 +3,15 @@ import { StoreMenu } from "../entities/entities"
 import { Id } from "../shared/repository"
 
 export interface StoreMenuRepository {
-    // api/menus : POST
+    // POST api/menus
     createMenus(rows: StoreMenuInsertDTO[]): Promise<void>
 
-    // api/menus/[id] : PATCH
+    // PATCH api/menus/[id]
     updateMenu(id: Id, dto: StoreMenuUpdateDTO): Promise<void>
 
-    // api/menus/[id] : DELETE
+    // DELETE api/menus/[id]
     deleteMenu(id: Id): Promise<void>
 
-    // api/menus/ : GET (parameter storeId)
+    // GET api/menus?storeId=...
     getMenusByStoreId(storeId: Id): Promise<StoreMenu[]>
 }

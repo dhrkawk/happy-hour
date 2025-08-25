@@ -3,15 +3,15 @@ import { CreateEventWithDiscountsAndGiftsDTO, UpdateEventWithDiscountsAndGiftsDT
 import { Id } from "../shared/repository"
 
 export interface EventRepository {
-    // api/events/[id] : GET
+    // GET api/events/[id]
     getEventWithDiscountsAndGiftsById(id: Id, opts?: { onlyActive?: boolean }): Promise<EventWithDiscountsAndGifts>
 
-    // api/events : POST
+    // POST api/events
     createEventWithDiscountsAndGifts(dto: CreateEventWithDiscountsAndGiftsDTO): Promise<{ eventId: Id }>
 
-    // api/events : PATCH
+    // PATCH api/events
     updateEventWithDiscountsAndGifts(dto: UpdateEventWithDiscountsAndGiftsDTO): Promise<{ eventId: Id }>
 
-    // api/events/[id] : DELETE
+    // DELETE api/events/[id]
     softDeleteEvent(id: Id): Promise<void>
 }
