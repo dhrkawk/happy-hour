@@ -6,10 +6,10 @@ export interface CouponRepository {
     // api/coupons : POST
     createCouponWithItemsByUserId(dto: CreateCouponTxDTO): Promise<{ couponId: Id }>
 
-    // api/coupons/[id] : PATCH (parameter redeem)
+    // api/coupons/[id]/redeem : PATCH
     redeemCouponById(couponId: Id): Promise<void>
 
-    // api/coupons/[id] : PATCH (parameter cancel)
+    // api/coupons/[id]/cancel : PATCH
     cancelCouponById(couponId: Id): Promise<void>
 
     // api/coupons : GET (parameter userId)

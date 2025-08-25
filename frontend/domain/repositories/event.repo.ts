@@ -9,7 +9,7 @@ export interface EventRepository {
     // api/events : POST
     createEventWithDiscountsAndGifts(dto: CreateEventWithDiscountsAndGiftsDTO): Promise<{ eventId: Id }>
 
-    // api/events : PUT or PATCH
+    // api/events : PATCH
     updateEventWithDiscountsAndGifts(dto: UpdateEventWithDiscountsAndGiftsDTO): Promise<{ eventId: Id }>
 
     // api/events/[id] : DELETE
