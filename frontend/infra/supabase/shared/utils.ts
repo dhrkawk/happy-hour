@@ -2,6 +2,7 @@
 import type {
     CreateEventWithDiscountsAndGiftsDTO,
     UpdateEventWithDiscountsAndGiftsDTO,
+    CreateCouponTxDTO
   } from "@/domain/schemas/schemas";
   
   type WeekdayLower = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -91,4 +92,22 @@ import type {
         })
       ),
     });
+  }
+
+  export function mapCreateCouponDtoToPayload(dto: CreateCouponTxDTO) {
+    return {
+      user_id: dto.user_id,
+      event_id: dto.event_id,
+      items: (dto.items ?? []).map((it) => ({
+        type: it.type,          // 'discount' | 'gift'
+        ref_id: it.ref_id,      // discounts.id or gift_options.id
+        menu_id: it.menu_id,    // store_menus.id
+        qty: it.qty,
+        // 메타 정보는 서버에서 사용하지 않지만 저장/로깅 목적으로 포함 가능
+        menu_name: it.menu_name ?? undefined,
+        original_price: it.original_price ?? undefined,
+        discount_rate: it.discount_rate ?? undefined,
+        final_price: it.final_price ?? undefined,
+      })),
+    } as const;
   }
