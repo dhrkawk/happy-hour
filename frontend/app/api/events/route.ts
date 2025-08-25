@@ -9,7 +9,6 @@ import {
 
 import { createClient } from '@/infra/supabase/shared/server';
 import { SupabaseEventRepository } from '@/infra/supabase/repository/event.repo.supabase';
-import type { Database } from '@/infra/supabase/shared/types';
 
 export async function POST(req: Request) {
   const sb = await createClient();

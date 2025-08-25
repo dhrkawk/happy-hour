@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createClient } from '@/infra/supabase/shared/server';
-import { SupabaseEventRepository } from '@/infra/supabase/repository/event.repo.supabase'
+import { SupabaseEventRepository } from '@/infra/supabase/repository/event.repo.supabase';
 
 const Params = z.object({ id: z.string().uuid() });
 const parseBool = (v?: string | null) => v === '1' || v === 'true' || v === 'on';

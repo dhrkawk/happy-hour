@@ -12,11 +12,15 @@ type UserProfileRow = Tables<'user_profiles'>;
 export class SupabaseUserProfileRepository implements UserProfileRepository {
   constructor(private readonly sb: SupabaseClient<Database>) {}
 
-  async getUserProfileById(id: Id): Promise<UserProfile | null> {
+  async getUserProfile(): Promise<UserProfile | null> {
+    const { data: { user }, error: userErr } = await this.sb.auth.getUser();
+    if (userErr) throw userErr;
+    if (!user) return null;
+
     const { data, error } = await this.sb
       .from('user_profiles')
       .select('*')
-      .eq('user_id', id)
+      .eq('user_id', user.id)
       .maybeSingle<UserProfileRow>();
 
     if (error) throw error;
