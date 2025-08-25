@@ -31,15 +31,13 @@ export class SupabaseStoreRepository implements StoreRepository {
     const { data, error } = await this.sb.rpc('stores_with_events', {
       only_active_events: onlyActive,
     });
-  
     if (error) throw error;
   
-    // RPC는 jsonb 배열을 반환: [{ store: stores.*, events: [events.*] }, ...]
-    const rows = (data ?? []) as Array<{ store: any; events: any[] }>;
-  
-    return rows.map((r) => ({
-      store: Store.fromRow(r.store),
-      events: (r.events ?? []).map(Event.fromRow),
+    // RPC jsonb 배열을 정확히 타이핑
+    const rows = (data ?? []) as Array<{ store: StoreRow; events: EventRow[] }>;
+    return rows.map<StoreWithEvents>((r) => ({
+      store: Store.fromRow(r.store as StoreRow),
+      events: (r.events ?? []).map((e) => Event.fromRow(e as EventRow)),
     }));
   }
 

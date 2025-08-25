@@ -9,6 +9,7 @@ import BottomNavigation from "@/components/bottom-navigation"
 import { createClient } from "@/infra/supabase/shared/client"
 import { useGetUserProfile } from "@/hooks/usecases/use-profile"
 import { Loader2 } from "lucide-react"
+import { useGetMyStoreId } from "@/hooks/usecases/use-stores"
 
 export default function ProfilePage() {
   const handleLogout = async () => {
@@ -17,9 +18,11 @@ export default function ProfilePage() {
     window.location.href = '/login'
   }
  
-  const { data: me, isLoading, error } = useGetUserProfile();
+  const { data: me, isLoading: meLoading, error: meError } = useGetUserProfile();
+  const { data: storeId, isLoading: storeIdLoading, error: storeIdError } = useGetMyStoreId();
+  
 
-  if (isLoading) {
+  if (meLoading || storeIdLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
@@ -28,8 +31,8 @@ export default function ProfilePage() {
     );
   }
 
-  if (error) {
-    return <div>{error.message}</div>
+  if (meError || storeIdError) {
+    return <div>다시 시도해주세요.</div>
   }
 
   if (!me) {
@@ -41,7 +44,7 @@ export default function ProfilePage() {
   }
 
   const isStoreOwnerOrAdmin = me.role === 'store_owner' || me.role === 'admin'
-  // const storeManagementLink = me.storeData?.id ? `/profile/store-management/${user.storeData.id}` : '#'
+  const storeManagementLink = storeId ? `/profile/store-management/${storeId}` : '#'
 
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto relative">
@@ -125,8 +128,8 @@ export default function ProfilePage() {
             </Card>
           </Link>
 
-          {/* {isStoreOwnerOrAdmin && (
-            me.storeData?.id ? (
+          {isStoreOwnerOrAdmin && (
+            storeId ? (
               <Link href={storeManagementLink}>
                 <Card className="border-gray-100 hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
@@ -159,7 +162,7 @@ export default function ProfilePage() {
                 </Card>
               </Link>
             )
-          )} */}
+          )}
 
           <Card
             className="border-red-100 hover:shadow-md transition-shadow cursor-pointer"
