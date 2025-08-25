@@ -300,22 +300,11 @@ export type StoreWithEvents = {
   export type EventWithDiscountsAndGifts = {
     event: Event;
     discounts: Discount[];
-    giftGroup: GiftGroup | null;           // 없으면 null
-    giftOptions: GiftOption[];             // 없으면 빈 배열
+    giftGroups: Array<{
+      group: GiftGroup;
+      options: GiftOption[];
+    }>;
   };
-  
-  export function buildEventWithDiscountsAndGifts(params: {
-    eventRow: any;          // events.*
-    discountRows?: any[];   // discounts.* (WHERE event_id = ...)
-    giftGroupRow?: any | null; // gift_groups.* (maybeSingle)
-    giftOptionRows?: any[]; // gift_options.* (WHERE gift_group_id IN (...))
-  }): EventWithDiscountsAndGifts {
-    const event = Event.fromRow(params.eventRow);
-    const discounts = (params.discountRows ?? []).map(Discount.fromRow);
-    const giftGroup = params.giftGroupRow ? GiftGroup.fromRow(params.giftGroupRow) : null;
-    const giftOptions = (params.giftOptionRows ?? []).map(GiftOption.fromRow);
-    return { event, discounts, giftGroup, giftOptions };
-  }
   
   // 3) CouponWithItems
   export type CouponWithItems = {

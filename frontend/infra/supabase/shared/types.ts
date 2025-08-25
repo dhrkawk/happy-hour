@@ -428,6 +428,10 @@ export type Database = {
         Args: { payload: Json }
         Returns: Json
       }
+      event_with_discounts_and_gifts: {
+        Args: { p_event_id: string; p_only_active?: boolean }
+        Returns: Json
+      }
       redeem_coupon: {
         Args: { p_coupon_id: string }
         Returns: undefined
