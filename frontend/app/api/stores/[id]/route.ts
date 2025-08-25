@@ -12,26 +12,20 @@ const parseBool = (v?: string | null) => v === '1' || v === 'true' || v === 'on'
 const parseCSV  = (v?: string | null) =>
   (v ?? '').split(',').map(s => s.trim()).filter(Boolean);
 
-// ---------- GET (그대로) ----------
+// ---------- GET: store + menus + events 만 반환 ----------
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const url = new URL(req.url);
-  const include = new Set(parseCSV(url.searchParams.get('include'))); // menus,events,discounts,gifts
+  const include = new Set(parseCSV(url.searchParams.get('include'))); // menus,events (discounts/gifts는 무시)
 
   const eventIsActive = url.searchParams.get('eventIsActive');
   const fromDate = url.searchParams.get('fromDate') ?? undefined; // YYYY-MM-DD
   const toDate   = url.searchParams.get('toDate') ?? undefined;
   const weekdays = parseCSV(url.searchParams.get('weekdays'));
-  const childActive = parseBool(url.searchParams.get('childActive')); // aggregate일 때만 적용
 
-  const needMenus    = include.has('menus');
-  const needEvents   = include.has('events');
-  const needDiscount = include.has('discounts');
-  const needGifts    = include.has('gifts');
+  const needMenus  = include.has('menus');
+  const needEvents = include.has('events');
 
-  // discounts 또는 gifts를 요구하면 aggregate 모드로 이벤트를 조립
-  const aggregate = needDiscount || needGifts;
-
-  const {id} = await params;
+  const id = params.id;
   const sb = await createClient();
   const storeRepo = new SupabaseStoreRepository(sb);
   const menuRepo  = new SupabaseStoreMenuRepository(sb);
@@ -42,15 +36,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     const store = await storeRepo.getById(id);
     if (!store) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    // 2) 선택 포함
+    // 2) 선택 포함 (이제는 aggregate 사용 안 함: events 헤더만 조회)
     const tasks: Promise<any>[] = [];
-    if (needMenus) tasks.push(menuRepo.listByStore(id));
-    else tasks.push(Promise.resolve(null));
-
-    if (needEvents) {
-      if (aggregate) {
-        tasks.push(
-          eventAggRepo.listAggregatesByStore(
+    tasks.push(needMenus ? menuRepo.listByStore(id) : Promise.resolve(null));
+    tasks.push(
+      needEvents
+        ? eventAggRepo.listEventsByStore(
             id,
             undefined,
             { field: 'created_at', order: 'desc' },
@@ -61,64 +52,21 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
               weekdays: weekdays.length ? weekdays : undefined,
             }
           )
-        );
-      } else {
-        tasks.push(
-          eventAggRepo.listEventsByStore(
-            id,
-            undefined,
-            { field: 'created_at', order: 'desc' },
-            {
-              isActive: eventIsActive == null ? undefined : parseBool(eventIsActive),
-              fromDate,
-              toDate,
-              weekdays: weekdays.length ? weekdays : undefined,
-            }
-          )
-        );
-      }
-    } else {
-      tasks.push(Promise.resolve(null));
-    }
+        : Promise.resolve(null)
+    );
 
-    const [menus, eventsOrAggs] = await Promise.all(tasks);
+    const [menus, events] = await Promise.all(tasks);
 
-    // 3) childActive 필터(aggregate일 때만)
-    let eventAggregates = null as any;
-    let events = null as any;
-
-    if (needEvents) {
-      if (aggregate) {
-        const aggs = (eventsOrAggs ?? []) as Awaited<
-          ReturnType<typeof eventAggRepo.listAggregatesByStore>
-        >;
-        eventAggregates = childActive
-          ? aggs.map(a => ({
-              event: a.event,
-              discounts: a.discounts.filter(d => d.isActive === true),
-              giftGroups: a.giftGroups.map(g => ({
-                group: g.group,
-                options: g.options.filter(o => o.isActive === true),
-              })),
-            }))
-          : aggs;
-      } else {
-        events = eventsOrAggs;
-      }
-    }
-
-    // 4) 응답(필요한 필드만 포함)
+    // 3) 응답 (store + menus + events 만)
     const res: any = { store };
-    if (needMenus) res.menus = menus;
-    if (aggregate) res.eventAggregates = eventAggregates;
-    else if (needEvents) res.events = events;
+    if (needMenus)  res.menus  = menus;
+    if (needEvents) res.events = events;
 
     return NextResponse.json(res);
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'Internal error' }, { status: 500 });
   }
 }
-
 // ---------- PATCH (부분 업데이트) ----------
 const updateStoreBodySchema = z.object({
   name: z.string().min(1).optional(),

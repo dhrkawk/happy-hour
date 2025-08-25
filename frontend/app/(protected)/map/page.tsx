@@ -128,7 +128,7 @@ export default function MapPage() {
       {locationError && <LocationErrorBanner />}
 
       {/* 지도 */}
-      <div className="relative h-[60vh] bg-gray-100">
+      <div className="px-4 relative h-[60vh]">
         <KakaoMap
           userLocation={coordinates}
           stores={vm.items}                // ★ VM을 그대로 지도에

@@ -182,12 +182,6 @@ export default function KakaoMap({
               ? `
                 <hr style="margin:6px 0;border:none;border-top:1px solid #eee" />
                 <div><strong>${firstEvent.title}</strong></div>
-                <div>${firstEvent.periodText}</div>
-                ${
-                  firstEvent.happyHourText
-                    ? `<div>해피아워: ${firstEvent.happyHourText}</div>`
-                    : ''
-                }
                 ${
                   typeof maxRate === 'number'
                     ? `<div style="color:#ef4444">최대 ${maxRate}% 할인</div>`

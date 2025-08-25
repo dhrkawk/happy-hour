@@ -14,9 +14,7 @@ export type StoreListItemVM = {
   id: string;
   name: string;
   addressText: string;
-  phoneText: string;
   categoryText: string;
-  createdAtText: string;
   thumbnailUrl: string;
   isActiveBadge: string;
 
@@ -33,21 +31,13 @@ export type StoreListItemVM = {
   events: Array<{
     id: string;
     title: string;
-    periodText: string;
-    weekdaysText?: string;
-    happyHourText?: string;
-    statusText: string;
 
     // ← 여기 추가: 서버가 내려주는 값을 그대로 전달(없으면 undefined)
     maxDiscountRate?: number | null;
-    maxFinalPrice?: number | null;
-    maxOriginalPrice?: number | null;
   }>;
 
   // 스토어 레벨 파생 “최대 할인 요약” (★ 추가)
   storeMaxDiscountRate?: number;     // 가장 큰 할인율
-  storeDiscountPrice?: number;       // 해당 이벤트의 최저(할인가)
-  storeOriginalPrice?: number;       // 해당 이벤트의 원가
   storeTopEventId?: string;          // 최대 할인 이벤트 id
 };
 
@@ -58,29 +48,10 @@ export type StoreListVM = {
 };
 
 // ---------- 유틸 ----------
-const toKoDateTime = (iso: string) =>
-  new Date(iso).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' });
 
 const fmtDate = (ymd: string) =>
   /^\d{4}-\d{2}-\d{2}$/.test(ymd) ? ymd.replace(/-/g, '.') : ymd;
 
-const fmtTime = (hms?: string) => (hms ? hms.slice(0, 5) : undefined);
-
-const weekdaysKo: Record<string, string> = {
-  MON: '월', TUE: '화', WED: '수', THU: '목', FRI: '금', SAT: '토', SUN: '일',
-};
-
-const phonePretty = (raw: string) => {
-  const d = raw.replace(/\D/g, '');
-  if (d.startsWith('02')) {
-    if (d.length === 9)  return d.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
-    if (d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
-  }
-  if (d.startsWith('010') && d.length === 11) return d.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
-  if (d.length === 10) return d.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-  if (d.length === 11) return d.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
-  return raw;
-};
 
 // 하버사인 (km)
 const distanceKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
@@ -119,17 +90,9 @@ export const buildStoreListVM = (
       const item = {
         id: ev.id,
         title: ev.title,
-        periodText: `${fmtDate(ev.startDate)} ~ ${fmtDate(ev.endDate)}`,
-        weekdaysText: ev.weekdays?.length ? ev.weekdays.map(w => weekdaysKo[w] ?? w).join(', ') : undefined,
-        happyHourText: ev.happyHourStartTime && ev.happyHourEndTime
-          ? `${fmtTime(ev.happyHourStartTime)} ~ ${fmtTime(ev.happyHourEndTime)}`
-          : undefined,
-        statusText: ev.isActive ? '진행중' : '종료',
 
         // ★ 서버가 내려주는 헤더 필드 그대로 연결
         maxDiscountRate: ev.maxDiscountRate ?? null,
-        maxFinalPrice: ev.maxFinalPrice ?? null,
-        maxOriginalPrice: ev.maxOriginalPrice ?? null,
       };
       return item;
     });
@@ -138,26 +101,11 @@ export const buildStoreListVM = (
     //    - 우선순위: maxDiscountRate 가장 큰 이벤트
     //    - 동률이면 (maxOriginalPrice - maxFinalPrice) 차이가 큰 쪽
     let storeMaxDiscountRate: number | undefined;
-    let storeDiscountPrice: number | undefined;
-    let storeOriginalPrice: number | undefined;
     let storeTopEventId: string | undefined;
 
     if (events.length) {
-      const best = [...events].sort((a, b) => {
-        const ar = a.maxDiscountRate ?? -1;
-        const br = b.maxDiscountRate ?? -1;
-        if (br !== ar) return br - ar;
-        const adelta = (a.maxOriginalPrice ?? 0) - (a.maxFinalPrice ?? 0);
-        const bdelta = (b.maxOriginalPrice ?? 0) - (b.maxFinalPrice ?? 0);
-        return bdelta - adelta;
-      })[0];
-
-      if (best) {
-        if (best.maxDiscountRate != null) storeMaxDiscountRate = best.maxDiscountRate;
-        if (best.maxFinalPrice != null)   storeDiscountPrice   = best.maxFinalPrice;
-        if (best.maxOriginalPrice != null)storeOriginalPrice   = best.maxOriginalPrice;
-        storeTopEventId = best.id;
-      }
+      storeTopEventId = events[0].id;
+      storeMaxDiscountRate = events[0].maxDiscountRate!;
     }
 
     // 3) 스토어 VM 기본 필드
@@ -165,9 +113,7 @@ export const buildStoreListVM = (
       id: s.id,
       name: s.name,
       addressText: s.address,
-      phoneText: phonePretty(s.phone),
       categoryText: s.category || '기타',
-      createdAtText: toKoDateTime(s.createdAt),
       thumbnailUrl: s.storeThumbnail,
       isActiveBadge: s.isActive ? '영업중' : '비활성',
 
@@ -179,8 +125,6 @@ export const buildStoreListVM = (
 
       // ★ 파생 추가
       storeMaxDiscountRate,
-      storeDiscountPrice,
-      storeOriginalPrice,
       storeTopEventId,
     };
 

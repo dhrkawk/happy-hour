@@ -6,6 +6,7 @@ import { SupabaseEventAggregateRepository } from '@/infra/supabase/repository/ev
 import { z } from 'zod';
 
 // ----- GET -----
+
 const parseBool = (v?: string | null) => v === '1' || v === 'true' || v === 'on';
 const parseIntOr = (v: string | null, d: number) => {
   const n = Number(v); return Number.isFinite(n) ? n : d;
@@ -18,6 +19,30 @@ function toStoreDto(s: {
   phone: string; createdAt: string; category: string; isActive: boolean;
   storeThumbnail: string; ownerId: string; menuCategory: string[]; partnership: string | null;
 }) { return { ...s }; }
+
+// snake_case | camelCase 아무거나 와도 안전하게 뽑기
+const pick = <T = any>(obj: any, ...keys: string[]): T | undefined => {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (v != null) return v as T;
+  }
+  return undefined;
+};
+
+// 이벤트 Row → 클라 헤더 DTO(camelCase)
+const mapEventHeader = (e: any) => ({
+  id: e.id,
+  title: e.title ?? '',
+  startDate: pick<string>(e, 'startDate', 'start_date'),
+  endDate: pick<string>(e, 'endDate', 'end_date'),
+  weekdays: pick<string[]>(e, 'weekdays') ?? [],
+  isActive: pick<boolean>(e, 'isActive', 'is_active') ?? true,
+  happyHourStartTime: pick<string>(e, 'happyHourStartTime', 'happyhour_start_time', 'happy_hour_start_time') ?? null,
+  happyHourEndTime:   pick<string>(e, 'happyHourEndTime',   'happyhour_end_time',   'happy_hour_end_time') ?? null,
+  maxDiscountRate:    pick<number | null>(e, 'maxDiscountRate', 'max_discount_rate') ?? null,
+  maxFinalPrice:      pick<number | null>(e, 'maxFinalPrice',   'max_final_price') ?? null,
+  maxOriginalPrice:   pick<number | null>(e, 'maxOriginalPrice','max_original_price') ?? null,
+});
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -62,13 +87,19 @@ export async function GET(req: Request) {
 
     if (includeEvents && data.length) {
       const storeIds = data.map(s => s.id);
+
+      // 이벤트 rows 로드
       const grouped = await eventAggRepo.listEventsByStoreIds(
         storeIds,
         { field: 'created_at', order: 'desc' },
         { isActive: onlyActiveEvents ? true : undefined }
       );
 
-      const byId = new Map(grouped.map(g => [g.storeId, g.events]));
+      // storeId -> (camelCase 변환된) events
+      const byId = new Map(
+        grouped.map(g => [g.storeId, g.events.map(mapEventHeader)])
+      );
+
       for (const s of data as Array<typeof data[number] & { events?: any[] }>) {
         s.events = byId.get(s.id) ?? [];
       }

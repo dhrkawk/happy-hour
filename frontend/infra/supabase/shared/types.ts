@@ -58,33 +58,45 @@ export type Database = {
       coupons: {
         Row: {
           created_at: string | null
-          expected_visit_time: string
+          event_title: string
+          expected_visit_time: string | null
           expired_time: string
+          happy_hour_end_time: string
+          happy_hour_start_time: string
           id: string
           status: Database["public"]["Enums"]["coupon_status"]
           store_id: string
           updated_at: string | null
           user_id: string
+          weekdays: string[]
         }
         Insert: {
           created_at?: string | null
-          expected_visit_time: string
+          event_title: string
+          expected_visit_time?: string | null
           expired_time?: string
+          happy_hour_end_time: string
+          happy_hour_start_time: string
           id?: string
           status?: Database["public"]["Enums"]["coupon_status"]
           store_id: string
           updated_at?: string | null
           user_id: string
+          weekdays: string[]
         }
         Update: {
           created_at?: string | null
-          expected_visit_time?: string
+          event_title?: string
+          expected_visit_time?: string | null
           expired_time?: string
+          happy_hour_end_time?: string
+          happy_hour_start_time?: string
           id?: string
           status?: Database["public"]["Enums"]["coupon_status"]
           store_id?: string
           updated_at?: string | null
           user_id?: string
+          weekdays?: string[]
         }
         Relationships: [
           {
@@ -154,8 +166,6 @@ export type Database = {
           id: string
           is_active: boolean
           max_discount_rate: number | null
-          max_final_price: number | null
-          max_original_price: number | null
           start_date: string
           store_id: string
           title: string
@@ -170,8 +180,6 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_discount_rate?: number | null
-          max_final_price?: number | null
-          max_original_price?: number | null
           start_date: string
           store_id: string
           title?: string
@@ -186,8 +194,6 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_discount_rate?: number | null
-          max_final_price?: number | null
-          max_original_price?: number | null
           start_date?: string
           store_id?: string
           title?: string
@@ -410,51 +416,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_coupon_with_items: {
-        Args: { p_coupon: Json; p_items: Json }
-        Returns: string
-      }
-      create_event_aggregate: {
-        Args: {
-          p_discounts: Json
-          p_event: Json
-          p_gift_groups: Json
-          p_gift_options: Json
-        }
-        Returns: string
-      }
-      decrement_discount_remaining: {
-        Args: { p_by: number; p_id: string }
-        Returns: undefined
-      }
-      decrement_gift_option_remaining: {
-        Args: { p_by: number; p_option_id: string }
-        Returns: undefined
-      }
-      delete_coupon_cascade: {
+      cancel_coupon: {
         Args: { p_coupon_id: string }
         Returns: undefined
       }
-      delete_event_cascade: {
-        Args: { p_event_id: string }
+      create_coupon_with_items: {
+        Args: { payload: Json }
+        Returns: string
+      }
+      create_event_with_discounts_and_gifts: {
+        Args: { payload: Json }
+        Returns: Json
+      }
+      redeem_coupon: {
+        Args: { p_coupon_id: string }
         Returns: undefined
       }
-      delete_gift_group_cascade: {
-        Args: { p_group_id: string }
-        Returns: undefined
+      store_with_events_and_menus: {
+        Args: { p_only_active_events?: boolean; p_store_id: string }
+        Returns: Json
       }
-      replace_event_discounts: {
-        Args: { p_discounts: Json; p_event_id: string }
-        Returns: undefined
+      stores_with_events: {
+        Args: { only_active_events?: boolean }
+        Returns: Json
       }
-      upsert_event_gifts: {
-        Args: { p_event_id: string; p_groups: Json; p_options: Json }
-        Returns: undefined
+      update_event_with_discounts_and_gifts: {
+        Args: { payload: Json }
+        Returns: Json
       }
     }
     Enums: {
-      coupon_status: "expired" | "cancelled" | "available"
-      reservation_status: "pending" | "confirmed" | "cancelled" | "expired"
+      coupon_status: "issued" | "redeemed" | "expired" | "cancelled"
       role: "customer" | "owner" | "admin"
     }
     CompositeTypes: {
@@ -583,8 +575,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      coupon_status: ["expired", "cancelled", "available"],
-      reservation_status: ["pending", "confirmed", "cancelled", "expired"],
+      coupon_status: ["issued", "redeemed", "expired", "cancelled"],
       role: ["customer", "owner", "admin"],
     },
   },

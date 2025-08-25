@@ -4,7 +4,6 @@
 import type {
   StoreDetailResponse,
   ApiMenu,
-  ApiEventAggregate,
   ApiEventHeader,
 } from '@/hooks/stores/use-get-store-detail';
 
@@ -13,8 +12,8 @@ export type StoreMenuViewModel = {
   id: string;
   name: string;
   originalPrice: number;
-  discountPrice: number;
-  discountRate: number;
+  discountPrice: number;     // 초기에는 이벤트 상세를 모름 → 원가와 동일
+  discountRate: number;      // 초기 0
   discountDisplayText?: string;
   thumbnail: string | null;
   description: string | null;
@@ -32,12 +31,13 @@ export type StoreEventVM = {
   maxDiscountRate?: number;
 };
 
+/** 서버에서 events/menus만 내려오므로, gifts는 항상 빈 배열로 둡니다(호환성). */
 export type GiftSectionVM = {
-  id: string;                // gift_group id
+  id: string;
   displayNote: string | null;
-  endAt: string;             // 이벤트 종료일 (ISO or YYYY-MM-DD)
-  remaining: number | null;  // 그룹 잔여(없으면 null)
-  menus: StoreMenuViewModel[]; // 0원 표시된 메뉴들
+  endAt: string;
+  remaining: number | null;
+  menus: StoreMenuViewModel[];
 };
 
 export type StoreDetailViewModel = {
@@ -58,8 +58,8 @@ export type StoreDetailViewModel = {
 
   events: StoreEventVM[];
   menuCategories: string[];       // 탭에 뿌릴 카테고리들
-  menus: StoreMenuViewModel[];    // 전체 메뉴(할인 반영)
-  gifts: GiftSectionVM[];         // 증정 섹션
+  menus: StoreMenuViewModel[];    // 전체 메뉴(초기엔 할인 미반영)
+  gifts: GiftSectionVM[];         // 항상 []
 };
 
 /* ---------- 유틸 ---------- */
@@ -107,14 +107,9 @@ const distanceText = (km?: number) => {
   return `${km.toFixed(1)}km`;
 };
 
-/* ---------- 내부 가공 ---------- */
-function buildEventsVM(
-  events: ApiEventHeader[] | undefined,
-  aggregates: ApiEventAggregate[] | undefined
-): StoreEventVM[] {
-  const src: ApiEventHeader[] =
-    events ?? aggregates?.map(a => a.event) ?? [];
-
+/* ---------- 내부 가공 (이제 aggregates 의존성 제거) ---------- */
+function buildEventsVM(events?: ApiEventHeader[]): StoreEventVM[] {
+  const src = events ?? [];
   return src.map((ev) => ({
     id: ev.id,
     title: ev.title,
@@ -127,113 +122,25 @@ function buildEventsVM(
         ? `${fmtTime(ev.happyHourStartTime)} ~ ${fmtTime(ev.happyHourEndTime)}`
         : undefined,
     isActive: ev.isActive,
-    // description / 요약 필드는 서버에서 내려오면 연결 (없으면 undefined)
-    // @ts-ignore - 있으면 쓰고, 없으면 무시
+    // 서버가 주면 연결
+    // @ts-ignore
     description: ev.description,
     maxDiscountRate: ev.maxDiscountRate,
   }));
 }
 
-function buildMenuDiscountMap(aggregates?: ApiEventAggregate[]) {
-  // menuId -> 최대 할인율/최대 가격 정보
-  const map = new Map<
-    string,
-    { maxRate: number; bestFinal?: number; bestOriginal?: number }
-  >();
-
-  if (!aggregates) return map;
-
-  for (const ag of aggregates) {
-    for (const d of ag.discounts ?? []) {
-      const cur = map.get(d.menuId) ?? { maxRate: 0 };
-      if (d.discountRate > (cur.maxRate ?? 0)) {
-        map.set(d.menuId, {
-          maxRate: d.discountRate,
-          bestFinal: d.finalPrice,
-          // originalPrice는 discounts에 없을 수 있어요. 있으면 채우고, 아니면 나중에 메뉴 원가 사용
-          bestOriginal: cur.bestOriginal,
-        });
-      }
-    }
-  }
-
-  return map;
-}
-
-function buildMenusVM(
-  menus: ApiMenu[] | undefined,
-  discountMap: Map<string, { maxRate: number; bestFinal?: number; bestOriginal?: number }>
-): StoreMenuViewModel[] {
+function buildMenusVM(menus?: ApiMenu[]): StoreMenuViewModel[] {
   const base = menus ?? [];
-  return base.map<StoreMenuViewModel>((m) => {
-    const info = discountMap.get(m.id);
-    const rate = info?.maxRate ?? 0;
-
-    const original = m.price;
-    const discounted =
-      rate > 0
-        ? Math.max(0, Math.round(original * (100 - rate) / 100))
-        : original;
-
-    return {
-      id: m.id,
-      name: m.name,
-      originalPrice: original,
-      discountPrice: discounted,
-      discountRate: rate,
-      thumbnail: m.thumbnail ?? null,
-      description: m.description ?? null,
-      category: m.category ?? null,
-    };
-  });
-}
-
-function buildGiftSections(
-  aggregates: ApiEventAggregate[] | undefined,
-  menusById: Map<string, ApiMenu>
-): GiftSectionVM[] {
-  if (!aggregates) return [];
-
-  const sections: GiftSectionVM[] = [];
-
-  for (const ag of aggregates) {
-    const end = ag.event?.endDate ?? new Date().toISOString().slice(0, 10);
-    const displayNote = null; // 서버에서 별도 노트를 준다면 매핑
-    const remaining = null;   // 그룹 잔여치가 있다면 매핑
-
-    for (const g of ag.giftGroups ?? []) {
-      const vmMenus: StoreMenuViewModel[] = [];
-
-      for (const opt of g.options ?? []) {
-        const base = menusById.get(opt.menuId);
-        if (!base) continue; // 메뉴가 없으면 스킵
-
-        vmMenus.push({
-          id: base.id,
-          name: base.name,
-          originalPrice: base.price,
-          discountPrice: 0,
-          discountRate: 100,
-          discountDisplayText: '증정',
-          thumbnail: base.thumbnail ?? null,
-          description: base.description ?? null,
-          category: base.category ?? null,
-        });
-      }
-
-      if (vmMenus.length > 0) {
-        sections.push({
-          id: g.group.id,
-          displayNote,
-          endAt: end,
-          remaining,
-          menus: vmMenus,
-        });
-      }
-    }
-  }
-
-  return sections;
+  return base.map<StoreMenuViewModel>((m) => ({
+    id: m.id,
+    name: m.name,
+    originalPrice: m.price,
+    discountPrice: m.price,   // 초기엔 할인 정보 없음 → 원가와 동일
+    discountRate: 0,
+    thumbnail: m.thumbnail ?? null,
+    description: m.description ?? null,
+    category: m.category ?? null,
+  }));
 }
 
 /* ---------- 빌더 ---------- */
@@ -243,23 +150,14 @@ export function buildStoreDetailVM(
 ): StoreDetailViewModel {
   const s = resp.store;
 
-  // 이벤트 VM
-  const eventsVM = buildEventsVM(resp.events, resp.eventAggregates);
+  // 이벤트 VM (헤더만)
+  const eventsVM = buildEventsVM(resp.events);
 
-  // 할인 맵(메뉴별 최대 할인율)
-  const discountMap = buildMenuDiscountMap(resp.eventAggregates);
+  // 메뉴 VM (할인 미반영)
+  const menusVM = buildMenusVM(resp.menus);
 
-  // 메뉴 VM
-  const menusVM = buildMenusVM(resp.menus, discountMap);
-
-  // 증정 섹션 VM
-  const menusById = new Map((resp.menus ?? []).map(m => [m.id, m]));
-  const gifts = buildGiftSections(resp.eventAggregates, menusById);
-
-  // 카테고리 탭 (할인 / 지정 카테고리 / 기타)
-  const cats = Array.from(
-    new Set([...(s.menuCategory ?? [])].filter(Boolean))
-  ) as string[];
+  // 카테고리 탭
+  const cats = Array.from(new Set([...(s.menuCategory ?? [])].filter(Boolean))) as string[];
   const menuCategories = cats;
 
   // 거리
@@ -284,6 +182,8 @@ export function buildStoreDetailVM(
     events: eventsVM,
     menuCategories,
     menus: menusVM,
-    gifts,
+
+    // 서버에선 더 이상 증정/할인 aggregate를 주지 않으므로 빈 배열 유지
+    gifts: [],
   };
 }
