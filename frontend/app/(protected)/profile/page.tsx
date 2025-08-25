@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import BottomNavigation from "@/components/bottom-navigation"
-import { useUser } from  "@/hooks/use-user"
 import { createClient } from "@/infra/supabase/shared/client"
+import { useGetUserProfile } from "@/hooks/usecases/use-profile"
+import { Loader2 } from "lucide-react"
 
 export default function ProfilePage() {
   const handleLogout = async () => {
@@ -15,13 +16,23 @@ export default function ProfilePage() {
     await supabase.auth.signOut()
     window.location.href = '/login'
   }
-  const { user, isLoading } = useUser()
+ 
+  const { data: me, isLoading, error } = useGetUserProfile();
 
   if (isLoading) {
-    return <div className="p-6 text-center">로딩 중...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+        <p className="ml-2 text-teal-600">정보를 불러오는 중...</p>
+      </div>
+    );
   }
 
-  if (!user) {
+  if (error) {
+    return <div>{error.message}</div>
+  }
+
+  if (!me) {
     return (
       <div className="p-6 text-center">
         사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.
@@ -29,16 +40,8 @@ export default function ProfilePage() {
     )
   }
 
-  const userData = {
-    name: user.user_metadata?.name || user.email,
-    email: user.email,
-    totalBookings: user.profile?.total_bookings || 0,
-    totalSavings: user.profile?.total_savings || 0,
-    role: user.profile?.role || 'customer',
-  }
-
-  const isStoreOwnerOrAdmin = userData.role === 'store_owner' || userData.role === 'admin'
-  const storeManagementLink = user.storeData?.id ? `/profile/store-management/${user.storeData.id}` : '#'
+  const isStoreOwnerOrAdmin = me.role === 'store_owner' || me.role === 'admin'
+  // const storeManagementLink = me.storeData?.id ? `/profile/store-management/${user.storeData.id}` : '#'
 
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto relative">
@@ -62,11 +65,11 @@ export default function ProfilePage() {
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <Avatar className="w-16 h-16">
-                <AvatarFallback className="bg-teal-500 text-white text-xl">{userData.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="bg-teal-500 text-white text-xl">{me.name}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-800">{userData.name}</h2>
-                <p className="text-gray-600">{userData.email}</p>
+                <h2 className="text-xl font-semibold text-gray-800">{me.name}</h2>
+                <p className="text-gray-600">{me.email}</p>
               </div>
             </div>
           </CardContent>
@@ -76,13 +79,13 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 gap-4">
           <Card className="border-gray-100">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-teal-600 mb-1">{userData.totalBookings}</div>
+              <div className="text-2xl font-bold text-teal-600 mb-1">{me.totalBookings}</div>
               <div className="text-sm text-gray-600">총 예약 횟수</div>
             </CardContent>
           </Card>
           <Card className="border-gray-100">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-orange-500 mb-1">{userData.totalSavings.toLocaleString()}원</div>
+              <div className="text-2xl font-bold text-orange-500 mb-1">{me.totalSavingsText}</div>
               <div className="text-sm text-gray-600">총 절약 금액</div>
             </CardContent>
           </Card>
@@ -122,8 +125,8 @@ export default function ProfilePage() {
             </Card>
           </Link>
 
-          {isStoreOwnerOrAdmin && (
-            user.storeData?.id ? (
+          {/* {isStoreOwnerOrAdmin && (
+            me.storeData?.id ? (
               <Link href={storeManagementLink}>
                 <Card className="border-gray-100 hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
@@ -156,7 +159,7 @@ export default function ProfilePage() {
                 </Card>
               </Link>
             )
-          )}
+          )} */}
 
           <Card
             className="border-red-100 hover:shadow-md transition-shadow cursor-pointer"

@@ -6,6 +6,7 @@ import type { Id } from '@/domain/shared/repository';
 import type { CreateCouponTxDTO } from '@/domain/schemas/schemas';
 import { type Coupon, type CouponWithItems } from '@/domain/entities/entities';
 import { buildCouponListVM, buildCouponWithItemsVM } from '@/lib/vm/coupon.vm';
+import { jsonFetch } from './fetcher';
 
 /* ---------------- Query Keys ---------------- */
 export const couponKeys = {
@@ -13,23 +14,6 @@ export const couponKeys = {
   list: (userId: Id) => [...couponKeys.all, 'list', userId] as const,
   detail: (couponId: Id) => [...couponKeys.all, 'detail', couponId] as const,
 };
-
-/* ---------------- Fetch Helpers ---------------- */
-async function jsonFetch<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
-  if (!res.ok) {
-    let msg = 'Request failed';
-    try {
-      const j = await res.json();
-      msg = j?.error ?? msg;
-    } catch {}
-    throw new Error(msg);
-  }
-  return res.json() as Promise<T>;
-}
 
 /* ---------------- Queries ---------------- */
 

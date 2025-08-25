@@ -1,12 +1,12 @@
 // app/api/profile/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@/infra/supabase/shared/server";
-import { SupabaseUserProfileRepository } from "@/infra/supabase/repository/user.repo.supabase";
+import { SupabaseUserProfileRepository } from "@/infra/supabase/repository/profile.repo.supabase";
 
 export async function GET() {
   const sb = await createClient();
   const repo = new SupabaseUserProfileRepository(sb);
-  
+
   try {
     const profile = await repo.getUserProfile();
     if (!profile) {
