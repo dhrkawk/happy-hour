@@ -7,45 +7,18 @@ import { Button } from "@/components/ui/button"
 import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Store } from "@/domain/store/store.entity"
+import { useGetUserProfile } from "@/hooks/usecases/profile.usecase"
 
 import { useParams } from "next/navigation";
 
 export default function StoreManagementPage() {
   const params = useParams();
   const storeId = params.id as string;
+  const { data: me, isLoading, error } = useGetUserProfile();
 
   const [storeData, setStoreData] = useState<Store | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchStore() {
-      setLoading(true)
-      setError(null)
-      try {
-        const response = await fetch(`/api/stores/${storeId}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            notFound();
-          }
-          throw new Error('가게 정보를 불러오는데 실패했습니다.');
-        }
-        const data = await response.json();
-        setStoreData(data)
-      } catch (err: any) {
-        console.error("Unexpected error:", err)
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (storeId) {
-      fetchStore()
-    }
-  }, [storeId])
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
@@ -58,7 +31,7 @@ export default function StoreManagementPage() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">{error}</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">{error.message}</h1>
           <Link href="/profile">
             <Button className="bg-teal-500 hover:bg-teal-600 text-white">마이페이지로 돌아가기</Button>
           </Link>

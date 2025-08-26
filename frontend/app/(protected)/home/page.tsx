@@ -13,52 +13,24 @@ import CategoryFilter from "@/components/category-filter";
 
 import { useAppContext } from "@/contexts/app-context";
 import { useOnboardingCheck } from "@/hooks/use-onboarding-check";
-import { useGetStoreList } from "@/hooks/stores/use-get-store-list";
-import { buildStoreListVM, type SortMode } from "@/hooks/stores/store-list.viewmodel";
+import { useGetStoresWithEvents } from "@/hooks/usecases/stores.usecase";
 
 export default function HomePage() {
   const { appState, fetchLocation } = useAppContext();
   const { address, loading: locationLoading, error: locationError, lastUpdated, coordinates } =
     appState.location ?? {};
   const { isReady: isOnboardingComplete } = useOnboardingCheck();
+  
 
   // 화면 상태 (카테고리/정렬)
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
   const [selectedSorting, setSelectedSorting] = useState<"거리순" | "할인순" | "할인만" | "제휴만">("거리순");
 
   // 서버에서 최소 데이터만: 활성 스토어 + 활성 이벤트 포함
-  const { data: raw, isLoading: storesLoading } = useGetStoreList({
-    isActive: true,
-    includeEvents: true,
-    onlyActiveEvents: true,
-  });
+  const {data, isLoading, error} = useGetStoresWithEvents(true);
+  const storeList = data ?? [];
 
-  // 정렬 라벨 → VM 정렬 모드 매핑
-  const sortMode: SortMode =
-    selectedSorting === "거리순"
-      ? "distance"
-      : selectedSorting === "할인순"
-      ? "discount"
-      : selectedSorting === "할인만"
-      ? "onlyDiscount"
-      : selectedSorting === "제휴만"
-      ? "onlyPartnership"
-      : "none";
-
-  // VM 빌드: 거리/정렬/필터 파생 계산은 전부 여기서!
-  const vm = useMemo(
-    () =>
-      raw
-        ? buildStoreListVM(raw, {
-            coords: coordinates,
-            category: selectedCategory,
-            sort: sortMode,
-          })
-        : { items: [], total: 0, hasMore: false },
-    [raw, coordinates, selectedCategory, sortMode]
-  );
-
-  const isSkeletonLoading = !isOnboardingComplete || locationLoading || storesLoading;
+  const isSkeletonLoading = !isOnboardingComplete || locationLoading || isLoading;
 
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto relative">
@@ -101,7 +73,7 @@ export default function HomePage() {
       <main className="px-4 py-4 space-y-4 pb-24">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">
-            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`} ({vm.items.length})
+            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`}
           </h2>
           <div className="flex items-center gap-2">
             {(["거리순", "할인순", "할인만", "제휴만"] as const).map((label) => (
@@ -122,7 +94,7 @@ export default function HomePage() {
 
         {isSkeletonLoading ? (
           Array.from({ length: 5 }).map((_, index) => <StoreCardSkeleton key={index} />)
-        ) : vm.items.length === 0 ? (
+        ) : storeList.length==0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">해당 카테고리의 할인 가게가 없습니다</h3>
@@ -132,7 +104,7 @@ export default function HomePage() {
             </Button>
           </div>
         ) : (
-          vm.items.map((item) => (
+          storeList.map((item) => (
             <Link key={item.id} href={`/store/${item.id}`}>
               <StoreCard vm={item} />
             </Link>
