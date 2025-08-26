@@ -8,6 +8,7 @@ import type {
   CreateEventWithDiscountsAndGiftsDTO,
   UpdateEventWithDiscountsAndGiftsDTO,
 } from '@/domain/schemas/schemas';
+import { jsonFetch } from './fetcher';
 
 /* --------------------- 작은 fetch 유틸 --------------------- */
 async function getJSON<T>(url: string, init?: RequestInit): Promise<T> {
@@ -49,14 +50,10 @@ export function useGetEventWithDiscountsAndGifts(
   const onlyActive = !!opts?.onlyActive;
   const key = qk.eventDetail(id, onlyActive);
 
-  return useQuery<EventWithDiscountsAndGifts, Error>({
+  return useQuery<EventWithDiscountsAndGifts>({
     queryKey: key,
     enabled: (opts?.enabled ?? true) && !!id,
-    queryFn: async () => {
-      const url = `/api/events/${encodeURIComponent(id)}?onlyActive=${onlyActive ? '1' : '0'}`;
-      const resp = await getJSON<{ data: EventWithDiscountsAndGifts }>(url);
-      return resp.data;
-    },
+    queryFn:() => jsonFetch<EventWithDiscountsAndGifts>(`/api/events/${encodeURIComponent(id)}?onlyActive=${onlyActive ? '1' : '0'}`),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });

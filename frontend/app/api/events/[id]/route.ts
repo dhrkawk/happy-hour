@@ -1,15 +1,15 @@
-// app/api/events/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createClient } from '@/infra/supabase/shared/server';
 import { SupabaseEventRepository } from '@/infra/supabase/repository/event.repo.supabase';
+import { Id } from '@/domain/shared/repository';
 
 const Params = z.object({ id: z.string().uuid() });
 const parseBool = (v?: string | null) => v === '1' || v === 'true' || v === 'on';
 
-export async function GET(req: Request, ctx: { params: { id: string } }) {
-  const { id } = Params.parse(ctx.params);
+export async function GET(req: Request, { params }: { params: { id: Id } }) {
+  const { id } = await params;
   const onlyActive = parseBool(new URL(req.url).searchParams.get('onlyActive'));
 
   const sb = await createClient();

@@ -1,79 +1,31 @@
 // app/store/[id]/page.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, MapPin, Clock, Gift, Percent, Users, ChevronDown } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Gift, Percent } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
-import { useGetStoreWithEventsAndMenus } from '@/hooks/usecases/stores.usecase';
-import { useGetEventWithDiscountsAndGifts } from '@/hooks/usecases/events.usecase';
-import { buildStoreDetailVM, type StoreDetailVM, type MenuVM } from '@/lib/vm/store.vm';
+import { useGetStoreDetail } from '@/hooks/usecases/stores.usecase';
+import type { StoreDetailVM, MenuWithDiscountVM } from '@/lib/vm/store.vm';
 
-type EventType = 'discount' | 'gift' | 'combo';
-
-const getEventIcon = (t: EventType) =>
-  t === 'gift' ? <Gift className="w-4 h-4" /> :
-  t === 'combo' ? <Users className="w-4 h-4" /> :
-  <Percent className="w-4 h-4" />;
-
-const getTimeLeft = (endDate: string) => {
+function getTimeLeft(endDate: string) {
   const end = new Date(endDate);
   const days = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   if (days <= 0) return '종료';
   if (days === 1) return '오늘 마감';
   return `${days}일 남음`;
-};
+}
 
 export default function StorePage() {
   const { id } = useParams<{ id: string }>();
 
-  // 1) 스토어 + 메뉴 + 이벤트(헤더만)
-  const { data: detail, isLoading, error } = useGetStoreWithEventsAndMenus(id, { onlyActiveEvents: true });
-  const vm: StoreDetailVM | null = useMemo(() => (detail ? buildStoreDetailVM(detail) : null), [detail]);
-
-  // 선택 상태
-  const [selectedEventId, setSelectedEventId] = useState('');
-  const [selectedGiftId, setSelectedGiftId] = useState('');
-
-  // 2) 이벤트 상세(선택 시에만)
-  const { data: eventDetail } = useGetEventWithDiscountsAndGifts(selectedEventId, {
-    onlyActive: true,
-    enabled: !!selectedEventId,
-  });
-
-  // 3) 이벤트 타입 추론
-  const selectedEventType: EventType | null = useMemo(() => {
-    if (!eventDetail) return null;
-    const hasD = (eventDetail.discounts?.length ?? 0) > 0;
-    const hasG = (eventDetail.giftOptions?.length ?? 0) > 0;
-    if (hasD && hasG) return 'combo';
-    if (hasD) return 'discount';
-    if (hasG) return 'gift';
-    return 'discount';
-  }, [eventDetail]);
-
-  // 4) (중요) MenuVM 그대로 쓰되, 할인 정보는 렌더링 단계에서 적용
-  //    discounts: [{ menu_id, final_price, discount_rate, ... }]
-  const discountMap = useMemo(() => {
-    const m = new Map<string, { finalPrice: number; rate: number }>();
-    for (const d of eventDetail?.discounts ?? []) {
-      // 엔티티/스키마에 맞게 키 이름 확인: menu_id / final_price / discount_rate
-      if (d.menuId || (d as any).menu_id) {
-        const menuId = d.menuId ?? (d as any).menu_id;
-        const finalPrice = d.finalPrice ?? (d as any).final_price;
-        const rate = d.discountRate ?? (d as any).discount_rate;
-        if (typeof finalPrice === 'number' && typeof rate === 'number') {
-          m.set(menuId, { finalPrice, rate });
-        }
-      }
-    }
-    return m;
-  }, [eventDetail]);
+  // 하나의 훅으로: base + event 상세까지 enrich된 VM
+  const { data: vm, isLoading, error } = useGetStoreDetail(id, {onlyActive: true,});
 
   // 로딩/에러
   if (isLoading || !vm) {
@@ -99,7 +51,7 @@ export default function StorePage() {
     );
   }
 
-  const hasPartnership = !!vm.partnership;
+  const hasPartnership = !!vm.partershipText;
 
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto relative">
@@ -123,7 +75,7 @@ export default function StorePage() {
       <div className="relative">
         <div className="h-64 bg-gray-200 relative overflow-hidden">
           <img
-            src={vm.storeThumbnail || '/placeholder.svg'}
+            src={vm.thumbnail || '/placeholder.svg'}
             alt={vm.name}
             className="w-full h-full object-cover"
           />
@@ -137,7 +89,9 @@ export default function StorePage() {
             <div className="flex items-center gap-2 mb-3">
               <h1 className="text-2xl font-bold text-gray-800">{vm.name}</h1>
               {hasPartnership && (
-                <Badge variant="outline" className="border-blue-200 text-blue-600 bg-blue-50">제휴</Badge>
+                <Badge variant="outline" className="border-blue-200 text-blue-600 bg-blue-50">
+                  제휴
+                </Badge>
               )}
             </div>
             <div className="flex items-center gap-4 mb-3">
@@ -147,98 +101,46 @@ export default function StorePage() {
               </div>
               <Badge variant="outline" className="border-gray-300 text-gray-600">{vm.category}</Badge>
             </div>
+            <div className="text-sm text-gray-500">
+              {typeof vm.distanceText === 'string' ? vm.distanceText : '거리 정보 없음'}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 이벤트/증정 선택 + 메뉴 */}
-      <div className="px-4 py-6 pb-24">
-        {vm.events.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-3">이벤트 선택</h3>
-
-            {/* 이벤트 선택 */}
-            <div className="relative mb-3">
-              <select
-                value={selectedEventId}
-                onChange={(e) => {
-                  setSelectedEventId(e.target.value);
-                  setSelectedGiftId(''); // 이벤트 바꾸면 증정 선택 초기화
-                }}
-                className="w-full p-4 border border-gray-200 rounded-lg bg-white text-gray-800 font-medium appearance-none cursor-pointer hover:border-blue-300 focus:border-blue-500 focus:outline-none"
-              >
-                <option value="">이벤트를 선택하세요</option>
-                {vm.events.map((ev) => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.title}
-                    {typeof ev.maxDiscountRate === 'number' && ev.maxDiscountRate > 0
-                      ? ` - 최대 ${ev.maxDiscountRate}%`
-                      : ''}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            </div>
-
-            {/* 이벤트 상세 요약 */}
-            {selectedEventId && eventDetail && (
-              <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-blue-900 mb-1">{eventDetail.event.title}</h4>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge className="bg-blue-600 text-white flex items-center gap-1">
-                        {getEventIcon(selectedEventType ?? 'discount')}
-                        {selectedEventType === 'discount' &&
-                          `할인 적용 (${eventDetail.discounts?.length ?? 0} 메뉴)`}
-                        {selectedEventType === 'gift' &&
-                          `증정 (${eventDetail.giftOptions?.length ?? 0} 옵션)`}
-                        {selectedEventType === 'combo' && `할인 + 증정`}
-                      </Badge>
-                      <div className="flex items-center gap-1 text-orange-600 font-medium">
-                        <Clock className="w-4 h-4" />
-                        <span className="text-sm">{getTimeLeft(eventDetail.event.endDate)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 증정 옵션 선택 (있을 때만) */}
-                {(eventDetail.giftOptions?.length ?? 0) > 0 && (
-                  <div className="mt-3">
-                    <label className="block text-sm text-gray-700 mb-1">증정 선택</label>
-                    <div className="relative">
-                      <select
-                        value={selectedGiftId}
-                        onChange={(e) => setSelectedGiftId(e.target.value)}
-                        className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-800 appearance-none hover:border-blue-300 focus:border-blue-500 focus:outline-none"
-                      >
-                        <option value="">선택하세요</option>
-                        {eventDetail.giftOptions!.map((go) => (
-                          <option key={go.id} value={go.id}>
-                            {go.menuName ?? '증정 메뉴'}
-                            {go.remaining != null ? ` (잔여 ${go.remaining})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-                  </div>
-                )}
+      {/* 선택/장바구니 로직 제거: 현재 선택된(또는 대표) 이벤트만 요약 표시 */}
+      {vm.event && (
+        <div className="px-4 pt-6">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Percent className="w-4 h-4 text-blue-700" />
+                <h4 className="font-bold text-blue-900">{vm.event.title}</h4>
               </div>
+              <div className="flex items-center gap-1 text-orange-600 font-medium">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm">{getTimeLeft(vm.event.endDate)}</span>
+              </div>
+            </div>
+            {vm.event.description && (
+              <p className="text-sm text-blue-900 mt-2">{vm.event.description}</p>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* 메뉴 리스트 (MenuVM 그대로, 할인은 렌더링에서 계산) */}
+      {/* 메뉴 리스트 (enrich로 주입된 할인 필드를 그대로 사용) */}
+      <div className="px-4 py-6 pb-24">
+        <h3 className="text-xl font-bold text-gray-800 mb-6">메뉴</h3>
         <div className="space-y-4">
-          <h3 className="text-xl font-bold text-gray-800 mb-6">메뉴</h3>
-          {vm.menus.map((m: MenuVM) => {
-            const d = discountMap.get(m.id); // { finalPrice, rate } | undefined
-            const showDiscount = !!d && d.finalPrice < m.price;
+          {vm.menus.map((m: MenuWithDiscountVM) => {
+            const showDiscount =
+              typeof m.finalPrice === 'number' &&
+              Number.isFinite(m.finalPrice) &&
+              m.finalPrice! < m.price;
 
             return (
-              <Card key={m.id} className="border-gray-200">
+              <Card key={m.menuId} className="border-gray-200">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -251,11 +153,11 @@ export default function StorePage() {
                               {m.price.toLocaleString()}원
                             </span>
                             <span className="text-xl font-bold text-blue-600">
-                              {d!.finalPrice.toLocaleString()}원
+                              {m.finalPrice!.toLocaleString()}원
                             </span>
-                            {typeof d!.rate === 'number' && (
+                            {typeof m.discountRate === 'number' && (
                               <Badge className="bg-blue-600 text-white font-medium">
-                                {d!.rate}% 할인
+                                {m.discountRate}% 할인
                               </Badge>
                             )}
                           </>
@@ -279,6 +181,34 @@ export default function StorePage() {
             );
           })}
         </div>
+
+        {/* 증정(선택 없이 목록만 노출) */}
+        {(vm.gifts?.length ?? 0) > 0 && (
+          <div className="mt-10">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">증정</h3>
+            <div className="space-y-3">
+              {vm.gifts.map(g => (
+                <div
+                  key={g.gitfOptionId}
+                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <Gift className="w-5 h-5 text-green-700" />
+                    <div>
+                      <div className="font-medium text-gray-900">{g.name}</div>
+                      {g.description && (
+                        <div className="text-sm text-gray-600">{g.description}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {g.remaining != null ? `잔여 ${g.remaining}` : '재고 정보 없음'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
