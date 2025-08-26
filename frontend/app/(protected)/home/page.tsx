@@ -13,8 +13,7 @@ import CategoryFilter from "@/components/category-filter";
 
 import { useAppContext } from "@/contexts/app-context";
 import { useOnboardingCheck } from "@/hooks/use-onboarding-check";
-import { useGetStoresWithEvents } from "@/hooks/usecases/use-stores";
-import { distanceKm } from "@/lib/utils";
+import { useGetStoresWithEvents } from "@/hooks/usecases/stores.usecase";
 
 export default function HomePage() {
   const { appState, fetchLocation } = useAppContext();
@@ -29,58 +28,7 @@ export default function HomePage() {
 
   // 서버에서 최소 데이터만: 활성 스토어 + 활성 이벤트 포함
   const {data, isLoading, error} = useGetStoresWithEvents(true);
-
-  const filteredAndSorted = useMemo(() => {
-    let rows = [...(data ?? [])];
-  
-    // 1) 카테고리 필터
-    if (selectedCategory !== "전체") {
-      rows = rows.filter(r => (r.category ?? "기타") === selectedCategory);
-    }
-  
-    // 2) “할인만” / “제휴만” 토글 필터
-    if (selectedSorting === "할인만") {
-      rows = rows.filter(r => (r.maxDiscountRate ?? 0) > 0);
-    }
-    if (selectedSorting === "제휴만") {
-      rows = rows.filter(r => !!r.partnership);
-    }
-  
-    // 3) 정렬
-    if (selectedSorting === "거리순") {
-      // 훅에서 distance를 이미 넣어줬으면 그 값 사용, 없으면 여기서 계산
-      if (coordinates) {
-        rows = rows
-          .map(r => {
-            const dist = (r as any).distance ?? distanceKm(
-              { lat: coordinates.lat, lng: coordinates.lng },
-              { lat: r.lat,        lng: r.lng }
-            );
-            return { ...r, _dist: dist };
-          })
-          .sort((a:any, b:any) => (a._dist ?? Infinity) - (b._dist ?? Infinity))
-          .map(({ _dist, ...rest }) => rest);
-      } else {
-        // 좌표 없으면 이름순 등 안정적인 fallback
-        rows.sort((a, b) => a.name.localeCompare(b.name));
-      }
-    } else if (selectedSorting === "할인순") {
-      rows.sort((a, b) => {
-        const da = a.maxDiscountRate ?? 0;
-        const db = b.maxDiscountRate ?? 0;
-        if (db !== da) return db - da; // 할인 높은 순
-        // 동률이면 가까운 순(좌표 있을 때만)
-        if (coordinates) {
-          const ad = distanceKm(coordinates, { lat: a.lat, lng: a.lng });
-          const bd = distanceKm(coordinates, { lat: b.lat, lng: b.lng });
-          return ad - bd;
-        }
-        return a.name.localeCompare(b.name);
-      });
-    }
-  
-    return rows;
-  }, [data, selectedCategory, selectedSorting, coordinates]);
+  const storeList = data ?? [];
 
   const isSkeletonLoading = !isOnboardingComplete || locationLoading || isLoading;
 
@@ -146,7 +94,7 @@ export default function HomePage() {
 
         {isSkeletonLoading ? (
           Array.from({ length: 5 }).map((_, index) => <StoreCardSkeleton key={index} />)
-        ) : filteredAndSorted.length==0 ? (
+        ) : storeList.length==0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">해당 카테고리의 할인 가게가 없습니다</h3>
@@ -156,7 +104,7 @@ export default function HomePage() {
             </Button>
           </div>
         ) : (
-          filteredAndSorted.map((item) => (
+          storeList.map((item) => (
             <Link key={item.id} href={`/store/${item.id}`}>
               <StoreCard vm={item} />
             </Link>

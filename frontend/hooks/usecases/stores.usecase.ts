@@ -4,10 +4,11 @@
 import { useQuery, type QueryKey } from '@tanstack/react-query';
 import { jsonFetch } from './fetcher';
 import type { StoreWithEvents, StoreWithEventsAndMenus } from '@/domain/entities/entities';
-import { buildStoresWithEventsVM, buildStoreDetailVM } from '@/lib/vm/store.vm';
+import { buildStoreListVMs, StoreListItemVM } from '@/lib/vm/store.vm';
 import { Id } from '@/domain/shared/repository';
 import { useAppContext } from '@/contexts/app-context';
-import { distanceKm, distanceText } from '@/lib/utils';
+import { distanceKm, distanceText } from '@/lib/vm/utils/utils';
+
 
 export function useGetStoresWithEvents(onlyActive: boolean) {
     const { appState } = useAppContext();
@@ -19,7 +20,8 @@ export function useGetStoresWithEvents(onlyActive: boolean) {
       select: (d) => {
         // 1) 서버 rows → 리스트 VM
         const rows = Array.isArray(d) ? (d as any[]) : ((d as any)?.rows ?? []);
-        const vms  = buildStoresWithEventsVM(rows);
+        const vms  = buildStoreListVMs(rows);
+        console.log(vms);
   
         // 2) 사용자 좌표가 있으면 거리 파생값 추가
         if (!coords) return vms;
@@ -31,7 +33,7 @@ export function useGetStoresWithEvents(onlyActive: boolean) {
       staleTime: 30_000,
       refetchOnWindowFocus: false,
     });
-  }
+}
 
 
 type GetStoreWithEventsAndMenusResponse = {
@@ -48,7 +50,7 @@ export function useGetStoreWithEventsAndMenus(id: Id, opts?: { onlyActiveEvents?
       jsonFetch<GetStoreWithEventsAndMenusResponse>(
         `/api/stores/${encodeURIComponent(id)}?onlyActiveEvents=${onlyActiveEvents ? '1' : '0'}`
       ),
-    select: (d) => buildStoreDetailVM(d.data),
+    // select: (d) => buildStoreDetailVM(d.data),
     enabled: !!id,
     staleTime: 30_000,
     refetchOnWindowFocus: false,

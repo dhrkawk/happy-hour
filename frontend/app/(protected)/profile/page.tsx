@@ -7,9 +7,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import BottomNavigation from "@/components/bottom-navigation"
 import { createClient } from "@/infra/supabase/shared/client"
-import { useGetUserProfile } from "@/hooks/usecases/use-profile"
+import { useGetUserProfile } from "@/hooks/usecases/profile.usecase"
 import { Loader2 } from "lucide-react"
-import { useGetMyStoreId } from "@/hooks/usecases/use-stores"
+import { useGetMyStoreId } from "@/hooks/usecases/stores.usecase"
 
 export default function ProfilePage() {
   const handleLogout = async () => {
@@ -21,7 +21,6 @@ export default function ProfilePage() {
   const { data: me, isLoading: meLoading, error: meError } = useGetUserProfile();
   const { data: storeId, isLoading: storeIdLoading, error: storeIdError } = useGetMyStoreId();
   
-
   if (meLoading || storeIdLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

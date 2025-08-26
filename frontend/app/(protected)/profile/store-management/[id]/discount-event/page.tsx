@@ -26,7 +26,7 @@ import { useCreateEvent } from "@/hooks/events/use-create-event";
 // ✅ 이벤트 조회 훅/뷰모델
 import { useGetEvents } from "@/hooks/events/use-get-events";
 import { buildEventsListVM } from "@/lib/event-vm";
-import { weekdayLabelMap } from "@/lib/utils";
+import { weekdayLabelMap } from "@/lib/vm/utils/utils";
 
 type EventDiscountItem = {
   menuId: string;

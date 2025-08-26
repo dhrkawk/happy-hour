@@ -134,7 +134,7 @@ export default function KakaoMap({
 
       // 2) 항상 표시되는 이름 오버레이 (제휴라면 🤝 접두)
       const nameEl = document.createElement('div')
-      const displayName = store.partnership ? `🤝 ${store.name}` : store.name
+      const displayName = store.partershipText ? `🤝 ${store.name}` : store.name
       nameEl.innerHTML = `
         <div style="
           padding: 4px 8px;
@@ -181,9 +181,10 @@ export default function KakaoMap({
           store.hasEvent
             ? `
               <hr style="margin:6px 0;border:none;border-top:1px solid #eee" />
+              <div> ${store.eventTitle} </div>
               ${
                 typeof maxRate === 'number' && maxRate > 0
-                  ? `<div style="color:#ef4444">최대 ${maxRate}% 할인</div>`
+                  ? `<div style="color:#ef4444">${maxRate}% 할인</div>`
                   : `<div>이벤트 진행 중</div>`
               }
             `

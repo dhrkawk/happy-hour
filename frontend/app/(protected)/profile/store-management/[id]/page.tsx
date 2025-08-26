@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Store } from "@/domain/store/store.entity"
-import { useGetUserProfile } from "@/hooks/usecases/use-profile"
+import { useGetUserProfile } from "@/hooks/usecases/profile.usecase"
 
 import { useParams } from "next/navigation";
 

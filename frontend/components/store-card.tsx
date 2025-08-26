@@ -44,11 +44,11 @@ export function StoreCard({ vm }: Props) {
             {/* 하단: 배지들 (제휴 / 진행중 / 최대할인) */}
             <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 justify-between md:justify-start">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                {vm.partnership && (
+                {vm.partershipText && (
                   <Badge
                     variant="outline"
                     className="text-[11px] md:text-xs px-2 py-[2px] border-blue-200 text-blue-600 bg-blue-50"
-                    title={vm.partnership ?? undefined}
+                    title={vm.partershipText ?? undefined}
                   >
                     한양대 제휴
                   </Badge>

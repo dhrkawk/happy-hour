@@ -15,9 +15,7 @@ import { LocationErrorBanner } from "@/components/location-error-banner";
 
 import { useAppContext } from "@/contexts/app-context";
 import { useOnboardingCheck } from "@/hooks/use-onboarding-check";
-import { useGetStoresWithEvents } from "@/hooks/usecases/use-stores";
-import { distanceKm } from "@/lib/utils";
-import { type StoreListItemVM } from "@/lib/vm/store.vm";
+import { useGetStoresWithEvents } from "@/hooks/usecases/stores.usecase";
 
 export default function MapPage() {
   const { appState, fetchLocation } = useAppContext();
@@ -30,58 +28,9 @@ export default function MapPage() {
   const [selectedSorting, setSelectedSorting] =
     useState<"거리순" | "할인순" | "할인만" | "제휴만">("거리순");
 
-  // 서버 데이터 (VM으로 변환됨)
   const { data, isLoading: storesLoading } = useGetStoresWithEvents(true);
-
-  // ⭐ 여기서 필터링/정렬
-  const filteredAndSorted: StoreListItemVM[] = useMemo(() => {
-    let rows = [...(data ?? [])];
-
-    // 카테고리 필터
-    if (selectedCategory !== "전체") {
-      rows = rows.filter((r) => (r.category ?? "기타") === selectedCategory);
-    }
-
-    // “할인만” / “제휴만”
-    if (selectedSorting === "할인만") {
-      rows = rows.filter((r) => (r.maxDiscountRate ?? 0) > 0);
-    }
-    if (selectedSorting === "제휴만") {
-      rows = rows.filter((r) => !!r.partnership);
-    }
-
-    // 정렬
-    if (selectedSorting === "거리순") {
-      if (coordinates) {
-        rows = rows
-          .map((r) => {
-            const dist = distanceKm(coordinates, { lat: r.lat, lng: r.lng });
-            return { ...r, _dist: dist };
-          })
-          .sort((a: any, b: any) => (a._dist ?? Infinity) - (b._dist ?? Infinity))
-          .map(({ _dist, ...rest }) => rest);
-      } else {
-        rows.sort((a, b) => a.name.localeCompare(b.name));
-      }
-    } else if (selectedSorting === "할인순") {
-      rows.sort((a, b) => {
-        const da = a.maxDiscountRate ?? 0;
-        const db = b.maxDiscountRate ?? 0;
-        if (db !== da) return db - da;
-        if (coordinates) {
-          const ad = distanceKm(coordinates, { lat: a.lat, lng: a.lng });
-          const bd = distanceKm(coordinates, { lat: b.lat, lng: b.lng });
-          return ad - bd;
-        }
-        return a.name.localeCompare(b.name);
-      });
-    }
-
-    return rows;
-  }, [data, selectedCategory, selectedSorting, coordinates]);
-
+  const storeList = data ?? [];
   const isLoading = !isOnboardingComplete || locationLoading || storesLoading;
-  const selectedStore = filteredAndSorted.find((s) => s.id === selectedStoreId) ?? null;
 
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto relative overflow-hidden">
@@ -135,7 +84,7 @@ export default function MapPage() {
       <div className="px-4 relative h-[60vh]">
         <KakaoMap
           userLocation={coordinates}
-          stores={filteredAndSorted}
+          stores={storeList}
           selectedStoreId={selectedStoreId}
           onSelectStore={setSelectedStoreId}
         />
@@ -146,7 +95,6 @@ export default function MapPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">
             {selectedCategory === "전체" ? "근처 할인 가게" : `근처 ${selectedCategory} 가게`}{" "}
-            ({filteredAndSorted.length})
           </h2>
           <div className="flex items-center gap-2">
             {(["거리순", "할인순", "할인만", "제휴만"] as const).map((label) => (
@@ -167,13 +115,13 @@ export default function MapPage() {
 
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <StoreCardSkeleton key={i} />)
-        ) : filteredAndSorted.length === 0 ? (
+        ) : storeList.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-4xl mb-3">🗺️</div>
             <p className="text-gray-600">근처에 표시할 가게가 없어요.</p>
           </div>
         ) : (
-          filteredAndSorted.map((item) => (
+          storeList.map((item) => (
             <Link key={item.id} href={`/store/${item.id}`}>
               <StoreCard vm={item} />
             </Link>
