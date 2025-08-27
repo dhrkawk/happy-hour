@@ -2,7 +2,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createEventSchema, type CreateEventInput } from '@/app/(protected)/profile/store-management/[id]/discount-event/event.form';
+import { createEventSchema, type CreateEventInput } from '@/app/(protected)/profile/store-management/[id]/event/event.form';
 
 /** HH:mm → HH:mm:ss 보정 */
 const toHHMMSS = (t?: string) => (t && t.length === 5 ? `${t}:00` : t);

@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAppContext } from "@/contexts/app-context";
 
 // ✅ 이벤트 생성 훅/스키마
-import { createEventSchema, type CreateEventInput } from "@/app/(protected)/profile/store-management/[id]/discount-event/event.form";
+import { createEventSchema, type CreateEventInput } from "@/app/(protected)/profile/store-management/[id]/event/event.form";
 import { useCreateEvent } from "@/hooks/events/use-create-event";
 
 // ✅ 이벤트 조회 훅/뷰모델
