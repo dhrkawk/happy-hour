@@ -126,7 +126,7 @@ export function useGetMyStoreId() {
   return useQuery({
     queryKey: key,
     queryFn: () => jsonFetch<GetMyStoreIdResponse>('/api/stores/mine'),
-    select: (d) => d.storeId ?? null,
+    select: (d) => d ?? null,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
