@@ -11,7 +11,7 @@ const ParamsSchema = z.object({ id: z.string() });
 // PATCH /api/menus/:id
 export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   try {
-    const { id } = ParamsSchema.parse(ctx.params);
+    const { id } = await ctx.params;
 
     const json = await req.json();
     const dto = StoreMenuUpdateSchema.parse(json);
@@ -33,7 +33,8 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
 // DELETE /api/menus/:id
 export async function DELETE(_req: Request, ctx: { params: { id: string } }) {
   try {
-    const { id } = ParamsSchema.parse(ctx.params);
+    const { id } = await ctx.params;
+
 
     const sb = await createClient();
     const repo = new SupabaseStoreMenuRepository(sb);

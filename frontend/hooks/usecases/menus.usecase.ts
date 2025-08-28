@@ -59,7 +59,7 @@ function replaceMenuInCache(
     );
   }
 function removeMenuInCache(list: StoreMenu[] | undefined, id: string) {
-  if (!list) return list;
+  if (!Array.isArray(list)) return list ?? []; // 안전 가드
   return list.filter(m => m.id !== id);
 }
 
@@ -67,6 +67,7 @@ function removeMenuInCache(list: StoreMenu[] | undefined, id: string) {
  * API functions
  * ========================= */
 async function apiUpdateMenu(id: string, dto: StoreMenuUpdateDTO): Promise<{ ok: true }> {
+    console.log("apiUpdateMenu", id, dto);
   const res = await fetch(`/api/menus/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -110,10 +111,8 @@ export function useUpdateMenu() {
 
   return useMutation({
     mutationFn: async (vars: { id: string; dto: StoreMenuUpdateDTO; storeId: string }) => {
-        console.log('[mutationFn:update] start', vars);
         if (!vars?.id) throw new Error('id is required');
         const res = await apiUpdateMenu(vars.id, vars.dto);
-        console.log('[mutationFn:update] done', res);
         return res;
       },
 
