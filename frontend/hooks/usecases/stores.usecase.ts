@@ -2,7 +2,7 @@
 'use client';
 
 import { useQuery, type QueryKey } from '@tanstack/react-query';
-import { jsonFetch } from './fetcher';
+import { jsonFetch } from './json-helper';
 import type { StoreWithEvents, StoreWithEventsAndMenus } from '@/domain/entities/entities';
 import { buildStoreDetailVM, buildStoreListVMs, enrichStoreDetailVM, StoreListItemVM } from '@/lib/vm/store.vm';
 import { Id } from '@/domain/shared/repository';
@@ -72,7 +72,7 @@ export function useGetStoreWithEventsAndMenus(id: Id, opts?: { onlyActiveEvents?
 
 export function useGetStoreDetail(
   id: Id,
-  opts?: { onlyActive?: boolean; choose?: 'current' | 'first' } // choose는 필요시 확장
+  opts?: { onlyActive?: boolean; choose?: 'current' | 'first' }
 ) {
   const onlyActive = !!opts?.onlyActive;
 
@@ -116,16 +116,12 @@ export function useGetStoreDetail(
   };
 }
 
-type GetMyStoreIdResponse = {
-  storeId: Id | null;
-};
-
 export function useGetMyStoreId() {
   const key: QueryKey = ['stores', 'mine', 'id'];
 
   return useQuery({
     queryKey: key,
-    queryFn: () => jsonFetch<GetMyStoreIdResponse>('/api/stores/mine'),
+    queryFn: () => jsonFetch<string>('/api/stores/mine'),
     select: (d) => d ?? null,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
