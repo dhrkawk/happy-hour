@@ -2,6 +2,7 @@ import { jsonFetch, jsonPost } from "./json-helper";
 import { StoreMenuInsertDTO,StoreMenuUpdateDTO } from "@/domain/schemas/schemas";
 import { StoreMenu } from "@/domain/entities/entities";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { createClient } from "@/infra/supabase/shared/client";
 
 /* =============== Query Keys =============== */
 const qk = {
@@ -26,6 +27,24 @@ export function useGetMenusByStoreId(storeId?: string, enabled = true) {
   }
 
 /** POST /api/menus (bulk insert) */
+const BUCKET = "store-menus";
+
+export async function uploadStoreMenuThumbnail(storeId: string, file: File): Promise<string> {
+  const sb = createClient();
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `store/${storeId}/menus/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, {
+    upsert: false,
+    cacheControl: "3600",
+    contentType: file.type || undefined,
+  });
+  if (error) throw error;
+
+  const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export function useCreateMenus() {
   const qc = useQueryClient();
 
@@ -157,6 +176,7 @@ export function useDeleteMenu() {
   return useMutation({
     mutationFn: async (vars: { id: string; storeId: string }) => {
       if (!vars?.id) throw new Error("id is required");
+      console.log("Deleting menu:", vars.id);
       return apiDeleteMenu(vars.id);
     },
 
