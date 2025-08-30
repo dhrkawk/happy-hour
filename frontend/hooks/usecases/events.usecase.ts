@@ -8,7 +8,7 @@ import type {
   CreateEventWithDiscountsAndGiftsDTO,
   UpdateEventWithDiscountsAndGiftsDTO,
 } from '@/domain/schemas/schemas';
-import { jsonFetch } from './fetcher';
+import { jsonFetch } from './json-helper';
 
 /* --------------------- 작은 fetch 유틸 --------------------- */
 async function getJSON<T>(url: string, init?: RequestInit): Promise<T> {

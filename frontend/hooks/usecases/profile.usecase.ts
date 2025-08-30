@@ -2,7 +2,7 @@
 'use client';
 
 import { useQuery, type QueryKey } from '@tanstack/react-query';
-import { jsonFetch } from './fetcher';
+import { jsonFetch } from './json-helper';
 import type { UserProfile } from '@/domain/entities/entities';
 import { buildUserProfileVM, type UserProfileVM } from '@/lib/vm/profile.vm';
 

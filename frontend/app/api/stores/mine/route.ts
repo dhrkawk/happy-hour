@@ -8,7 +8,7 @@ export async function GET() {
 
   try {
     const id = await repo.getMyStoreId();
-    return NextResponse.json({ id });
+    return NextResponse.json( id );
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'Failed to get my store id' }, { status: 500 });
   }

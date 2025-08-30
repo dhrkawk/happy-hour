@@ -6,7 +6,7 @@ import type { Id } from '@/domain/shared/repository';
 import type { CreateCouponTxDTO } from '@/domain/schemas/schemas';
 import { type Coupon, type CouponWithItems } from '@/domain/entities/entities';
 import { buildCouponListVM, buildCouponWithItemsVM } from '@/lib/vm/coupon.vm';
-import { jsonFetch } from './fetcher';
+import { jsonFetch } from './json-helper';
 
 /* ---------------- Query Keys ---------------- */
 export const couponKeys = {
