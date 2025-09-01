@@ -3,7 +3,7 @@
 
 import { useQuery, useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import type { Id } from '@/domain/shared/repository';
-import type { EventWithDiscountsAndGifts } from '@/domain/entities/entities';
+import { Event, EventWithDiscountsAndGifts } from '@/domain/entities/entities';
 import type {
   CreateEventWithDiscountsAndGiftsDTO,
   UpdateEventWithDiscountsAndGiftsDTO,
@@ -34,7 +34,21 @@ async function sendJSON<T>(url: string, method: 'POST'|'PATCH'|'DELETE', body?: 
 /* --------------------- Query Keys --------------------- */
 const qk = {
   eventDetail: (id: Id, onlyActive?: boolean): QueryKey => ['events', 'detail', id, { onlyActive: !!onlyActive }],
+  eventsByStore: (storeId?: string) => ["events","by-store",storeId] as const,
 };
+
+
+export function useGetEventsByStoreId(storeId: string, enabled = true) {
+    return useQuery({
+      queryKey: qk.eventsByStore(storeId),
+      enabled: !!storeId && enabled,
+      queryFn: async () =>
+        jsonFetch<{ events: Event[] }>(`/api/events?storeId=${encodeURIComponent(storeId)}`),
+      select: (res): Event[] => (res.events ?? []).map(Event.fromRow),
+      // 필요 시 캐시 정책
+      staleTime: 60_000,
+    });
+  }
 
 /* --------------------- 1) GET /api/events/[id] --------------------- */
 /**

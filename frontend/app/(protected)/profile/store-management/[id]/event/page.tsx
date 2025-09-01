@@ -1,441 +1,764 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ArrowLeft, Plus, Trash2, Gift, Calendar, Clock,
-} from "lucide-react";
+  useForm,
+  useFieldArray,
+  UseFormReturn,
+  UseFieldArrayReturn,
+} from "react-hook-form";
+
+import {
+  CreateEventWithDiscountsAndGiftsSchema,
+  CreateEventWithDiscountsAndGiftsDTO,
+} from "@/domain/schemas/schemas";
+
+import {
+  useGetEventsByStoreId,
+  useGetEventWithDiscountsAndGifts,
+  // ✅ 새로 사용할 생성 훅
+  useCreateEventWithDiscountsAndGifts,
+} from "@/hooks/usecases/events.usecase";
+
+import { useGetMenusByStoreId } from "@/hooks/usecases/menus.usecase";
+
+import {
+  EventWithDiscountsAndGifts,
+  StoreMenu,
+} from "@/domain/entities/entities";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { DatePicker } from "@/components/ui/date-picker";
-import { TimePicker } from "@/components/ui/time-picker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, Plus, Pencil } from "lucide-react";
 
-import { useAppContext } from "@/contexts/app-context";
+/* ---------- 상세 → 생성 DTO 매핑 ---------- */
+function toCreateDTOFromDetail(
+  storeId: string,
+  detail: EventWithDiscountsAndGifts
+): CreateEventWithDiscountsAndGiftsDTO {
+  const e = detail.event;
 
-// ✅ 이벤트 생성 훅/스키마
-import { createEventSchema, type CreateEventInput } from "@/app/(protected)/profile/store-management/[id]/event/event.form";
-import { useCreateEvent } from "@/hooks/events/use-create-event";
+  return {
+    store_id: storeId,
+    start_date: e.startDate as unknown as Date,
+    end_date: e.endDate as unknown as Date,
+    happy_hour_start_time: (e.happyHourStartTime ?? null) as any,
+    happy_hour_end_time: (e.happyHourEndTime ?? null) as any,
+    weekdays: (e.weekdays ?? []) as any,
+    is_active: !!e.isActive,
+    description: e.description ?? null,
+    title: e.title ?? "",
 
-// ✅ 이벤트 조회 훅/뷰모델
-import { useGetEvents } from "@/hooks/events/use-get-events";
-import { buildEventsListVM } from "@/lib/event-vm";
-import { weekdayLabelMap } from "@/lib/vm/utils/utils";
+    discounts: detail.discounts.map((d) => ({
+      menu_id: d.menuId,
+      discount_rate: d.discountRate,
+      remaining: d.remaining ?? null,
+      is_active: d.isActive,
+      final_price: d.finalPrice,
+    })),
 
-type EventDiscountItem = {
-  menuId: string;
-  menuName: string;
-  originalPrice: number;
-  discountRate: number;
-  finalPrice: number;
-  quantity: number;
-};
+    gift_options: detail.giftGroups.flatMap((gg) =>
+      gg.options.map((o) => ({
+        menu_id: o.menuId,
+        remaining: o.remaining ?? null,
+        is_active: o.isActive,
+      }))
+    ),
+  };
+}
 
-export default function ManageDiscountEventsPage() {
+/* ---------- 요일 옵션 ---------- */
+const WEEKDAYS: Array<{
+  label: string;
+  value: "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+}> = [
+  { label: "월", value: "mon" },
+  { label: "화", value: "tue" },
+  { label: "수", value: "wed" },
+  { label: "목", value: "thu" },
+  { label: "금", value: "fri" },
+  { label: "토", value: "sat" },
+  { label: "일", value: "sun" },
+];
+
+/* =============== 메뉴 드롭다운 =============== */
+function MenuSelect({
+  value,
+  onChange,
+  menus,
+  placeholder = "메뉴를 선택하세요",
+  disabled,
+}: {
+  value?: string;
+  onChange: (id: string) => void;
+  menus: StoreMenu[];
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <Select
+      value={value ?? ""}
+      onValueChange={(v) => onChange(v)}
+      disabled={disabled || menus.length === 0}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder={menus.length ? placeholder : "메뉴 없음"} />
+      </SelectTrigger>
+      <SelectContent>
+        {menus.map((m) => (
+          <SelectItem key={m.id} value={m.id}>
+            {m.name}{" "}
+            {typeof m.price === "number" ? `(${m.price.toLocaleString()}원)` : ""}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+export default function StoreEventsPage() {
   const router = useRouter();
   const { id: storeId } = useParams() as { id: string };
-  const { appState } = useAppContext();
-const isStoreLoading = false;
-const storeError = false;
-const store = true;
 
-  // 이벤트 목록 조회 (집계 모드 + 하위(할인/증정) 활성만)
-  const {
-    data: eventsVM,
-    isLoading: eventsLoading,
-    error: eventsError,
-  } = useGetEvents(
-    {
-      storeId,
-      includeAggregate: true,
-      childActiveOnly: true,
-      isActive: undefined,        // 전체 / 필요시 true로 변경
-      sort: "created_at:desc",
-      limit: 100,
-    },
-    {
-      select: (resp) => buildEventsListVM(resp),
-    }
+  /* ===== 목록 ===== */
+  const { data: eventsData, isLoading: listLoading } = useGetEventsByStoreId(
+    storeId
+  );
+  const events = useMemo(
+    () => (Array.isArray(eventsData) ? eventsData : []),
+    [eventsData]
   );
 
-  // 이벤트 생성 훅
-  const createEvent = useCreateEvent({
-    onSuccess: () => {
-      setDialogOpen(false);
-      router.refresh();
-    },
+  /* ===== 메뉴(드롭다운 옵션) ===== */
+  const { data: menusData, isLoading: menusLoading } =
+    useGetMenusByStoreId(storeId);
+  const menus = useMemo<StoreMenu[]>(
+    () => (Array.isArray(menusData) ? menusData : []),
+    [menusData]
+  );
+
+  /* ===== 다이얼로그 상태 ===== */
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [uiError, setUiError] = useState<string | null>(null);
+
+  /* ===== 상세 쿼리(수정) ===== */
+  const {
+    data: detail,
+    isLoading: detailLoading,
+    isFetching: detailFetching,
+  } = useGetEventWithDiscountsAndGifts(editId as string, {
+    enabled: editOpen && !!editId,
+    onlyActive: false,
   });
 
-  // 로컬 폼 상태
-  const [eventTitle, setEventTitle] = useState("");
-  const [eventDescription, setEventDescription] = useState("");
-  const [startDate, setStartDate] = useState("");       // YYYY-MM-DD
-  const [endDate, setEndDate] = useState("");           // YYYY-MM-DD
-  const [startTime, setStartTime] = useState("09:00");  // HH:mm
-  const [endTime, setEndTime] = useState("21:00");      // HH:mm
-  const [daysOfWeek, setDaysOfWeek] = useState<string[]>([]);
-  const [eventDiscounts, setEventDiscounts] = useState<EventDiscountItem[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [error, setError] = useState("");
+  /* ===== 생성 훅(뮤테이션) 연결 ===== */
+  const createMutate = useCreateEventWithDiscountsAndGifts();
 
-  const isSubmitting = createEvent.isPending;
+  /* ===== 생성 폼 ===== */
+  const createForm = useForm<CreateEventWithDiscountsAndGiftsDTO>({
+    resolver: zodResolver(CreateEventWithDiscountsAndGiftsSchema),
+    defaultValues: {
+      store_id: storeId,
+      start_date: new Date(),
+      end_date: new Date(),
+      happy_hour_start_time: null,
+      happy_hour_end_time: null,
+      weekdays: ["mon", "tue", "wed", "thu", "fri"],
+      is_active: true,
+      description: null,
+      title: "",
+      discounts: [],
+      gift_options: [],
+    },
+    mode: "onChange",
+  });
+  const createDiscounts: UseFieldArrayReturn<
+    CreateEventWithDiscountsAndGiftsDTO,
+    "discounts",
+    "id"
+  > = useFieldArray({
+    control: createForm.control,
+    name: "discounts",
+  });
+  const createGifts: UseFieldArrayReturn<
+    CreateEventWithDiscountsAndGiftsDTO,
+    "gift_options",
+    "id"
+  > = useFieldArray({
+    control: createForm.control,
+    name: "gift_options",
+  });
 
-  // 요일 토글
-  const handleDaysOfWeekChange = (day: string) => {
-    setDaysOfWeek((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    );
-  };
+  /* ===== 수정 폼 ===== */
+  const editForm = useForm<CreateEventWithDiscountsAndGiftsDTO>({
+    resolver: zodResolver(CreateEventWithDiscountsAndGiftsSchema),
+    defaultValues: {
+      store_id: storeId,
+      start_date: new Date(),
+      end_date: new Date(),
+      happy_hour_start_time: null,
+      happy_hour_end_time: null,
+      weekdays: ["mon"],
+      is_active: true,
+      description: null,
+      title: "",
+      discounts: [],
+      gift_options: [],
+    },
+    mode: "onChange",
+  });
+  const editDiscounts: UseFieldArrayReturn<
+    CreateEventWithDiscountsAndGiftsDTO,
+    "discounts",
+    "id"
+  > = useFieldArray({
+    control: editForm.control,
+    name: "discounts",
+  });
+  const editGifts: UseFieldArrayReturn<
+    CreateEventWithDiscountsAndGiftsDTO,
+    "gift_options",
+    "id"
+  > = useFieldArray({
+    control: editForm.control,
+    name: "gift_options",
+  });
 
-  // 할인 항목
-  const handleAddDiscountItem = () => {
-    setEventDiscounts((prev) => [
-      ...prev,
-      { menuId: "", menuName: "", originalPrice: 0, discountRate: 0, finalPrice: 0, quantity: 1 },
-    ]);
-  };
+  /* ===== 상세 로드 → 수정 폼에 주입 ===== */
+  const readyToHydrate = editOpen && !!detail && !detailLoading && !detailFetching;
+  if (readyToHydrate) {
+    const dto = toCreateDTOFromDetail(storeId, detail!);
+    if (editForm.getValues("title") !== dto.title) {
+      editForm.reset(dto);
+      editDiscounts.replace(dto.discounts);
+      editGifts.replace(dto.gift_options ?? []);
+    }
+  }
 
-  const handleDiscountItemChange = (
-    index: number,
-    field: keyof EventDiscountItem,
-    value: any
-  ) => {
-    setEventDiscounts((prev) => {
-      const updated = [...prev];
-      const item = { ...updated[index], [field]: value };
-
-      if (field === "discountRate" || field === "originalPrice") {
-        item.finalPrice = Math.round(item.originalPrice * (1 - (item.discountRate || 0) / 100));
-      } else if (field === "finalPrice") {
-        if (item.originalPrice > 0) {
-          const newRate = ((item.originalPrice - item.finalPrice) / item.originalPrice) * 100;
-          item.discountRate = Math.round(newRate);
-        } else {
-          item.discountRate = 0;
-        }
-      }
-      updated[index] = item;
-      return updated;
+  /* ===== Handlers ===== */
+  const openCreate = () => {
+    setUiError(null);
+    createForm.reset({
+      store_id: storeId,
+      start_date: new Date(),
+      end_date: new Date(),
+      happy_hour_start_time: null,
+      happy_hour_end_time: null,
+      weekdays: ["mon", "tue", "wed", "thu", "fri"],
+      is_active: true,
+      description: null,
+      title: "",
+      discounts: [],
+      gift_options: [],
     });
+    setCreateOpen(true);
   };
 
-  const handleRemoveDiscountItem = (index: number) => {
-    setEventDiscounts((prev) => prev.filter((_, i) => i !== index));
+  const openEdit = (id: string) => {
+    setUiError(null);
+    setEditId(id);
+    setEditOpen(true);
   };
 
-  // 제출
-  const handleSubmitEvent = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!storeId) {
-      setError("Store ID is missing.");
-      return;
-    }
-    setError("");
+  const onSubmitCreate = createForm.handleSubmit((vals) => {
+    setUiError(null);
+    // 안전 보정(숫자형)
+    vals.discounts = (vals.discounts ?? []).map((d) => ({
+      ...d,
+      discount_rate: Number(d.discount_rate),
+      final_price: Number(d.final_price),
+      remaining:
+        d.remaining === null || d.remaining === undefined
+          ? null
+          : Number(d.remaining),
+    }));
+    vals.gift_options = (vals.gift_options ?? []).map((g) => ({
+      ...g,
+      remaining:
+        g.remaining === null || g.remaining === undefined
+          ? null
+          : Number(g.remaining),
+    }));
 
-    const payload: CreateEventInput = {
-      event: {
-        storeId,
-        title: eventTitle,
-        description: eventDescription || undefined,
-        startDate,
-        endDate,
-        weekdays: daysOfWeek.length ? (daysOfWeek as any) : undefined, // ["MON","TUE",...]
-        happyHourStartTime: startTime,
-        happyHourEndTime: endTime,
-        isActive: true,
+    createMutate.mutate(vals, {
+      onSuccess: (_res) => {
+        setCreateOpen(false);
       },
-      discounts: eventDiscounts.map((d) => ({
-        menuId: d.menuId,
-        discountRate: d.discountRate,
-        finalPrice: d.finalPrice,
-        remaining: d.quantity, // 스키마의 remaining으로 매핑
-        isActive: true,
-      })),
-      giftGroups: [],
-    };
-
-    try {
-      createEventSchema.parse(payload); // 클라 검증
-      createEvent.mutate(payload);      // 전송
-    } catch (err: any) {
-      setError(err.message ?? "유효성 검증 실패");
-    }
-  };
-
-  // 로딩/에러 처리
-  if (isStoreLoading || eventsLoading) return <Skeleton className="h-screen w-full" />;
-  if (storeError) return <div className="text-red-500">Error: {storeError.message}</div>;
-  if (eventsError) return <div className="text-red-500">Error: {eventsError.message}</div>;
-  if (!store) return <div>Store not found.</div>;
+      onError: (e) => {
+        setUiError(e.message ?? "이벤트 생성에 실패했습니다.");
+      },
+    });
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 gap-6">
-      {/* 헤더 */}
-      <div className="w-full max-w-2xl flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 p-4 flex flex-col items-center gap-6">
+      <div className="w-full max-w-5xl flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push(`/profile/store-management/${storeId}`)}
+            onClick={() =>
+              router.push(`/profile/store-management/${storeId}`)
+            }
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-2xl font-bold text-teal-600">{store.name}</h2>
+          <h2 className="text-2xl font-bold text-teal-700">이벤트 관리</h2>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>+ 할인 이벤트 등록</Button>
+        <div className="flex items-center gap-3">
+          {uiError && (
+            <span className="text-sm text-red-600">{uiError}</span>
+          )}
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-1" />
+            새 이벤트 등록
+          </Button>
+        </div>
       </div>
 
-      {/* 이벤트 리스트 (useGetEvents + VM) */}
-      <div className="w-full max-w-2xl space-y-4">
-        {eventsVM && eventsVM.items.length > 0 ? (
-          eventsVM.items.map((item) => (
-            <Card key={item.id} className="p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mt-1">
-                    <Gift className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-800">{item.title}</div>
-                    {item.description ? (
-                      <div className="text-sm text-gray-600 mt-1">{item.description}</div>
-                    ) : null}
-
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-2">
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {item.periodText}
-                      </span>
-                      {item.happyHourText && (
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          {item.happyHourText}
-                        </span>
-                      )}
-                      {item.weekdaysText && <span>{item.weekdaysText}</span>}
-                    </div>
-
-                    {/* 집계 요약 */}
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      {item.discountSummary && (
-                        <span className="text-xs text-teal-700 bg-teal-50 border border-teal-100 px-2 py-1 rounded">
-                          할인 {item.discountSummary.count}개
-                          {typeof item.discountSummary.maxRate === 'number' &&
-                            ` / 최대 ${item.discountSummary.maxRate}%`}
-                        </span>
-                      )}
-                      {item.giftSummary && item.giftSummary.optionCount > 0 && (
-                        <span className="text-xs text-blue-700 bg-blue-50 border border-blue-100 px-2 py-1 rounded">
-                          증정 {item.giftSummary.groupCount}그룹 / 옵션 {item.giftSummary.optionCount}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* (선택) 삭제/수정 버튼 – 삭제 API 붙이면 핸들러 연결 */}
-                {/* <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Edit className="w-4 h-4 mr-1" /> 수정
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteEvent(item.id)}>
-                    <Trash2 className="w-4 h-4 mr-1" /> 삭제
-                  </Button>
-                </div> */}
-              </div>
-            </Card>
-          ))
-        ) : (
-          <Card className="p-6">
-            <p className="text-gray-600">
-              등록된 이벤트가 없습니다. “할인 이벤트 등록”을 눌러 추가하세요.
-            </p>
+      {/* 목록 */}
+      <div className="w-full max-w-5xl space-y-4">
+        {listLoading && <p>로딩 중…</p>}
+        {!listLoading && events.length === 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>등록된 이벤트가 없습니다</CardTitle>
+              <CardDescription>
+                오른쪽 상단의 “새 이벤트 등록”을 눌러 시작하세요.
+              </CardDescription>
+            </CardHeader>
           </Card>
         )}
+        {!listLoading &&
+          events.map((ev) => (
+            <Card key={ev.id} className="p-4 flex items-center justify-between">
+              <div>
+                <div className="font-semibold">{ev.title}</div>
+                <div className="text-sm text-gray-600">
+                  {ev.startDate} ~ {ev.endDate} ·{" "}
+                  {ev.isActive ? "활성" : "비활성"} · 요일:{" "}
+                  {(ev.weekdays ?? []).join(", ")}
+                </div>
+              </div>
+              <Button variant="outline" onClick={() => openEdit(ev.id)}>
+                <Pencil className="h-4 w-4 mr-1" />
+                수정
+              </Button>
+            </Card>
+          ))}
       </div>
 
-      {/* 등록 다이얼로그 */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[800px]">
+      {/* 생성 다이얼로그 */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-[900px]">
           <DialogHeader>
-            <DialogTitle>할인 이벤트 등록</DialogTitle>
-            <CardDescription>새로운 할인 이벤트의 상세 정보를 입력하세요.</CardDescription>
+            <DialogTitle>이벤트 생성</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmitEvent} className="space-y-6">
-            {/* 기본 정보 */}
-            <Card>
-              <CardHeader><CardTitle>이벤트 기본 정보</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="event-title">이벤트명</Label>
-                  <Input
-                    id="event-title"
-                    value={eventTitle}
-                    onChange={(e) => setEventTitle(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="event-description">이벤트 설명</Label>
-                  <Textarea
-                    id="event-description"
-                    value={eventDescription}
-                    onChange={(e) => setEventDescription(e.target.value)}
-                    placeholder="이벤트에 대한 설명을 입력하세요."
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="start-date">시작 날짜</Label>
-                    <DatePicker id="start-date" value={startDate} onChange={setStartDate} />
-                  </div>
-                  <div>
-                    <Label htmlFor="end-date">종료 날짜</Label>
-                    <DatePicker id="end-date" value={endDate} onChange={setEndDate} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="start-time">시작 시간</Label>
-                    <TimePicker id="start-time" value={startTime} onChange={setStartTime} />
-                  </div>
-                  <div>
-                    <Label htmlFor="end-time">종료 시간</Label>
-                    <TimePicker id="end-time" value={endTime} onChange={setEndTime} />
-                  </div>
-                </div>
-                <div>
-                  <Label>적용 요일</Label>
-                  <div className="flex gap-2 flex-wrap mt-2">
-                    {Object.entries(weekdayLabelMap).map(([key, label]) => (
-                      <Button
-                        key={key}
-                        type="button"
-                        variant={daysOfWeek.includes(key) ? "default" : "outline"}
-                        onClick={() => handleDaysOfWeekChange(key)}
-                      >
-                        {label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <form onSubmit={onSubmitCreate} className="space-y-6">
+            <EventBasicFields form={createForm} />
 
-            {/* 메뉴/할인 설정 */}
-            <Card>
-              <CardHeader><CardTitle>이벤트 메뉴 및 할인 설정</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                {eventDiscounts.map((item, index) => (
-                  <div key={index} className="flex items-end gap-2 p-2 border rounded-md">
-                    <div className="flex-1 space-y-1">
-                      <Label htmlFor={`menu-select-${index}`}>메뉴</Label>
-                      <Select
-                        value={item.menuId}
-                        onValueChange={(value) => {
-                          const selected = store.menu?.find((m) => m.id === value);
-                          if (selected) {
-                            handleDiscountItemChange(index, "menuId", selected.id);
-                            handleDiscountItemChange(index, "menuName", selected.name);
-                            handleDiscountItemChange(index, "originalPrice", selected.originalPrice);
-                            // 최종가/할인율 재계산
-                            handleDiscountItemChange(index, "discountRate", item.discountRate);
-                          }
-                        }}
-                      >
-                        <SelectTrigger id={`menu-select-${index}`}>
-                          <SelectValue placeholder="메뉴 선택" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {store.menu?.map((menu) => (
-                            <SelectItem key={menu.id} value={menu.id}>
-                              {menu.name} ({menu.originalPrice.toLocaleString()}원)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+            <SectionTitle title="할인 메뉴 (discounts)" />
+            <DiscountArray
+              form={createForm}
+              fa={createDiscounts}
+              menus={menus}
+              menusLoading={menusLoading}
+            />
 
-                    <div className="space-y-1">
-                      <Label htmlFor={`discount-rate-${index}`}>할인율(%)</Label>
-                      <Input
-                        id={`discount-rate-${index}`}
-                        className="w-24"
-                        type="number"
-                        value={item.discountRate}
-                        onChange={(e) =>
-                          handleDiscountItemChange(index, "discountRate", Number(e.target.value))
-                        }
-                      />
-                    </div>
+            <SectionTitle title="증정 옵션 (gift_options)" />
+            <GiftOptionArray
+              form={createForm}
+              fa={createGifts}
+              menus={menus}
+              menusLoading={menusLoading}
+            />
 
-                    <div className="space-y-1">
-                      <Label htmlFor={`final-price-${index}`}>최종가</Label>
-                      <Input
-                        id={`final-price-${index}`}
-                        className="w-24"
-                        type="number"
-                        value={item.finalPrice}
-                        onChange={(e) =>
-                          handleDiscountItemChange(index, "finalPrice", Number(e.target.value))
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor={`quantity-${index}`}>수량</Label>
-                      <Input
-                        id={`quantity-${index}`}
-                        className="w-24"
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          handleDiscountItemChange(index, "quantity", Number(e.target.value))
-                        }
-                      />
-                    </div>
-
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => handleRemoveDiscountItem(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-
-                <Button type="button" variant="outline" onClick={handleAddDiscountItem}>
-                  <Plus className="h-4 w-4 mr-2" /> 메뉴 추가
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* 에러 / 제출 */}
-            {error && (
-              <div className="text-red-500 text-sm text-center font-medium">{error}</div>
-            )}
-            {createEvent.isError && (
-              <div className="text-red-500 text-sm text-center font-medium">
-                {(createEvent.error as Error)?.message ?? "이벤트 생성 실패"}
-              </div>
-            )}
             <DialogFooter>
-              <Button type="submit" className="bg-teal-600 text-white" disabled={isSubmitting}>
-                {isSubmitting ? "처리 중..." : "이벤트 등록"}
+              <Button
+                type="submit"
+                className="bg-teal-600 text-white"
+                disabled={createMutate.isPending}
+              >
+                {createMutate.isPending ? "생성 중…" : "생성"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* 수정 다이얼로그 — (다음 단계에서 뮤테이션 연결) */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[900px]">
+          <DialogHeader>
+            <DialogTitle>이벤트 수정</DialogTitle>
+          </DialogHeader>
+
+          {detailLoading && <p>상세 로딩 중…</p>}
+          {!detailLoading && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                // TODO: 수정 뮤테이션 연결 (다음 단계)
+                setEditOpen(false);
+              }}
+              className="space-y-6"
+            >
+              <EventBasicFields form={editForm} />
+
+              <SectionTitle title="할인 메뉴 (discounts)" />
+              <DiscountArray
+                form={editForm}
+                fa={editDiscounts}
+                menus={menus}
+                menusLoading={menusLoading}
+              />
+
+              <SectionTitle title="증정 옵션 (gift_options)" />
+              <GiftOptionArray
+                form={editForm}
+                fa={editGifts}
+                menus={menus}
+                menusLoading={menusLoading}
+              />
+
+              <DialogFooter>
+                <Button type="submit" className="bg-teal-600 text-white">
+                  저장
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+/* ===================== 하위 컴포넌트 ===================== */
+
+function SectionTitle({ title }: { title: string }) {
+  return <h3 className="text-lg font-semibold mt-2">{title}</h3>;
+}
+
+function EventBasicFields({
+  form,
+}: {
+  form: UseFormReturn<CreateEventWithDiscountsAndGiftsDTO>;
+}) {
+  const weekdays = form.watch("weekdays") || [];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>이벤트 기본 정보</CardTitle>
+        <CardDescription>기간/요일/해피아워/설명/활성여부</CardDescription>
+      </CardHeader>
+      <CardContent className="grid md:grid-cols-2 gap-4">
+        <div>
+          <Label>제목</Label>
+          <Input {...form.register("title")} placeholder="이벤트 제목" />
+        </div>
+
+        <div>
+          <Label>활성 여부</Label>
+          <Select
+            value={form.watch("is_active") ? "true" : "false"}
+            onValueChange={(v) => form.setValue("is_active", v === "true")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="true">활성</SelectItem>
+              <SelectItem value="false">비활성</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label>시작일</Label>
+          <Input type="date" {...form.register("start_date", { valueAsDate: true })} />
+        </div>
+        <div>
+          <Label>종료일</Label>
+          <Input type="date" {...form.register("end_date", { valueAsDate: true })} />
+        </div>
+
+        <div>
+          <Label>해피아워 시작(옵션)</Label>
+          <Input type="time" step="1" {...form.register("happy_hour_start_time")} />
+        </div>
+        <div>
+          <Label>해피아워 종료(옵션)</Label>
+          <Input type="time" step="1" {...form.register("happy_hour_end_time")} />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label>요일</Label>
+          <div className="flex flex-wrap gap-3 mt-2">
+            {WEEKDAYS.map((wd) => {
+              const checked = weekdays.includes(wd.value as any);
+              return (
+                <label key={wd.value} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(c) => {
+                      const cur = new Set(form.getValues("weekdays"));
+                      if (c) cur.add(wd.value);
+                      else cur.delete(wd.value);
+                      form.setValue("weekdays", Array.from(cur) as any, {
+                        shouldDirty: true,
+                      });
+                    }}
+                  />
+                  {wd.label}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="md:col-span-2">
+          <Label>설명(옵션)</Label>
+          <Input {...form.register("description")} placeholder="간단한 설명" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ===== discounts 전용 컴포넌트 ===== */
+function DiscountArray({
+  form,
+  fa,
+  menus,
+  menusLoading,
+}: {
+  form: UseFormReturn<CreateEventWithDiscountsAndGiftsDTO>;
+  fa: UseFieldArrayReturn<
+    CreateEventWithDiscountsAndGiftsDTO,
+    "discounts",
+    "id"
+  >;
+  menus: StoreMenu[];
+  menusLoading: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-4 pt-4">
+        {fa.fields.map((f, i) => (
+          <div key={f.id} className="grid md:grid-cols-5 gap-3">
+            <div>
+              <Label>메뉴</Label>
+              <MenuSelect
+                value={form.watch(`discounts.${i}.menu_id`) as unknown as string}
+                onChange={(id) =>
+                  form.setValue(`discounts.${i}.menu_id`, id as any, {
+                    shouldDirty: true,
+                  })
+                }
+                menus={menus}
+                disabled={menusLoading}
+              />
+            </div>
+            <div>
+              <Label>할인율(%)</Label>
+              <Input
+                type="number"
+                {...form.register(`discounts.${i}.discount_rate`, {
+                  valueAsNumber: true,
+                })}
+              />
+            </div>
+            <div>
+              <Label>최종가</Label>
+              <Input
+                type="number"
+                {...form.register(`discounts.${i}.final_price`, {
+                  valueAsNumber: true,
+                })}
+              />
+            </div>
+            <div>
+              <Label>남은 수량(옵션)</Label>
+              <Input
+                type="number"
+                {...form.register(`discounts.${i}.remaining`, {
+                  valueAsNumber: true,
+                })}
+              />
+            </div>
+            <div>
+              <Label>활성</Label>
+              <Select
+                value={String(form.watch(`discounts.${i}.is_active`) ?? true)}
+                onValueChange={(v) =>
+                  form.setValue(`discounts.${i}.is_active`, v === "true")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">활성</SelectItem>
+                  <SelectItem value="false">비활성</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ))}
+
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() =>
+              fa.append({
+                menu_id: "" as any,
+                discount_rate: 10,
+                final_price: 0,
+                remaining: null,
+                is_active: true,
+              })
+            }
+          >
+            + 할인 추가
+          </Button>
+          {fa.fields.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => fa.remove(fa.fields.length - 1)}
+            >
+              마지막 삭제
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ===== gift_options 전용 컴포넌트 ===== */
+function GiftOptionArray({
+  form,
+  fa,
+  menus,
+  menusLoading,
+}: {
+  form: UseFormReturn<CreateEventWithDiscountsAndGiftsDTO>;
+  fa: UseFieldArrayReturn<
+    CreateEventWithDiscountsAndGiftsDTO,
+    "gift_options",
+    "id"
+  >;
+  menus: StoreMenu[];
+  menusLoading: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-4 pt-4">
+        {fa.fields.map((f, i) => (
+          <div key={f.id} className="grid md:grid-cols-4 gap-3">
+            <div>
+              <Label>메뉴</Label>
+              <MenuSelect
+                value={form.watch(`gift_options.${i}.menu_id`) as unknown as string}
+                onChange={(id) =>
+                  form.setValue(`gift_options.${i}.menu_id`, id as any, {
+                    shouldDirty: true,
+                  })
+                }
+                menus={menus}
+                disabled={menusLoading}
+              />
+            </div>
+            <div>
+              <Label>남은 수량(옵션)</Label>
+              <Input
+                type="number"
+                {...form.register(`gift_options.${i}.remaining`, {
+                  valueAsNumber: true,
+                })}
+              />
+            </div>
+            <div>
+              <Label>활성</Label>
+              <Select
+                value={String(form.watch(`gift_options.${i}.is_active`) ?? true)}
+                onValueChange={(v) =>
+                  form.setValue(`gift_options.${i}.is_active`, v === "true")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">활성</SelectItem>
+                  <SelectItem value="false">비활성</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button type="button" variant="ghost" onClick={() => fa.remove(i)}>
+                항목 삭제
+              </Button>
+            </div>
+          </div>
+        ))}
+
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() =>
+              fa.append({
+                menu_id: "" as any,
+                remaining: null,
+                is_active: true,
+              })
+            }
+          >
+            + 증정 옵션 추가
+          </Button>
+          {fa.fields.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => fa.remove(fa.fields.length - 1)}
+            >
+              마지막 삭제
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

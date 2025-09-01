@@ -38,6 +38,20 @@ export class SupabaseEventRepository implements EventRepository {
   constructor(private readonly sb: SupabaseClient<Database>) {}
 
   /**
+   * store에 해당하는 모든 이벤트 조회
+   */
+  async getEventsByStoreId(storeId: Id): Promise<Event[]> {
+    const { data, error } = await this.sb
+      .from('events')
+      .select('*')
+      .eq('store_id', storeId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(Event.fromRow);
+  }
+
+  /**
    * 단일 이벤트 + (옵션) 활성 discount/gift만 포함해서 상세 조회
    * RPC: public.event_with_discounts_and_gifts(p_event_id uuid, p_only_active boolean)
    */
