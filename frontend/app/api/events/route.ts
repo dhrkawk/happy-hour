@@ -6,9 +6,35 @@ import {
   type CreateEventWithDiscountsAndGiftsDTO,
   type UpdateEventWithDiscountsAndGiftsDTO,
 } from '@/domain/schemas/schemas';
-
+import { z } from 'zod';
 import { createClient } from '@/infra/supabase/shared/server';
 import { SupabaseEventRepository } from '@/infra/supabase/repository/event.repo.supabase';
+
+// GET /api/events?storeId=...
+const QuerySchema = z.object({
+  storeId: z.string().uuid(),
+});
+
+export async function GET(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const parsed = QuerySchema.safeParse({
+      storeId: url.searchParams.get('storeId'),
+    });
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'STORE_ID_REQUIRED' }, { status: 400 });
+    }
+
+    const sb = await createClient();
+    const repo = new SupabaseEventRepository(sb);
+    const events = await repo.getEventsByStoreId(parsed.data.storeId);
+
+    return NextResponse.json({ events }, { status: 200 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? 'INTERNAL_ERROR' }, { status: 500 });
+  }
+}
+
 
 export async function POST(req: Request) {
   const sb = await createClient();
