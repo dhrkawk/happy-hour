@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Calendar, Clock } from "lucide-react";
 import {
   useForm,
   useFieldArray,
@@ -13,6 +14,8 @@ import {
 import {
   CreateEventWithDiscountsAndGiftsSchema,
   CreateEventWithDiscountsAndGiftsDTO,
+  UpdateEventWithDiscountsAndGiftsSchema,
+  UpdateEventWithDiscountsAndGiftsDTO,
 } from "@/domain/schemas/schemas";
 
 import {
@@ -20,6 +23,7 @@ import {
   useGetEventWithDiscountsAndGifts,
   // ✅ 새로 사용할 생성 훅
   useCreateEventWithDiscountsAndGifts,
+  useUpdateEventWithDiscountsAndGifts,
 } from "@/hooks/usecases/events.usecase";
 
 import { useGetMenusByStoreId } from "@/hooks/usecases/menus.usecase";
@@ -75,6 +79,7 @@ function toCreateDTOFromDetail(
     title: e.title ?? "",
 
     discounts: detail.discounts.map((d) => ({
+      id: d.id,
       menu_id: d.menuId,
       discount_rate: d.discountRate,
       remaining: d.remaining ?? null,
@@ -84,6 +89,7 @@ function toCreateDTOFromDetail(
 
     gift_options: detail.giftGroups.flatMap((gg) =>
       gg.options.map((o) => ({
+        id: o.id,
         menu_id: o.menuId,
         remaining: o.remaining ?? null,
         is_active: o.isActive,
@@ -95,15 +101,15 @@ function toCreateDTOFromDetail(
 /* ---------- 요일 옵션 ---------- */
 const WEEKDAYS: Array<{
   label: string;
-  value: "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+  value: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
 }> = [
-  { label: "월", value: "mon" },
-  { label: "화", value: "tue" },
-  { label: "수", value: "wed" },
-  { label: "목", value: "thu" },
-  { label: "금", value: "fri" },
-  { label: "토", value: "sat" },
-  { label: "일", value: "sun" },
+  { label: "월", value: "MON" },
+  { label: "화", value: "TUE" },
+  { label: "수", value: "WED" },
+  { label: "목", value: "THU" },
+  { label: "금", value: "FRI" },
+  { label: "토", value: "SAT" },
+  { label: "일", value: "SUN" },
 ];
 
 /* =============== 메뉴 드롭다운 =============== */
@@ -150,7 +156,7 @@ export default function StoreEventsPage() {
     storeId
   );
   const events = useMemo(
-    () => (Array.isArray(eventsData) ? eventsData : []),
+    () => (eventsData ? eventsData : []),
     [eventsData]
   );
 
@@ -180,6 +186,7 @@ export default function StoreEventsPage() {
 
   /* ===== 생성 훅(뮤테이션) 연결 ===== */
   const createMutate = useCreateEventWithDiscountsAndGifts();
+  const updateMutate = useUpdateEventWithDiscountsAndGifts();
 
   /* ===== 생성 폼 ===== */
   const createForm = useForm<CreateEventWithDiscountsAndGiftsDTO>({
@@ -190,7 +197,7 @@ export default function StoreEventsPage() {
       end_date: new Date(),
       happy_hour_start_time: null,
       happy_hour_end_time: null,
-      weekdays: ["mon", "tue", "wed", "thu", "fri"],
+      weekdays: ["MON", "TUE", "WED", "THU", "FRI"],
       is_active: true,
       description: null,
       title: "",
@@ -217,15 +224,24 @@ export default function StoreEventsPage() {
   });
 
   /* ===== 수정 폼 ===== */
-  const editForm = useForm<CreateEventWithDiscountsAndGiftsDTO>({
-    resolver: zodResolver(CreateEventWithDiscountsAndGiftsSchema),
+  // 1) 베이스 폼 타입: id 제외
+  type UpdateEventFormValues = Omit<
+  UpdateEventWithDiscountsAndGiftsDTO,
+  "id"
+  >;
+
+  const editForm = useForm<UpdateEventFormValues>({
+    resolver: zodResolver(
+      // 스키마도 id 제외한 형태로 검증
+      UpdateEventWithDiscountsAndGiftsSchema.omit({ id: true })
+    ),
     defaultValues: {
       store_id: storeId,
       start_date: new Date(),
       end_date: new Date(),
       happy_hour_start_time: null,
       happy_hour_end_time: null,
-      weekdays: ["mon"],
+      weekdays: ["MON"],
       is_active: true,
       description: null,
       title: "",
@@ -234,16 +250,18 @@ export default function StoreEventsPage() {
     },
     mode: "onChange",
   });
+  // 4) FieldArray 제네릭도 베이스 타입으로
   const editDiscounts: UseFieldArrayReturn<
-    CreateEventWithDiscountsAndGiftsDTO,
+    UpdateEventFormValues,
     "discounts",
     "id"
   > = useFieldArray({
     control: editForm.control,
     name: "discounts",
   });
+
   const editGifts: UseFieldArrayReturn<
-    CreateEventWithDiscountsAndGiftsDTO,
+    UpdateEventFormValues,
     "gift_options",
     "id"
   > = useFieldArray({
@@ -271,7 +289,7 @@ export default function StoreEventsPage() {
       end_date: new Date(),
       happy_hour_start_time: null,
       happy_hour_end_time: null,
-      weekdays: ["mon", "tue", "wed", "thu", "fri"],
+      weekdays: ["MON", "TUE", "WED", "THU", "FRI"],
       is_active: true,
       description: null,
       title: "",
@@ -317,6 +335,54 @@ export default function StoreEventsPage() {
     });
   });
 
+
+  const onSubmitUpdate = editForm.handleSubmit((vals) => {
+    setUiError(null);
+  
+    if (!editId) {
+      setUiError("편집할 이벤트 ID가 없습니다.");
+      return;
+    }
+  
+    // 숫자형 안전 보정
+    const normalizedDiscounts = (vals.discounts ?? []).map((d) => ({
+      ...d,
+      discount_rate: Number(d.discount_rate),
+      final_price: Number(d.final_price),
+      remaining:
+        d.remaining === null || d.remaining === undefined
+          ? null
+          : Number(d.remaining),
+    }));
+  
+    const normalizedGifts = (vals.gift_options ?? []).map((g) => ({
+      ...g,
+      remaining:
+        g.remaining === null || g.remaining === undefined
+          ? null
+          : Number(g.remaining),
+    }));
+  
+    // 최종 DTO (id 병합)
+    const payload: UpdateEventWithDiscountsAndGiftsDTO = {
+      id: editId,
+      ...vals,
+      discounts: normalizedDiscounts,
+      gift_options: normalizedGifts,
+    };
+  
+    updateMutate.mutate(payload, {
+      onSuccess: (_res) => {
+        setEditOpen(false);
+        // 필요 시 목록 리패치/토스트 등
+        // qc.invalidateQueries({ queryKey: ["events", storeId] });
+      },
+      onError: (e: any) => {
+        setUiError(e?.message ?? "이벤트 수정에 실패했습니다.");
+      },
+    });
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 flex flex-col items-center gap-6">
       <div className="w-full max-w-5xl flex items-center justify-between">
@@ -346,27 +412,52 @@ export default function StoreEventsPage() {
       {/* 목록 */}
       <div className="w-full max-w-5xl space-y-4">
         {listLoading && <p>로딩 중…</p>}
+
         {!listLoading && events.length === 0 && (
-          <Card>
+          <Card className="p-6 text-center">
             <CardHeader>
-              <CardTitle>등록된 이벤트가 없습니다</CardTitle>
-              <CardDescription>
-                오른쪽 상단의 “새 이벤트 등록”을 눌러 시작하세요.
+              <CardTitle className="text-lg font-bold">등록된 이벤트가 없습니다</CardTitle>
+              <CardDescription className="text-gray-500">
+                오른쪽 상단의 <span className="font-semibold">“새 이벤트 등록”</span>을 눌러 시작하세요.
               </CardDescription>
             </CardHeader>
           </Card>
         )}
+
         {!listLoading &&
           events.map((ev) => (
-            <Card key={ev.id} className="p-4 flex items-center justify-between">
-              <div>
-                <div className="font-semibold">{ev.title}</div>
-                <div className="text-sm text-gray-600">
-                  {ev.startDate} ~ {ev.endDate} ·{" "}
-                  {ev.isActive ? "활성" : "비활성"} · 요일:{" "}
-                  {(ev.weekdays ?? []).join(", ")}
+            <Card
+              key={ev.id}
+              className="p-5 flex items-center justify-between border-l-4 hover:shadow-md transition-all
+              border-l-sky-500"
+            >
+              {/* 왼쪽 정보 */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-lg">{ev.title}</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      ev.isActive
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {ev.isActive ? "활성" : "비활성"}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600 flex items-center gap-2">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {ev.startDate} ~ {ev.endDate}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    {(ev.weekdays ?? []).join(", ")}
+                  </span>
                 </div>
               </div>
+
+              {/* 우측 액션 */}
               <Button variant="outline" onClick={() => openEdit(ev.id)}>
                 <Pencil className="h-4 w-4 mr-1" />
                 수정
@@ -375,10 +466,12 @@ export default function StoreEventsPage() {
           ))}
       </div>
 
-      {/* 생성 다이얼로그 */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-[900px]">
-          <DialogHeader>
+    {/* 생성 다이얼로그 */}
+    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto p-0">
+        {/* 스크롤 영역에 패딩/간격 관리 */}
+        <div className="p-5 space-y-6">
+          <DialogHeader className="pb-2">
             <DialogTitle>이벤트 생성</DialogTitle>
           </DialogHeader>
 
@@ -401,34 +494,39 @@ export default function StoreEventsPage() {
               menusLoading={menusLoading}
             />
 
-            <DialogFooter>
-              <Button
-                type="submit"
-                className="bg-teal-600 text-white"
-                disabled={createMutate.isPending}
-              >
-                {createMutate.isPending ? "생성 중…" : "생성"}
-              </Button>
-            </DialogFooter>
+            {/* 아래 여백 확보: sticky footer와 겹치지 않도록 */}
+            <div className="h-4" />
           </form>
-        </DialogContent>
-      </Dialog>
+        </div>
 
-      {/* 수정 다이얼로그 — (다음 단계에서 뮤테이션 연결) */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[900px]">
-          <DialogHeader>
+        {/* 하단 고정(Sticky) Footer */}
+        <DialogFooter className="sticky bottom-0 left-0 right-0 bg-white border-t p-4">
+          <Button
+            type="submit"
+            onClick={() => onSubmitCreate()}
+            className="bg-teal-600 text-white"
+            disabled={createMutate.isPending}
+          >
+            {createMutate.isPending ? "생성 중…" : "생성"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* 수정 다이얼로그 */}
+    <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto p-0">
+        <div className="p-5 space-y-6">
+          <DialogHeader className="pb-2">
             <DialogTitle>이벤트 수정</DialogTitle>
           </DialogHeader>
 
-          {detailLoading && <p>상세 로딩 중…</p>}
+          {detailLoading && <p className="px-1">상세 로딩 중…</p>}
+
           {!detailLoading && (
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                // TODO: 수정 뮤테이션 연결 (다음 단계)
-                setEditOpen(false);
-              }}
+              id="edit-event-form"
+              onSubmit={onSubmitUpdate}               // ← 여기 연결
               className="space-y-6"
             >
               <EventBasicFields form={editForm} />
@@ -449,15 +547,24 @@ export default function StoreEventsPage() {
                 menusLoading={menusLoading}
               />
 
-              <DialogFooter>
-                <Button type="submit" className="bg-teal-600 text-white">
-                  저장
-                </Button>
-              </DialogFooter>
+              {/* sticky footer와 겹침 방지 */}
+              <div className="h-4" />
             </form>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+
+        <DialogFooter className="sticky bottom-0 left-0 right-0 bg-white border-t p-4">
+          <Button
+            type="submit"
+            form="edit-event-form"                    // ← 폼 id 매핑
+            className="bg-teal-600 text-white"
+            disabled={detailLoading || updateMutate.isPending}
+          >
+            {updateMutate.isPending ? "저장 중…" : "저장"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </div>
   );
 }
