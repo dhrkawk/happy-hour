@@ -14,6 +14,8 @@ import {
 import {
   CreateEventWithDiscountsAndGiftsSchema,
   CreateEventWithDiscountsAndGiftsDTO,
+  UpdateEventWithDiscountsAndGiftsSchema,
+  UpdateEventWithDiscountsAndGiftsDTO,
 } from "@/domain/schemas/schemas";
 
 import {
@@ -21,6 +23,7 @@ import {
   useGetEventWithDiscountsAndGifts,
   // ✅ 새로 사용할 생성 훅
   useCreateEventWithDiscountsAndGifts,
+  useUpdateEventWithDiscountsAndGifts,
 } from "@/hooks/usecases/events.usecase";
 
 import { useGetMenusByStoreId } from "@/hooks/usecases/menus.usecase";
@@ -76,6 +79,7 @@ function toCreateDTOFromDetail(
     title: e.title ?? "",
 
     discounts: detail.discounts.map((d) => ({
+      id: d.id,
       menu_id: d.menuId,
       discount_rate: d.discountRate,
       remaining: d.remaining ?? null,
@@ -85,6 +89,7 @@ function toCreateDTOFromDetail(
 
     gift_options: detail.giftGroups.flatMap((gg) =>
       gg.options.map((o) => ({
+        id: o.id,
         menu_id: o.menuId,
         remaining: o.remaining ?? null,
         is_active: o.isActive,
@@ -181,6 +186,7 @@ export default function StoreEventsPage() {
 
   /* ===== 생성 훅(뮤테이션) 연결 ===== */
   const createMutate = useCreateEventWithDiscountsAndGifts();
+  const updateMutate = useUpdateEventWithDiscountsAndGifts();
 
   /* ===== 생성 폼 ===== */
   const createForm = useForm<CreateEventWithDiscountsAndGiftsDTO>({
@@ -191,7 +197,7 @@ export default function StoreEventsPage() {
       end_date: new Date(),
       happy_hour_start_time: null,
       happy_hour_end_time: null,
-      weekdays: ["mon", "tue", "wed", "thu", "fri"],
+      weekdays: ["MON", "TUE", "WED", "THU", "FRI"],
       is_active: true,
       description: null,
       title: "",
@@ -218,15 +224,24 @@ export default function StoreEventsPage() {
   });
 
   /* ===== 수정 폼 ===== */
-  const editForm = useForm<CreateEventWithDiscountsAndGiftsDTO>({
-    resolver: zodResolver(CreateEventWithDiscountsAndGiftsSchema),
+  // 1) 베이스 폼 타입: id 제외
+  type UpdateEventFormValues = Omit<
+  UpdateEventWithDiscountsAndGiftsDTO,
+  "id"
+  >;
+
+  const editForm = useForm<UpdateEventFormValues>({
+    resolver: zodResolver(
+      // 스키마도 id 제외한 형태로 검증
+      UpdateEventWithDiscountsAndGiftsSchema.omit({ id: true })
+    ),
     defaultValues: {
       store_id: storeId,
       start_date: new Date(),
       end_date: new Date(),
       happy_hour_start_time: null,
       happy_hour_end_time: null,
-      weekdays: ["mon"],
+      weekdays: ["MON"],
       is_active: true,
       description: null,
       title: "",
@@ -235,16 +250,18 @@ export default function StoreEventsPage() {
     },
     mode: "onChange",
   });
+  // 4) FieldArray 제네릭도 베이스 타입으로
   const editDiscounts: UseFieldArrayReturn<
-    CreateEventWithDiscountsAndGiftsDTO,
+    UpdateEventFormValues,
     "discounts",
     "id"
   > = useFieldArray({
     control: editForm.control,
     name: "discounts",
   });
+
   const editGifts: UseFieldArrayReturn<
-    CreateEventWithDiscountsAndGiftsDTO,
+    UpdateEventFormValues,
     "gift_options",
     "id"
   > = useFieldArray({
@@ -272,7 +289,7 @@ export default function StoreEventsPage() {
       end_date: new Date(),
       happy_hour_start_time: null,
       happy_hour_end_time: null,
-      weekdays: ["mon", "tue", "wed", "thu", "fri"],
+      weekdays: ["MON", "TUE", "WED", "THU", "FRI"],
       is_active: true,
       description: null,
       title: "",
@@ -314,6 +331,54 @@ export default function StoreEventsPage() {
       },
       onError: (e) => {
         setUiError(e.message ?? "이벤트 생성에 실패했습니다.");
+      },
+    });
+  });
+
+
+  const onSubmitUpdate = editForm.handleSubmit((vals) => {
+    setUiError(null);
+  
+    if (!editId) {
+      setUiError("편집할 이벤트 ID가 없습니다.");
+      return;
+    }
+  
+    // 숫자형 안전 보정
+    const normalizedDiscounts = (vals.discounts ?? []).map((d) => ({
+      ...d,
+      discount_rate: Number(d.discount_rate),
+      final_price: Number(d.final_price),
+      remaining:
+        d.remaining === null || d.remaining === undefined
+          ? null
+          : Number(d.remaining),
+    }));
+  
+    const normalizedGifts = (vals.gift_options ?? []).map((g) => ({
+      ...g,
+      remaining:
+        g.remaining === null || g.remaining === undefined
+          ? null
+          : Number(g.remaining),
+    }));
+  
+    // 최종 DTO (id 병합)
+    const payload: UpdateEventWithDiscountsAndGiftsDTO = {
+      id: editId,
+      ...vals,
+      discounts: normalizedDiscounts,
+      gift_options: normalizedGifts,
+    };
+  
+    updateMutate.mutate(payload, {
+      onSuccess: (_res) => {
+        setEditOpen(false);
+        // 필요 시 목록 리패치/토스트 등
+        // qc.invalidateQueries({ queryKey: ["events", storeId] });
+      },
+      onError: (e: any) => {
+        setUiError(e?.message ?? "이벤트 수정에 실패했습니다.");
       },
     });
   });
@@ -460,11 +525,8 @@ export default function StoreEventsPage() {
 
           {!detailLoading && (
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                // TODO: 수정 뮤테이션 연결
-                setEditOpen(false);
-              }}
+              id="edit-event-form"
+              onSubmit={onSubmitUpdate}               // ← 여기 연결
               className="space-y-6"
             >
               <EventBasicFields form={editForm} />
@@ -485,17 +547,20 @@ export default function StoreEventsPage() {
                 menusLoading={menusLoading}
               />
 
+              {/* sticky footer와 겹침 방지 */}
               <div className="h-4" />
             </form>
           )}
         </div>
 
         <DialogFooter className="sticky bottom-0 left-0 right-0 bg-white border-t p-4">
-          <Button type="submit" form={detailLoading ? undefined : undefined} onClick={() => {
-            // TODO: 수정 뮤테이션 연결
-            setEditOpen(false);
-          }} className="bg-teal-600 text-white">
-            저장
+          <Button
+            type="submit"
+            form="edit-event-form"                    // ← 폼 id 매핑
+            className="bg-teal-600 text-white"
+            disabled={detailLoading || updateMutate.isPending}
+          >
+            {updateMutate.isPending ? "저장 중…" : "저장"}
           </Button>
         </DialogFooter>
       </DialogContent>

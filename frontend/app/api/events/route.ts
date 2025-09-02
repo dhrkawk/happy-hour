@@ -80,6 +80,7 @@ export async function PATCH(req: Request) {
   }
 
   try {
+    console.log(parsed.data);
     const { eventId } = await repo.updateEventWithDiscountsAndGifts(
       parsed.data as UpdateEventWithDiscountsAndGiftsDTO
     );

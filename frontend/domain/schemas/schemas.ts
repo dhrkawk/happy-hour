@@ -281,7 +281,7 @@ export const EventInput = z.object({
   end_date: z.coerce.date(),
   happy_hour_start_time: z.string().time().optional().nullable(),
   happy_hour_end_time: z.string().time().optional().nullable(),
-  weekdays: z.array(z.enum(["mon","tue","wed","thu","fri","sat","sun"])).min(1),
+  weekdays: z.array(z.enum(["MON","TUE","WED","THU","FRI","SAT","SUN"])).min(1),
   is_active: z.coerce.boolean().default(true),
   description: z.string().nullable().optional(),
   title: z.string().min(1),
@@ -297,7 +297,6 @@ export const CreateEventWithDiscountsAndGiftsSchema = EventInput.extend({
 export type CreateEventWithDiscountsAndGiftsDTO = z.infer<typeof CreateEventWithDiscountsAndGiftsSchema>;
 
 // ---------------- event_update_transaction_schema ----------------
-/* ---- Upsert Inputs (id가 있으면 update, 없으면 create) ---- */
 export const GiftOptionUpsertInput = z.object({
   id: UUID.optional(),                     // ← 기존 옵션이면 포함
   menu_id: UUID,
@@ -322,7 +321,7 @@ export const EventUpdateInput = z.object({
   end_date: z.coerce.date(),
   happy_hour_start_time: z.string().time().optional().nullable(),
   happy_hour_end_time: z.string().time().optional().nullable(),
-  weekdays: z.array(z.enum(["mon","tue","wed","thu","fri","sat","sun"])).min(1),
+  weekdays: z.array(z.enum(["MON","TUE","WED","THU","FRI","SAT","SUN"])).min(1),
   is_active: z.coerce.boolean().default(true),
   description: z.string().nullable().optional(),
   title: z.string().min(1),
