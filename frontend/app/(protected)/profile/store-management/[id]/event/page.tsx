@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Calendar, Clock } from "lucide-react";
 import {
   useForm,
   useFieldArray,
@@ -95,15 +96,15 @@ function toCreateDTOFromDetail(
 /* ---------- 요일 옵션 ---------- */
 const WEEKDAYS: Array<{
   label: string;
-  value: "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+  value: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
 }> = [
-  { label: "월", value: "mon" },
-  { label: "화", value: "tue" },
-  { label: "수", value: "wed" },
-  { label: "목", value: "thu" },
-  { label: "금", value: "fri" },
-  { label: "토", value: "sat" },
-  { label: "일", value: "sun" },
+  { label: "월", value: "MON" },
+  { label: "화", value: "TUE" },
+  { label: "수", value: "WED" },
+  { label: "목", value: "THU" },
+  { label: "금", value: "FRI" },
+  { label: "토", value: "SAT" },
+  { label: "일", value: "SUN" },
 ];
 
 /* =============== 메뉴 드롭다운 =============== */
@@ -346,27 +347,52 @@ export default function StoreEventsPage() {
       {/* 목록 */}
       <div className="w-full max-w-5xl space-y-4">
         {listLoading && <p>로딩 중…</p>}
+
         {!listLoading && events.length === 0 && (
-          <Card>
+          <Card className="p-6 text-center">
             <CardHeader>
-              <CardTitle>등록된 이벤트가 없습니다</CardTitle>
-              <CardDescription>
-                오른쪽 상단의 “새 이벤트 등록”을 눌러 시작하세요.
+              <CardTitle className="text-lg font-bold">등록된 이벤트가 없습니다</CardTitle>
+              <CardDescription className="text-gray-500">
+                오른쪽 상단의 <span className="font-semibold">“새 이벤트 등록”</span>을 눌러 시작하세요.
               </CardDescription>
             </CardHeader>
           </Card>
         )}
+
         {!listLoading &&
           events.map((ev) => (
-            <Card key={ev.id} className="p-4 flex items-center justify-between">
-              <div>
-                <div className="font-semibold">{ev.title}</div>
-                <div className="text-sm text-gray-600">
-                  {ev.startDate} ~ {ev.endDate} ·{" "}
-                  {ev.isActive ? "활성" : "비활성"} · 요일:{" "}
-                  {(ev.weekdays ?? []).join(", ")}
+            <Card
+              key={ev.id}
+              className="p-5 flex items-center justify-between border-l-4 hover:shadow-md transition-all
+              border-l-sky-500"
+            >
+              {/* 왼쪽 정보 */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-lg">{ev.title}</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      ev.isActive
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {ev.isActive ? "활성" : "비활성"}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600 flex items-center gap-2">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {ev.startDate} ~ {ev.endDate}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    {(ev.weekdays ?? []).join(", ")}
+                  </span>
                 </div>
               </div>
+
+              {/* 우측 액션 */}
               <Button variant="outline" onClick={() => openEdit(ev.id)}>
                 <Pencil className="h-4 w-4 mr-1" />
                 수정
@@ -375,10 +401,12 @@ export default function StoreEventsPage() {
           ))}
       </div>
 
-      {/* 생성 다이얼로그 */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-[900px]">
-          <DialogHeader>
+    {/* 생성 다이얼로그 */}
+    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto p-0">
+        {/* 스크롤 영역에 패딩/간격 관리 */}
+        <div className="p-5 space-y-6">
+          <DialogHeader className="pb-2">
             <DialogTitle>이벤트 생성</DialogTitle>
           </DialogHeader>
 
@@ -401,32 +429,40 @@ export default function StoreEventsPage() {
               menusLoading={menusLoading}
             />
 
-            <DialogFooter>
-              <Button
-                type="submit"
-                className="bg-teal-600 text-white"
-                disabled={createMutate.isPending}
-              >
-                {createMutate.isPending ? "생성 중…" : "생성"}
-              </Button>
-            </DialogFooter>
+            {/* 아래 여백 확보: sticky footer와 겹치지 않도록 */}
+            <div className="h-4" />
           </form>
-        </DialogContent>
-      </Dialog>
+        </div>
 
-      {/* 수정 다이얼로그 — (다음 단계에서 뮤테이션 연결) */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[900px]">
-          <DialogHeader>
+        {/* 하단 고정(Sticky) Footer */}
+        <DialogFooter className="sticky bottom-0 left-0 right-0 bg-white border-t p-4">
+          <Button
+            type="submit"
+            onClick={() => onSubmitCreate()}
+            className="bg-teal-600 text-white"
+            disabled={createMutate.isPending}
+          >
+            {createMutate.isPending ? "생성 중…" : "생성"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* 수정 다이얼로그 */}
+    <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto p-0">
+        <div className="p-5 space-y-6">
+          <DialogHeader className="pb-2">
             <DialogTitle>이벤트 수정</DialogTitle>
           </DialogHeader>
 
-          {detailLoading && <p>상세 로딩 중…</p>}
+          {detailLoading && <p className="px-1">상세 로딩 중…</p>}
+
           {!detailLoading && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                // TODO: 수정 뮤테이션 연결 (다음 단계)
+                // TODO: 수정 뮤테이션 연결
                 setEditOpen(false);
               }}
               className="space-y-6"
@@ -449,15 +485,21 @@ export default function StoreEventsPage() {
                 menusLoading={menusLoading}
               />
 
-              <DialogFooter>
-                <Button type="submit" className="bg-teal-600 text-white">
-                  저장
-                </Button>
-              </DialogFooter>
+              <div className="h-4" />
             </form>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+
+        <DialogFooter className="sticky bottom-0 left-0 right-0 bg-white border-t p-4">
+          <Button type="submit" form={detailLoading ? undefined : undefined} onClick={() => {
+            // TODO: 수정 뮤테이션 연결
+            setEditOpen(false);
+          }} className="bg-teal-600 text-white">
+            저장
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </div>
   );
 }
