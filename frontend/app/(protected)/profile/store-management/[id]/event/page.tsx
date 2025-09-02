@@ -150,7 +150,7 @@ export default function StoreEventsPage() {
     storeId
   );
   const events = useMemo(
-    () => (Array.isArray(eventsData) ? eventsData : []),
+    () => (eventsData ? eventsData : []),
     [eventsData]
   );
 

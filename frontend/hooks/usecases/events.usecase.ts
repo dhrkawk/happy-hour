@@ -43,8 +43,8 @@ export function useGetEventsByStoreId(storeId: string, enabled = true) {
       queryKey: qk.eventsByStore(storeId),
       enabled: !!storeId && enabled,
       queryFn: async () =>
-        jsonFetch<{ events: Event[] }>(`/api/events?storeId=${encodeURIComponent(storeId)}`),
-      select: (res): Event[] => (res.events ?? []).map(Event.fromRow),
+        jsonFetch<Event[]>(`/api/events?storeId=${encodeURIComponent(storeId)}`),
+      select: (res): Event[] => (res ?? []),
       // 필요 시 캐시 정책
       staleTime: 60_000,
     });

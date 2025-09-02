@@ -28,8 +28,7 @@ export async function GET(req: Request) {
     const sb = await createClient();
     const repo = new SupabaseEventRepository(sb);
     const events = await repo.getEventsByStoreId(parsed.data.storeId);
-
-    return NextResponse.json({ events }, { status: 200 });
+    return NextResponse.json(events , { status: 200 });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'INTERNAL_ERROR' }, { status: 500 });
   }
