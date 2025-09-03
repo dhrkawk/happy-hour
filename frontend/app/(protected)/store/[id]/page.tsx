@@ -38,6 +38,7 @@ export default function StorePage() {
     if (!vm) return;
     setHeader({
       store_id: vm.id,
+      event_id: vm.event?.id,
       // 필요 시 user_id는 로그인 세션에서 setHeader로 주입
       event_title: vm.event?.title ?? "",
       happy_hour_start_time: (vm.event?.happyHourStartTime ?? "00:00:00").slice(0, 5), // HH:MM
@@ -62,6 +63,7 @@ export default function StorePage() {
       type: "discount" as const,
       qty,
       // 메타
+      ref_id: menu.discountId ?? null,
       menu_id: menu.menuId,
       menu_name: menu.name,
       original_price: menu.price,
@@ -77,19 +79,19 @@ export default function StorePage() {
 
   // gift: 체크 여부 + 토글
   const isGiftChecked = (gift: GiftVM) => {
-    const idx = cart.items.findIndex((it: any) => it.type === "gift" && it.gitf_option_id === gift.gitfOptionId);
+    const idx = cart.items.findIndex((it: any) => it.type === "gift" && it.ref_id === gift.giftOptionId);
     return idx >= 0;
   };
 
   const toggleGift = (gift: GiftVM, checked: boolean) => {
-    const idx = cart.items.findIndex((it: any) => it.type === "gift" && it.gitf_option_id === gift.gitfOptionId);
+    const idx = cart.items.findIndex((it: any) => it.type === "gift" && it.ref_id === gift.giftOptionId);
     if (checked) {
       if (idx >= 0) return;
       addItem({
         type: "gift",
         qty: 1, // 고정 1개
         // 메타
-        gitf_option_id: gift.gitfOptionId,
+        ref_id: gift.giftOptionId,
         menu_id: gift.menuId,
         menu_name: gift.name,
       } as any);
@@ -247,7 +249,7 @@ export default function StorePage() {
               const checked = isGiftChecked(g);
               return (
                 <div
-                  key={g.gitfOptionId}
+                  key={g.giftOptionId}
                   className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
                 >
                   <div className="flex items-center gap-3">

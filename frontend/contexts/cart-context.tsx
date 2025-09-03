@@ -17,6 +17,7 @@ type CartState = Omit<CreateCouponTxDTO, "items"> & { items: CartItem[] };
 const initialState: CartState = {
   user_id: "" as any,
   store_id: "" as any,
+  event_id: "" as any,
   expected_visit_time: null,
   expired_time: undefined,
   status: undefined,
@@ -108,17 +109,59 @@ export function CouponCartProvider({ children }: { children: React.ReactNode }) 
   // 최종 전송 DTO: 숫자 보정 + Zod parse
   const toDTO = useMemo(
     () => () => {
-      // (필요 시 여기서 숫자형 보정/NULL 처리)
+      // 1) 필수 체크(사용자/스토어/시간/요일/아이템)
+      if (!state.user_id) throw new Error("로그인이 필요합니다.");
+      if (!state.store_id) throw new Error("가게 정보가 없습니다.");
+      if (!state.happy_hour_start_time || !state.happy_hour_end_time)
+        throw new Error("해피아워 시간이 없습니다.");
+      if (!state.weekdays?.length) throw new Error("사용 가능 요일이 비어 있습니다.");
+      if (!state.items?.length) throw new Error("장바구니가 비어 있습니다.");
+      // 2) 숫자형 보정
       const prepared: CreateCouponTxDTO = {
-        ...state,
-        items: state.items.map((it) => ({
-          ...it,
-          qty: Number(it.qty),
-          original_price: it.original_price === undefined ? undefined : Number(it.original_price),
-          discount_rate: it.discount_rate === undefined ? undefined : Number(it.discount_rate),
-          final_price: it.final_price === undefined ? undefined : Number(it.final_price),
-        })),
+        user_id: state.user_id,
+        store_id: state.store_id,
+        event_id: state.event_id,
+        expected_visit_time: state.expected_visit_time ?? null,
+        expired_time: state.expired_time ?? undefined, // 없으면 서버에서 +7일 처리
+        status: state.status ?? "issued",
+        happy_hour_start_time: state.happy_hour_start_time!,
+        happy_hour_end_time: state.happy_hour_end_time!,
+        weekdays: state.weekdays!, // 서버에서 문자열/숫자 모두 허용(정규화)
+        event_title: state.event_title ?? "",
+
+        items: state.items.map((it) =>
+          it.type === "gift"
+            ? {
+                type: "gift" as const,
+                ref_id: it.ref_id,
+                menu_id: it.menu_id,
+                qty: 1,
+                menu_name: it.menu_name,
+                original_price: 0,
+                discount_rate: 0,
+                final_price: 0,
+              }
+            : {
+                type: "discount" as const,
+                ref_id: it.ref_id,
+                menu_id: it.menu_id,
+                qty: Number(it.qty),
+                menu_name: it.menu_name,
+                original_price: Number(it.original_price ?? 0),
+                discount_rate:
+                  it.discount_rate === undefined ? undefined : Number(it.discount_rate),
+                final_price: Number(
+                  (it.final_price ?? it.original_price ?? 0) as number
+                ),
+              }
+        ),
       };
+      // 3) Zod 검증 (형식 불일치 시 throw)
+      try {
+        return CreateCouponTxSchema.parse(prepared);
+      } catch(e) {
+        console.log(e);
+      }
       return CreateCouponTxSchema.parse(prepared);
     },
     [state]

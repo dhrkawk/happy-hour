@@ -1,165 +1,328 @@
-"use client"
+// app/cart/page.tsx
+"use client";
 
-import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { ArrowLeft, ShoppingCart, Loader2, AlertCircle, Gift } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Gift,
+  Percent,
+  Users,
+  Clock,
+  Calendar,
+} from "lucide-react";
+import { createClient } from "@/infra/supabase/shared/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
-import { useAppContext } from "@/contexts/app-context";
-import { useCreateReservation } from "@/hooks/use-create-reservation";
-import { useGiftContext } from "@/contexts/gift-context"; // ★ 추가
+import { Badge } from "@/components/ui/badge";
+import { useCreateCouponWithItems } from "@/hooks/usecases/coupons.usecase";
 
-export default function BookingCreationPage() {
+// 전역 장바구니(Context)
+import { useCouponCart } from "@/contexts/cart-context";
+
+// 이벤트 타입 아이콘
+function getEventIcon(type?: "discount" | "gift" | "combo") {
+  switch (type) {
+    case "gift":
+      return <Gift className="w-5 h-5" />;
+    case "combo":
+      return <Users className="w-5 h-5" />;
+    default:
+      return <Percent className="w-5 h-5" />;
+  }
+}
+
+export default function CouponRegisterPage() {
   const router = useRouter();
-  const params = useParams();
-  const { toast } = useToast();
-  const { appState, getCartTotals } = useAppContext();
-  const { createReservation, isLoading } = useCreateReservation();
-  const storeId = params.id as string;
+  const { state: cart, toDTO } = useCouponCart();
+  const weekdayLabels: Record<string, string> = {
+    MON: "월",
+    TUE: "화",
+    WED: "수",
+    THU: "목",
+    FRI: "금",
+    SAT: "토",
+    SUN: "일",
+  };
 
-  const { cart } = appState;
-  const { totalItems, totalPrice, originalPrice } = getCartTotals();
+  // 빈 카트 처리
+  const isEmpty = (cart.items?.length ?? 0) === 0;
+  // TODO: 일단 지금은 createClient로 가져오지만 context에 profile을 유지할거야.
+  const [userId, setUserId] = useState<string>("");
 
-  // ★ GiftContext 사용
-  const { getSelectionsForStore, totalSavings } = useGiftContext();
-  const gifts = getSelectionsForStore(storeId);
+  useEffect(() => {
+    const supabase = createClient();
 
-  const handleBooking = async () => {
-    if (!cart) return;
+    const fetchUser = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("유저 가져오기 실패:", error);
+        return;
+      }
+      if (user) setUserId(user.id);
+    };
+
+    fetchUser();
+  }, []);
+
+  // 주문/합계 계산 (gift는 금액 0)
+  const { menuItems, totalPrice, originalPrice, discountPercent } = useMemo(() => {
+    let total = 0;
+    let original = 0;
+
+    const items =
+      (cart.items ?? []).map((it: any, idx: number) => {
+        if (it.type === "gift") {
+          // gift는 수량 1, 금액 0
+          return {
+            id: `gift-${it.gitf_option_id ?? idx}`,
+            name: it.menu_name ?? "증정",
+            description: "증정 혜택",
+            originalPrice: 0,
+            finalPrice: 0,
+            quantity: 1,
+            isGift: true,
+          };
+        }
+        const qty = Number(it.qty) || 0;
+        const orig = Number(it.original_price ?? 0);
+        const fin = Number((it.final_price ?? it.original_price) ?? 0);
+
+        original += orig * qty;
+        total += fin * qty;
+
+        return {
+          id: it.menu_id ?? idx,
+          name: it.menu_name ?? "메뉴",
+          description: "",
+          originalPrice: orig,
+          finalPrice: fin,
+          quantity: qty,
+          isGift: false,
+        };
+      }) ?? [];
+
+    const percent =
+      original > 0 && total >= 0 && total < original
+        ? Math.round(((original - total) / original) * 100)
+        : 0;
+
+    return {
+      menuItems: items,
+      totalPrice: total,
+      originalPrice: original,
+      discountPercent: percent,
+    };
+  }, [cart.items]);
+
+  const createMutate = useCreateCouponWithItems();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // 이벤트 메타
+  const eventType: "discount" | "gift" | "combo" | undefined = (() => {
+    // 간단 추론: 카트에 gift만 있으면 gift, 할인 아이템 있으면 discount
+    const hasDiscount = (cart.items ?? []).some((it: any) => it.type === "discount");
+    const hasGift = (cart.items ?? []).some((it: any) => it.type === "gift");
+    if (hasDiscount && hasGift) return "combo";
+    if (hasGift) return "gift";
+    if (hasDiscount) return "discount";
+    return undefined;
+  })();
+
+  // 발급 페이지가 읽을 localStorage 포맷으로 싱크 후 이동
+  const handleGoIssue = async () => {
     try {
-      const result = await createReservation(cart, gifts);
-      router.push(`/bookings/${result.reservation_id}`);
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "예약 실패", description: err.message });
+      setSubmitError(null);
+      cart.user_id = userId;
+      const dto = toDTO();
+      const res = await createMutate.mutateAsync(dto); // { couponId }
+      const couponId = (res as any)?.couponId;
+      // 성공 후 장바구니 비우기(선택)
+      // clear();
+
+      // 상세로 이동(권장) 또는 보관함으로 이동
+      if (couponId) router.push(`/coupons/${couponId}`);
+      else router.push(`/coupons`);
+    } catch (e: any) {
+      setSubmitError(e?.message ?? "교환권 발급에 실패했습니다.");
     }
   };
 
-  if (isLoading) {
+  // 빈 장바구니 뷰
+  if (isEmpty) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
-        <p className="ml-2 text-teal-600">쿠폰을 발급 받는 중...</p>
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="px-4 py-4">
+            <div className="flex items-center gap-3">
+              <Link href="/home">
+                <Button variant="ghost" size="sm" className="p-2">
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              </Link>
+              <h1 className="text-lg font-semibold text-gray-800">장바구니</h1>
+            </div>
+          </div>
+        </header>
+
+        <div className="px-4 py-16 text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">장바구니가 비었습니다</h2>
+          <p className="text-gray-600 mb-6">메뉴를 담고 교환권을 발급받아 보세요.</p>
+          <Link href="/home">
+            <Button className="bg-gray-900 hover:bg-gray-800 text-white">가게 보러가기</Button>
+          </Link>
+        </div>
       </div>
     );
   }
-
-  let validationError: string | null = null;
-  if (!cart) {
-    validationError = "장바구니가 비어있습니다. 가게 페이지로 돌아가 메뉴를 담아주세요.";
-  } else if (cart.storeId !== storeId) {
-    validationError = "장바구니 정보가 현재 가게와 일치하지 않습니다. 장바구니를 비우고 다시 시도해주세요.";
-  }
-
-  if (validationError) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">오류 발생</h2>
-        <p className="text-gray-600 text-center mb-6">{validationError}</p>
-        <Link href={`/store/${storeId}`}>
-          <Button>가게 페이지로 돌아가기</Button>
-        </Link>
-      </div>
-    );
-  }
-
-  if (!cart) return null;
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-white shadow-sm border-b border-gray-100">
-        <div className="px-4 py-4 max-w-xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      {/* 헤더 */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="p-2" onClick={() => router.back()}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-lg font-semibold text-gray-800">쿠폰 확인</h1>
+            <Link href={`/store/${cart.store_id ?? ""}`}>
+              <Button variant="ghost" size="sm" className="p-2">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <h1 className="text-lg font-semibold text-gray-800">장바구니</h1>
           </div>
         </div>
       </header>
 
-      <main className="px-4 py-6 max-w-xl mx-auto">
-        <Card className="border-gray-100 mb-6">
-          <CardContent className="p-4">
-            <h2 className="text-xl font-semibold text-gray-800 mb-3">{cart.storeName}</h2>
-          </CardContent>
-        </Card>
-
-        <Card className="border-gray-100 mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-teal-600" />
-              주문 메뉴
-            </CardTitle>
+      <div className="px-4 py-6">
+        {/* 주문 내역 */}
+        <Card className="border-gray-200 mb-6">
+          <CardHeader className="bg-gray-50">
+            <CardTitle className="text-lg text-gray-700">주문 내역</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {cart.items.map((item) => (
-              <div key={item.menuId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <CardContent className="p-4 space-y-3">
+            {menuItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"
+              >
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-800">{item.name}</h4>
-                  <p className="text-sm text-gray-500">
-                    {item.price.toLocaleString()}원 × {item.quantity}개
+                  {item.description && (
+                    <p className="text-sm text-gray-600">{item.description}</p>
+                  )}
+                  <p className="text-sm text-gray-600">
+                    수량: {item.isGift ? 1 : item.quantity}개
+                    {item.isGift && <span className="ml-2 text-green-600">(증정)</span>}
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="font-semibold text-teal-600">{(item.price * item.quantity).toLocaleString()}원</span>
+                  {!item.isGift && item.originalPrice !== item.finalPrice && (
+                    <div className="text-sm text-gray-400 line-through">
+                      {(item.originalPrice * item.quantity).toLocaleString()}원
+                    </div>
+                  )}
+                  <div className="font-semibold text-gray-800">
+                    {item.isGift
+                      ? "0원"
+                      : (item.finalPrice * item.quantity).toLocaleString() + "원"}
+                  </div>
                 </div>
               </div>
             ))}
-              {gifts.map((g) => (
-                <div
-                  key={`${g.giftId}-${g.menu.id}`}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-800">{g.menu.name}</h4>
-                    <p className="text-sm text-gray-500">증정</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-semibold text-teal-600">0원</span>
-                  </div>
-                </div>
-              ))}
-              <p className="text-xs text-gray-500">
-                ※ 증정 품목은 결제 금액에 포함되지 않습니다. (재고/유효성은 가게에서 확인됩니다)
-              </p>
-            <div className="border-t pt-3 mt-3">
-              <div className="flex items-center justify-between text-sm">
-                <span>총 절약 금액</span>
-                <span className="text-teal-600">{(originalPrice - totalPrice + totalSavings(storeId)).toLocaleString()}원</span>
-              </div>
-              <div className="flex items-center justify-between font-bold text-lg">
-                <span>총 {totalItems + gifts.length}개</span>
-                <span className="text-teal-600">{totalPrice.toLocaleString()}원</span>
-              </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+              <span className="text-lg font-bold text-gray-800">총 금액</span>
+              <span className="text-xl font-bold text-blue-600">
+                {totalPrice.toLocaleString()}원
+              </span>
             </div>
           </CardContent>
         </Card>
 
+        {/* 가게/이벤트 정보 */}
+        <Card className="border-gray-200 mb-6">
+          <CardContent className="p-4">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3">
+              {cart.event_title ?? "이벤트"}
+            </h2>
+
+            <div className="flex items-center gap-2 mb-3">
+              <Badge className="bg-gray-900 text-white flex items-center gap-1">
+                {getEventIcon(eventType)}
+                {eventType === "discount" && (discountPercent > 0 ? `${discountPercent}% 할인` : "할인")}
+                {eventType === "gift" && "증정"}
+                {eventType === "combo" && (discountPercent > 0 ? `${discountPercent}% 세트할인` : "세트")}
+              </Badge>
+            </div>
+
+            {(cart.happy_hour_start_time || cart.happy_hour_end_time || (cart.weekdays ?? []).length > 0) && (
+              <div className="p-3 bg-gray-50 rounded-lg space-y-2">
+                {cart.happy_hour_start_time && cart.happy_hour_end_time && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Clock className="w-4 h-4" />
+                    <span>
+                      {cart.happy_hour_start_time} ~ {cart.happy_hour_end_time}
+                    </span>
+                  </div>
+                )}
+                {(cart.weekdays ?? []).length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Calendar className="w-4 h-4" />
+                    <span>{cart.weekdays.map(day => weekdayLabels[day] ?? day).join(", ")}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 적용된 혜택 안내 */}
+        {discountPercent > 0 && (
+          <Card className="border-blue-200 bg-blue-50 mb-6">
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-blue-700 mb-3">할인 안내</h3>
+              <p className="text-sm text-blue-700">
+                선택한 메뉴에 총 {discountPercent}%의 할인이 적용되어&nbsp;
+                <span className="font-semibold">
+                  {originalPrice.toLocaleString()}원
+                </span>
+                이&nbsp;
+                <span className="font-semibold">
+                  {totalPrice.toLocaleString()}원
+                </span>
+                으로 결제됩니다.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 주의사항 */}
         <Card className="border-orange-200 bg-orange-50 mb-6">
           <CardContent className="p-4">
             <h3 className="font-semibold text-orange-700 mb-2">주의사항</h3>
-            <ul className="space-y-1 text-sm text-orange-600 list-disc list-inside">
-              <li>예약 시간은 현재 시간으로 자동 설정됩니다.</li>
-              <li>방문 시 가게에 쿠폰을 보여주세요.</li>
-              <li>할인/증정의 경우, 재고가 소진되면 쿠폰 사용이 불가할 수 있습니다.</li>
+            <ul className="space-y-1 text-sm text-orange-600">
+              <li>• 교환권 만료일이 지나면 사용할 수 없습니다</li>
+              {cart.happy_hour_start_time && cart.happy_hour_end_time && (
+                <li>
+                  • 지정된 시간({cart.happy_hour_start_time} ~ {cart.happy_hour_end_time}) 외에는 사용할 수 없습니다
+                </li>
+              )}
+              {cart.weekdays?.length ? (
+                <li>• 지정된 요일({cart.weekdays.map(day => weekdayLabels[day] ?? day).join(", ")})에만 사용 가능합니다</li>
+              ) : null}
+              <li>• 교환권은 1회만 사용 가능하며, 사용 후 복구할 수 없습니다</li>
             </ul>
           </CardContent>
         </Card>
 
+        {/* 발급 버튼 */}
         <Button
-          onClick={handleBooking}
-          disabled={isLoading || cart.items.length === 0}
-          className="w-full bg-teal-500 hover:bg-teal-600 text-white py-3 text-lg font-semibold"
+          onClick={handleGoIssue}
+          className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 text-lg font-semibold"
         >
-          {isLoading ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : (
-            `${totalPrice.toLocaleString()}원 쿠폰 발급 받기`
-          )}
+          교환권 발급받기
         </Button>
-      </main>
+      </div>
     </div>
   );
 }
