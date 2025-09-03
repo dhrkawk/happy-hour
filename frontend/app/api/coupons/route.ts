@@ -46,7 +46,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const dto = CreateCouponTxSchema.parse(body) as CreateCouponTxDTO;
-
     const sb = await createClient();
     const repo = new SupabaseCouponRepository(sb);
 

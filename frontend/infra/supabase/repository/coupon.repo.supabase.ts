@@ -22,15 +22,38 @@ export class SupabaseCouponRepository implements CouponRepository {
    * CreateCouponTxDTO는 (user_id, event_id, items[]) 를 포함합니다.
    * 서버는 payload에서 필요한 필드만 사용하므로, 여기선 안전한 JSON payload로 매핑해 보냅니다.
    */
-  async createCouponWithItemsByUserId(dto: CreateCouponTxDTO): Promise<{ couponId: Id }> {
-    // RPC가 요구하는 최소 payload로 매핑 (JSON-safe)
+  async createCouponWithItemsByUserId(
+    dto: CreateCouponTxDTO
+  ): Promise<{ couponId: Id }> {
+    // RPC가 요구하는 최소 payload로 매핑
     const payload = mapCreateCouponDtoToPayload(dto);
-
-    const { data, error } = await this.sb.rpc('create_coupon_with_items', { payload });
-    if (error) throw error;
-
+  
+    const { data, error } = await this.sb.rpc("create_coupon_with_items", { payload });
+  
+    if (error) {
+      // 에러 내용을 상세히 출력
+      console.error("RPC Error:", {
+        message: error.message,
+        details: (error as any).details,
+        hint: (error as any).hint,
+        code: (error as any).code,
+      });
+  
+      // 명시적인 에러로 throw
+      throw new Error(
+        `RPC create_coupon_with_items failed: ${error.message} | details: ${
+          (error as any).details ?? "n/a"
+        } | hint: ${(error as any).hint ?? "n/a"} | code: ${
+          (error as any).code ?? "n/a"
+        }`
+      );
+    }
+  
     const couponId = data as string | null;
-    if (!couponId) throw new Error('RPC did not return coupon_id');
+    if (!couponId) {
+      throw new Error("RPC did not return coupon_id");
+    }
+  
     return { couponId: couponId as Id };
   }
 

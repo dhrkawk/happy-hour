@@ -122,7 +122,7 @@ export type MenuWithDiscountVM = {
   category: string | null;
 
   // discount와 관련된 값
-  discountId: string;
+  discountId: string | null;
   discountRate: number | null;
   remaining: number | null;
   finalPrice: number | null;
@@ -133,7 +133,7 @@ export type MenuWithDiscountVM = {
 
 export type GiftVM = {
   giftGroupId: string;
-  gitfOptionId: string;
+  giftOptionId: string | null;
   menuId: string;
   name: string;
   thumbnail: string | null;
@@ -165,7 +165,7 @@ export function buildStoreDetailVM(base: StoreWithEventsAndMenus): StoreDetailVM
     category: m.category,
 
     // 아직 이벤트 할인 안 채움
-    discountId: '',
+    discountId: null,
     discountRate: null,
     remaining: null,
     finalPrice: null,
@@ -218,7 +218,7 @@ export function enrichStoreDetailVM(
     if (!d.isActive) continue;
     const menu = menuMap.get(d.menuId);
     if (menu) {
-      menu.discountId = d.id;
+      menu.discountId = d.id ?? null;
       menu.discountRate = d.discountRate;
       menu.remaining = d.remaining;
       menu.finalPrice = d.finalPrice;
@@ -234,7 +234,7 @@ export function enrichStoreDetailVM(
       const menu = menuMap.get(option.menuId);
       gifts.push({
         giftGroupId: groupBundle.group.id,
-        gitfOptionId: option.id,
+        giftOptionId: option.id ?? null,
         menuId: option.menuId,
         name: menu?.name ?? '',
         thumbnail: menu?.thumbnail ?? null,

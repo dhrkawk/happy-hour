@@ -32,7 +32,7 @@ import type {
       end_date: toYMD(dto.end_date),
       happy_hour_start_time: dto.happy_hour_start_time ?? null, // 'HH:mm[:ss]' | null
       happy_hour_end_time: dto.happy_hour_end_time ?? null,
-      weekdays: dto.weekdays.map(upperWeekday),                 // ["MON", ...]
+      weekdays: dto.weekdays,                 // ["MON", ...]
       is_active: dto.is_active ?? true,
       description: dto.description ?? null,
       title: dto.title,
@@ -66,7 +66,7 @@ import type {
       end_date: toYMD(dto.end_date),
       happy_hour_start_time: dto.happy_hour_start_time ?? null,
       happy_hour_end_time: dto.happy_hour_end_time ?? null,
-      weekdays: dto.weekdays.map(upperWeekday),
+      weekdays: dto.weekdays,
       is_active: dto.is_active ?? true,
       description: dto.description ?? null,
       title: dto.title,
@@ -94,20 +94,22 @@ import type {
     });
   }
 
-  export function mapCreateCouponDtoToPayload(dto: CreateCouponTxDTO) {
-    return {
-      user_id: dto.user_id,
-      event_id: dto.event_id,
-      items: (dto.items ?? []).map((it) => ({
-        type: it.type,          // 'discount' | 'gift'
-        ref_id: it.ref_id,      // discounts.id or gift_options.id
-        menu_id: it.menu_id,    // store_menus.id
-        qty: it.qty,
-        // 메타 정보는 서버에서 사용하지 않지만 저장/로깅 목적으로 포함 가능
-        menu_name: it.menu_name ?? undefined,
-        original_price: it.original_price ?? undefined,
-        discount_rate: it.discount_rate ?? undefined,
-        final_price: it.final_price ?? undefined,
-      })),
-    } as const;
-  }
+// DTO -> RPC payload 매핑 (RPC: create_coupon_from_payload(payload jsonb))
+export function mapCreateCouponDtoToPayload(dto: CreateCouponTxDTO) {
+
+  // RPC 스키마에 맞춘 최종 payload
+  const payload = {
+    user_id: dto.user_id,
+    store_id: dto.store_id,
+    event_id: dto.event_id,
+    expected_visit_time: dto.expected_visit_time ?? null, // 없으면 null
+    expired_time: dto.expired_time,          // 없으면 서버에서 +7일
+    status: dto.status ?? "issued",
+    happy_hour_start_time: dto.happy_hour_start_time,      // "HH:MM" 권장
+    happy_hour_end_time: dto.happy_hour_end_time,
+    weekdays: dto.weekdays,                                // ["MON","TUE"...] or [1,2...], 서버 정규화
+    event_title: dto.event_title,             // 서버에서 재확인되지만 같이 전달 가능
+    items: dto.items,
+  } as const;
+  return payload;
+}
