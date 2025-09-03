@@ -136,7 +136,6 @@ export type DiscountUpdateDTO = z.infer<typeof DiscountUpdateSchema>;
 // ---------------- coupons ----------------
 export const CouponInsertSchema = z.object({
   user_id: UUID,
-  event_id: UUID,                 // ← 추가 (필수)
   store_id: UUID,                 // 상황에 따라 유지/제거
   expected_visit_time: IsoTimestamp.nullable().optional().default(null),
   expired_time: IsoTimestamp.optional(),
@@ -144,7 +143,9 @@ export const CouponInsertSchema = z.object({
   happy_hour_start_time: TimeHHMM,
   happy_hour_end_time: TimeHHMM,
   weekdays: StringArrayNonEmpty,
+  event_title: z.string(),
 });
+
 export type CouponInsertDTO = z.infer<typeof CouponInsertSchema>;
 
 export const CouponUpdateSchema = z.object({
@@ -231,8 +232,6 @@ export type UserProfileUpdateDTO = z.infer<typeof UserProfileUpdateSchema>;
 /* 서버가 실제로 소비하는 코어 필드 */
 export const CouponItemCore = z.object({
   type: z.enum(["discount", "gift"]), // ← is_gift 대체
-  ref_id: UUID,                      // discounts.id or gift_options.id
-  menu_id: UUID,                     // store_menus.id
   qty: z.coerce.number().int().min(1),
 });
 
