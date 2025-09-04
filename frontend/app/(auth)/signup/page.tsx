@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,7 @@ import { createClient } from "@/infra/supabase/shared/client"
 import { Separator } from "@/components/ui/separator"
 
 export default function SignupPage() {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
@@ -56,8 +58,7 @@ export default function SignupPage() {
         return
       }
 
-      alert("회원가입이 완료되었습니다!")
-      window.location.href = "/home"
+      router.push("/signup/verify-email")
     } catch (err) {
       console.error(err)
       alert("회원가입 중 오류가 발생했습니다.")
