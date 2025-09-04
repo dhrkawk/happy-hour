@@ -14,18 +14,20 @@ import { Label } from '@/components/ui/label';
 
 import AddressSearchMap from '@/components/map/address-search-map';
 
-import {
-  storeFormBaseSchema as storeFormSchema,
-  type StoreForm,
-} from '@/app/(protected)/profile/store-registration/store.form';
-
-import { useCreateStore } from '@/hooks/stores/use-create-store';
+import { useAppContext } from '@/contexts/app-context';
+import { useCreateStore } from '@/hooks/usecases/stores.usecase';
+import { uploadStoreThumbnail } from '@/hooks/usecases/stores.usecase'; // 제공한 함수 사용
+import { StoreInsertDTO, StoreInsertSchema } from '@/domain/schemas/schemas';
 
 export default function StoreRegistrationPage() {
   const router = useRouter();
+  const { appState } = useAppContext();
+  const { user } = appState;
 
-  const form = useForm<StoreForm>({
-    resolver: zodResolver(storeFormSchema),
+  const createStore = useCreateStore();
+
+  const form = useForm<StoreInsertDTO>({
+    resolver: zodResolver(StoreInsertSchema),
     defaultValues: {
       name: '',
       address: '',
@@ -33,18 +35,17 @@ export default function StoreRegistrationPage() {
       lng: 126.9780,
       phone: '',
       category: '',
-      storeThumbnail: '',
-      menuCategory: [],
+      store_thumbnail: null, // 업로드 후 채움
+      menu_category: [],
       partnership: null,
-    },
+      is_active: true,
+      owner_id: user.profile?.userId,
+    }
   });
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
-
-  const createStore = useCreateStore({
-    onSuccess: (id) => router.push(`/profile/store-management/${id}`),
-  });
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const handleAddressSelect = (address: string, lat: number, lng: number) => {
     form.setValue('address', address, { shouldValidate: true });
@@ -55,10 +56,47 @@ export default function StoreRegistrationPage() {
   const handleStoreThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null;
     setFile(f);
+    setFileError(f ? null : '가게 이미지를 선택해주세요.');
   };
 
-  const onSubmit = (data: StoreForm) => {
-    createStore.mutate({ form: data, file });
+  const onSubmit = async (data: StoreInsertDTO) => {
+    // 0) 인증 검사
+    if (!user.isAuthenticated || !user.profile?.userId) {
+      form.setError('name', { type: 'manual', message: '로그인이 필요합니다.' });
+      return;
+    }
+    // 1) 파일 필수 검사
+    if (!file) {
+      setFileError('가게 이미지는 필수입니다. 이미지를 선택해주세요.');
+      return;
+    }
+
+    try {
+      // 3) 썸네일 업로드 먼저 수행 → public URL 획득
+      const thumbnailUrl = await uploadStoreThumbnail(file);
+      // 4) DTO 구성 (썸네일 URL, owner_id 포함)
+      const dto: StoreInsertDTO = {
+        name: data.name,
+        address: data.address,
+        lat: data.lat,
+        lng: data.lng,
+        phone: data.phone,
+        category: data.category,
+        store_thumbnail: thumbnailUrl,
+        is_active: data.is_active,
+        menu_category: data.menu_category,
+        partnership: data.partnership,
+        owner_id: user.profile.userId,
+      };
+
+      // 5) 스토어 생성
+      const res = await createStore.mutateAsync(dto);
+      // 7) 이동
+      router.push(`/profile/store-management/${res.id}`);
+    } catch (err: any) {
+      console.error(err);
+      form.setError('name', { type: 'manual', message: err?.message ?? '등록에 실패했습니다.' });
+    }
   };
 
   const submitting = createStore.isPending;
@@ -82,11 +120,7 @@ export default function StoreRegistrationPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="name">가게명</Label>
-                  <Input
-                    id="name"
-                    placeholder="예: 행복한 베이커리"
-                    {...form.register('name')}
-                  />
+                  <Input id="name" placeholder="예: 행복한 베이커리" {...form.register('name')} />
                   {form.formState.errors.name && (
                     <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
                   )}
@@ -94,11 +128,7 @@ export default function StoreRegistrationPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="category">카테고리</Label>
-                  <Input
-                    id="category"
-                    placeholder="예: 베이커리"
-                    {...form.register('category')}
-                  />
+                  <Input id="category" placeholder="예: 베이커리" {...form.register('category')} />
                   {form.formState.errors.category && (
                     <p className="text-sm text-red-500">{form.formState.errors.category.message}</p>
                   )}
@@ -137,9 +167,9 @@ export default function StoreRegistrationPage() {
                 )}
               </div>
 
-              {/* 썸네일 업로드 */}
+              {/* 썸네일 업로드 (필수) */}
               <div className="space-y-2">
-                <Label htmlFor="store_thumbnail">가게 이미지</Label>
+                <Label htmlFor="store_thumbnail">가게 이미지 (필수)</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     ref={fileInputRef}
@@ -158,10 +188,7 @@ export default function StoreRegistrationPage() {
                   </Button>
                   {file && <span className="text-sm text-gray-600">{file.name}</span>}
                 </div>
-
-                {form.formState.errors.storeThumbnail && (
-                  <p className="text-sm text-red-500">{form.formState.errors.storeThumbnail.message}</p>
-                )}
+                {fileError && <p className="text-sm text-red-500">{fileError}</p>}
               </div>
 
               {/* 서버/훅 에러 */}
@@ -171,11 +198,11 @@ export default function StoreRegistrationPage() {
                 </div>
               )}
 
-              {/* 제출 버튼 */}
+              {/* 제출 버튼: 파일 없으면 비활성화 */}
               <Button
                 type="submit"
                 className="w-full bg-teal-600 hover:bg-teal-700 text-white text-lg font-semibold py-3 rounded-lg transition-colors"
-                disabled={submitting}
+                disabled={submitting || !file}
               >
                 {submitting ? (
                   <div className="flex items-center justify-center">
@@ -189,13 +216,6 @@ export default function StoreRegistrationPage() {
                   '등록 완료'
                 )}
               </Button>
-
-              {/* 디버깅용: 폼 에러 출력 */}
-              {/* {Object.keys(form.formState.errors).length > 0 && (
-                <pre className="text-xs text-red-500 mt-2">
-                  {JSON.stringify(form.formState.errors, null, 2)}
-                </pre>
-              )} */}
             </form>
           </CardContent>
         </Card>

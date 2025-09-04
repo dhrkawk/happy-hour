@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as unknown;
     const dto = StoreInsertSchema.parse(body) as StoreInsertDTO;
 
-    const out = await repo.createStore(dto);
-    return NextResponse.json(out, { status: 201 });
+    const id = await repo.createStore(dto);
+    return NextResponse.json(id, { status: 201 });
   } catch (e: any) {
     const status = e?.name === 'ZodError' ? 400 : 500;
     return NextResponse.json({ error: e?.message ?? 'Failed to create store' }, { status });

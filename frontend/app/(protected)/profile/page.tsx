@@ -10,6 +10,7 @@ import { createClient } from "@/infra/supabase/shared/client"
 import { useGetUserProfile } from "@/hooks/usecases/profile.usecase"
 import { Loader2 } from "lucide-react"
 import { useGetMyStoreId } from "@/hooks/usecases/stores.usecase"
+import { useMemo } from "react"
 
 export default function ProfilePage() {
   const handleLogout = async () => {
@@ -20,7 +21,7 @@ export default function ProfilePage() {
  
   const { data: me, isLoading: meLoading, error: meError } = useGetUserProfile();
   const { data: storeId, isLoading: storeIdLoading, error: storeIdError } = useGetMyStoreId();
-  const sid = String(storeId);
+  const sid = useMemo(() => (storeId ? String(storeId) : ""), [storeId]);
   
   if (meLoading || storeIdLoading) {
     return (
@@ -129,7 +130,7 @@ export default function ProfilePage() {
           </Link>
 
           {isStoreOwnerOrAdmin && (
-            sid ? (
+            sid != "" ? (
               <Link href={`/profile/store-management/${encodeURIComponent(sid)}`}>
                 <Card className="border-gray-100 hover:shadow-md transition-shadow">
                   <CardContent className="p-4">

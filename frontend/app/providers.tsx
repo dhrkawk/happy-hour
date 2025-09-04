@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { GiftProvider } from "@/contexts/gift-context";
 import { AppProvider } from "@/contexts/app-context";
 import { CouponCartProvider } from "@/contexts/cart-context";
 
