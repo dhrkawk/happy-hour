@@ -29,11 +29,11 @@ export function useCouponsByUserId(userId: Id | null | undefined, opts?: { enabl
 }
 
 /** GET api/coupons/[id] */
-export function useCouponWithItems(couponId: Id | null | undefined, opts?: { enabled?: boolean }) {
+export function useCouponWithItems(couponId: Id, opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: couponId ? couponKeys.detail(couponId) : (['coupons', 'detail', 'none'] as QueryKey),
     enabled: !!couponId && (opts?.enabled ?? true),
-    queryFn: () => jsonFetch<CouponWithItems>(`/api/coupons/${encodeURIComponent(couponId!)}`),
+    queryFn: () => jsonFetch<CouponWithItems>(`/api/coupons/${encodeURIComponent(couponId)}`),
     select: buildCouponWithItemsVM,
     staleTime: 5_000,
   });
