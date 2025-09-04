@@ -22,8 +22,8 @@ export function useCouponsByUserId(userId: Id | null | undefined, opts?: { enabl
   return useQuery({
     queryKey: userId ? couponKeys.list(userId) : (['coupons', 'list', 'anon'] as QueryKey),
     enabled: !!userId && (opts?.enabled ?? true),
-    queryFn: () => jsonFetch<Coupon[]>(`/api/coupons?userId=${encodeURIComponent(userId!)}`),
-    select: buildCouponListVM,
+    queryFn: () => jsonFetch<{ coupons: Coupon[] }>(`/api/coupons?userId=${encodeURIComponent(userId!)}`),
+    select: (data) => buildCouponListVM(data.coupons || []),
     staleTime: 5_000,
   });
 }
