@@ -17,26 +17,25 @@ import type { StoreDetailVM, MenuWithDiscountVM, GiftVM } from "@/lib/vm/store.v
 // 전역 장바구니 Context 훅
 import { useCouponCart } from "@/contexts/cart-context";
 
-function getTimeLeft(endDate: string) {
-  const end = new Date(endDate);
-  const days = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  if (days <= 0) return "종료";
-  if (days === 1) return "오늘 마감";
-  return `${days}일 남음`;
-}
+import { formatTimeLeft } from "@/lib/vm/utils/utils";
+import { useAppContext } from "@/contexts/app-context";
 
 export default function StorePage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: vm, isLoading, error } = useGetStoreDetail(id, { onlyActive: true });
-
+  const { appState } = useAppContext()
+  const { user } = appState
   // 장바구니 훅
   const { state: cart, setHeader, addItem, updateItem, removeItem } = useCouponCart();
 
+
   // 스토어/이벤트 정보가 로드되면 헤더(공통 값) 세팅
   useEffect(() => {
+    if (!vm || !user.isAuthenticated || !user.profile) return;
     if (!vm) return;
     setHeader({
+      user_id: user.profile?.userId,
       store_id: vm.id,
       event_id: vm.event?.id,
       // 필요 시 user_id는 로그인 세션에서 setHeader로 주입
@@ -45,7 +44,7 @@ export default function StorePage() {
       happy_hour_end_time: (vm.event?.happyHourEndTime ?? "00:00:00").slice(0, 5), // HH:MM
       weekdays: vm.event?.weekdays?.length ? vm.event.weekdays : ["MON"],
     });
-  }, [vm?.id]); // 간단 안정화: 스토어 id 변경 때만 실행
+  }, [vm?.id, user]);
 
   // 유틸: 현재 장바구니에서 특정 메뉴의 수량 찾기 (할인 아이템)
   const getMenuQty = (menuId: string) => {
@@ -62,7 +61,6 @@ export default function StorePage() {
     const payload = {
       type: "discount" as const,
       qty,
-      // 메타
       ref_id: menu.discountId ?? null,
       menu_id: menu.menuId,
       menu_name: menu.name,
@@ -230,7 +228,7 @@ export default function StorePage() {
               </div>
               <div className="flex items-center gap-1 text-orange-600 font-medium">
                 <Clock className="w-4 h-4" />
-                <span className="text-sm">{getTimeLeft(vm.event.endDate)}</span>
+                <span className="text-sm">{formatTimeLeft(vm.event.endDate)}</span>
               </div>
             </div>
             {vm.event.description && (
