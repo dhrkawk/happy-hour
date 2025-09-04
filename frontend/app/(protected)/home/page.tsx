@@ -12,16 +12,13 @@ import BottomNavigation from "@/components/bottom-navigation";
 import CategoryFilter from "@/components/category-filter";
 
 import { useAppContext } from "@/contexts/app-context";
-import { useOnboardingCheck } from "@/hooks/use-onboarding-check";
 import { useGetStoresWithEvents } from "@/hooks/usecases/stores.usecase";
 
 export default function HomePage() {
   const { appState, fetchLocation } = useAppContext();
   const { address, loading: locationLoading, error: locationError, lastUpdated, coordinates } =
     appState.location ?? {};
-  const { isReady: isOnboardingComplete } = useOnboardingCheck();
   
-
   // 화면 상태 (카테고리/정렬)
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
   const [selectedSorting, setSelectedSorting] = useState<"거리순" | "할인순" | "할인만" | "제휴만">("거리순");
@@ -30,7 +27,7 @@ export default function HomePage() {
   const {data, isLoading, error} = useGetStoresWithEvents(true);
   const storeList = data ?? [];
 
-  const isSkeletonLoading = !isOnboardingComplete || locationLoading || isLoading;
+  const isSkeletonLoading = locationLoading || isLoading;
 
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto relative">

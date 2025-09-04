@@ -11,7 +11,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       <CouponCartProvider>
-        <AppProvider>{children}</AppProvider>
+        {children}
       </CouponCartProvider>
     </QueryClientProvider>
   );
