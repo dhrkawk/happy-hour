@@ -53,7 +53,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ couponId }, { status: 201 });
   } catch (e: any) {
     if (e?.issues) {
-      // zod validation error
       return NextResponse.json({ error: 'VALIDATION_ERROR', details: e.issues }, { status: 400 });
     }
     return mapError(e);
