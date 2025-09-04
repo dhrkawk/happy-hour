@@ -14,14 +14,12 @@ import { StoreCardSkeleton } from "@/components/store-card-skeleton";
 import { LocationErrorBanner } from "@/components/location-error-banner";
 
 import { useAppContext } from "@/contexts/app-context";
-import { useOnboardingCheck } from "@/hooks/use-onboarding-check";
 import { useGetStoresWithEvents } from "@/hooks/usecases/stores.usecase";
 
 export default function MapPage() {
   const { appState, fetchLocation } = useAppContext();
   const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } =
     appState.location ?? {};
-  const { isReady: isOnboardingComplete } = useOnboardingCheck();
 
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("전체");
@@ -30,7 +28,7 @@ export default function MapPage() {
 
   const { data, isLoading: storesLoading } = useGetStoresWithEvents(true);
   const storeList = data ?? [];
-  const isLoading = !isOnboardingComplete || locationLoading || storesLoading;
+  const isLoading =  locationLoading || storesLoading;
 
   return (
     <div className="min-h-screen bg-white max-w-xl mx-auto relative overflow-hidden">
