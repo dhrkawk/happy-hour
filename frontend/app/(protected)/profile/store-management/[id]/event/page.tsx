@@ -111,6 +111,7 @@ const WEEKDAYS: Array<{
   { label: "토", value: "SAT" },
   { label: "일", value: "SUN" },
 ];
+const weekdayMap = new Map(WEEKDAYS.map(w => [w.value, w.label]));
 
 /* =============== 메뉴 드롭다운 =============== */
 function MenuSelect({
@@ -384,7 +385,7 @@ export default function StoreEventsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 flex flex-col items-center gap-6">
+    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
       <div className="w-full max-w-5xl flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button
@@ -452,7 +453,9 @@ export default function StoreEventsPage() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    {(ev.weekdays ?? []).join(", ")}
+                    {(ev.weekdays ?? [])
+                      .map((day: string) => weekdayMap.get(day as "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN") ?? day)
+                    .join(", ")}
                   </span>
                 </div>
               </div>
