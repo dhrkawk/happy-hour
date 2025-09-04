@@ -1,7 +1,7 @@
 // hooks/stores/use-get-stores-with-events.ts
 'use client';
 
-import { useQuery, type QueryKey } from '@tanstack/react-query';
+import { useQuery, useMutation, type QueryKey } from '@tanstack/react-query';
 import { jsonFetch } from './json-helper';
 import type { StoreWithEvents, StoreWithEventsAndMenus } from '@/domain/entities/entities';
 import { buildStoreDetailVM, buildStoreListVMs, enrichStoreDetailVM, StoreListItemVM } from '@/lib/vm/store.vm';
@@ -12,6 +12,9 @@ import { useGetEventDetail } from '../events/use-get-event-detail';
 import { useGetEventWithDiscountsAndGifts } from './events.usecase';
 import { StoreDetailVM } from '@/lib/vm/store.vm';
 import { useMemo } from 'react';
+import { createClient } from '@/infra/supabase/shared/client';
+import { jsonPost } from './json-helper';
+import { StoreInsertDTO } from '@/domain/schemas/schemas';
 
 
 export function useGetStoresWithEvents(onlyActive: boolean) {
@@ -126,4 +129,35 @@ export function useGetMyStoreId() {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
+}
+
+
+
+/** POST /api/store (insert) */
+const BUCKET = "store-thumbnails";
+
+export async function uploadStoreThumbnail(file: File): Promise<string> {
+  const sb = createClient();
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `store/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, {
+    upsert: false,
+    cacheControl: "3600",
+    contentType: file.type || undefined,
+  });
+  if (error) throw error;
+
+  const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+
+export function useCreateStore() {
+  return useMutation({
+    mutationFn: async (dto: StoreInsertDTO) => {
+      if (!dto) throw new Error('store dto is required')
+      return jsonPost<{id: String}>('/api/stores', dto)
+    },
+  })
 }

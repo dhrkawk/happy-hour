@@ -43,7 +43,7 @@ export const StoreInsertSchema = z.object({
   lng: z.coerce.number(),
   phone: NonEmpty,
   category: z.string().default(''),
-  store_thumbnail: NonEmpty,
+  store_thumbnail: z.string().nullable().optional().default(null),
   owner_id: UUID,
   menu_category: StringArray.optional().transform((a) => (a && a.length ? a : null)),
   partnership: z.string().nullable().optional().default(null),

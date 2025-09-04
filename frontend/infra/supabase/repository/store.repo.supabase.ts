@@ -77,9 +77,9 @@ export class SupabaseStoreRepository implements StoreRepository {
       lng: dto.lng,
       phone: dto.phone,
       category: dto.category ?? '',
-      store_thumbnail: dto.store_thumbnail,
+      store_thumbnail: dto.store_thumbnail == null ? "" : dto.store_thumbnail,
       owner_id: dto.owner_id,
-      menu_category: dto.menu_category ?? null,
+      menu_category: dto.menu_category ?? [],
       partnership: dto.partnership ?? null,
       is_active: dto.is_active ?? true,
     };

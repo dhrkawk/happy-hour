@@ -129,7 +129,7 @@ export default function ProfilePage() {
           </Link>
 
           {isStoreOwnerOrAdmin && (
-            sid ? (
+            sid == "" ? (
               <Link href={`/profile/store-management/${encodeURIComponent(sid)}`}>
                 <Card className="border-gray-100 hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
