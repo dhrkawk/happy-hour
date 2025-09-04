@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import BottomNavigation from "@/components/bottom-navigation";
-import { useUser } from "@/hooks/use-user";
 import { useCouponsByUserId, useCancelCoupon } from "@/hooks/usecases/coupons.usecase";
 import type { CouponListItemVM } from "@/lib/vm/coupon.vm";
 import { useAppContext } from "@/contexts/app-context";
