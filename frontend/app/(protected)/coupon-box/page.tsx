@@ -11,6 +11,7 @@ import BottomNavigation from "@/components/bottom-navigation";
 import { useUser } from "@/hooks/use-user";
 import { useCouponsByUserId, useCancelCoupon } from "@/hooks/usecases/coupons.usecase";
 import type { CouponListItemVM } from "@/lib/vm/coupon.vm";
+import { useAppContext } from "@/contexts/app-context";
 
 function CouponStatusBadge({ vm }: { vm: CouponListItemVM }) {
   if (vm.isExpired) {
@@ -26,10 +27,12 @@ function CouponStatusBadge({ vm }: { vm: CouponListItemVM }) {
 }
 
 export default function CouponBoxPage() {
-  const { user, isLoading: isUserLoading } = useUser();
-  const { data: coupons, isLoading: areCouponsLoading, error } = useCouponsByUserId(user?.id, { enabled: !!user });
+
+  const { appState } = useAppContext();
+  const { user } = appState;
+  const { data: coupons, isLoading: areCouponsLoading, error } = useCouponsByUserId(user.profile?.userId, { enabled: !!user });
   
-  const { mutate: cancelCoupon, isPending: isCanceling } = useCancelCoupon(user?.id);
+  const { mutate: cancelCoupon, isPending: isCanceling } = useCancelCoupon(user.profile?.userId);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
 
   const handleCancel = (e: React.MouseEvent, couponId: string) => {
@@ -45,7 +48,7 @@ export default function CouponBoxPage() {
     }
   };
 
-  const isLoading = isUserLoading || areCouponsLoading;
+  const isLoading = !user || areCouponsLoading;
 
   const activeCoupons = useMemo(() => coupons?.filter(c => !c.isExpired && c.statusText === '발급됨') ?? [], [coupons]);
   const usedOrExpiredCoupons = useMemo(() => coupons?.filter(c => c.isExpired || c.statusText !== '발급됨') ?? [], [coupons]);
