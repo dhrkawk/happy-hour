@@ -14,16 +14,12 @@ function mapError(e: any) {
 
 /** GET /api/coupons/:id */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const parsed = ParamsSchema.safeParse(params);
-  if (!parsed.success) {
-    return NextResponse.json({ error: 'INVALID_ID' }, { status: 400 });
-  }
-
+  const { id } = await params;
   try {
     const sb = await createClient();
     const repo = new SupabaseCouponRepository(sb);
 
-    const detail = await repo.getCouponWithItemsById(parsed.data.id);
+    const detail = await repo.getCouponWithItemsById(id);
     return NextResponse.json(detail);
   } catch (e) {
     return mapError(e);
