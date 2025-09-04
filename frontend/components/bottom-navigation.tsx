@@ -21,10 +21,10 @@ export default function BottomNavigation() {
       isActive: pathname === "/map",
     },
     {
-      href: "/bookings",
+      href: "/coupon-box",
       icon: ShoppingBag,
-      label: "예약현황",
-      isActive: pathname === "/bookings",
+      label: "쿠폰함",
+      isActive: pathname === "/coupon-box",
     },
     {
       href: "/profile",
