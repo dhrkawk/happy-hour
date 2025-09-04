@@ -48,23 +48,6 @@ export default function CouponRegisterPage() {
 
   // 빈 카트 처리
   const isEmpty = (cart.items?.length ?? 0) === 0;
-  // TODO: 일단 지금은 createClient로 가져오지만 context에 profile을 유지할거야.
-  const [userId, setUserId] = useState<string>("");
-
-  useEffect(() => {
-    const supabase = createClient();
-
-    const fetchUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("유저 가져오기 실패:", error);
-        return;
-      }
-      if (user) setUserId(user.id);
-    };
-
-    fetchUser();
-  }, []);
 
   // 주문/합계 계산 (gift는 금액 0)
   const { menuItems, totalPrice, originalPrice, discountPercent } = useMemo(() => {
@@ -134,7 +117,6 @@ export default function CouponRegisterPage() {
   const handleGoIssue = async () => {
     try {
       setSubmitError(null);
-      cart.user_id = userId;
       const dto = toDTO();
       const res = await createMutate.mutateAsync(dto); // { couponId }
       const couponId = (res as any)?.couponId;
