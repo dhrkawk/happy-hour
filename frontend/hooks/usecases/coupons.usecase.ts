@@ -33,8 +33,14 @@ export function useCouponWithItems(couponId: Id, opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: couponId ? couponKeys.detail(couponId) : (['coupons', 'detail', 'none'] as QueryKey),
     enabled: !!couponId && (opts?.enabled ?? true),
-    queryFn: () => jsonFetch<CouponWithItems>(`/api/coupons/${encodeURIComponent(couponId)}`),
-    select: buildCouponWithItemsVM,
+    queryFn: async () => {
+      const data = await jsonFetch<CouponWithItems>(`/api/coupons/${encodeURIComponent(couponId)}?_t=${Date.now()}`);
+      return data;
+    },
+    select: (data) => {
+      const vm = buildCouponWithItemsVM(data);
+      return vm;
+    },
     staleTime: 5_000,
   });
 }
@@ -95,11 +101,43 @@ export function useActivateCoupon(userIdForInvalidate?: Id) {
   return useMutation({
     mutationFn: (couponId: Id) =>
       jsonFetch<void>(`/api/coupons/${encodeURIComponent(couponId)}/activate`, { method: 'PATCH' }),
-    onSuccess: async (_data, couponId) => {
-      // 활성화가 성공하면, 쿠폰 목록과 상세 정보를 모두 무효화하여 최신 상태로 업데이트합니다.
-      await qc.invalidateQueries({ queryKey: couponKeys.detail(couponId) });
+    
+    // 낙관적 업데이트 시작
+    onMutate: async (couponId) => {
+      // 쿼리 캐시 취소 (진행 중인 refetch 방지)
+      await qc.cancelQueries({ queryKey: couponKeys.detail(couponId) });
+
+      // 이전 데이터 스냅샷 저장
+      const previousCoupon = qc.getQueryData(couponKeys.detail(couponId));
+
+      // 캐시를 낙관적으로 업데이트
+      qc.setQueryData(couponKeys.detail(couponId), (old: any) => {
+        if (!old) return old; // 데이터가 없으면 업데이트하지 않음
+        return {
+          ...old,
+          coupon: {
+            ...old.coupon,
+            status: 'activating',
+            activated_at: new Date().toISOString(), // 현재 시간으로 설정 (정확한 시간은 서버 응답에서)
+          },
+        };
+      });
+
+      return { previousCoupon }; // context로 이전 데이터 반환
+    },
+
+    onError: (err, couponId, context) => {
+      // 에러 발생 시 이전 상태로 롤백
+      if (context?.previousCoupon) {
+        qc.setQueryData(couponKeys.detail(couponId), context.previousCoupon);
+      }
+    },
+
+    onSettled: (data, error, couponId) => {
+      // 성공/실패 여부와 관계없이 최종적으로 쿼리 무효화 및 재조회
+      qc.invalidateQueries({ queryKey: couponKeys.detail(couponId) });
       if (userIdForInvalidate) {
-        await qc.invalidateQueries({ queryKey: couponKeys.list(userIdForInvalidate) });
+        qc.invalidateQueries({ queryKey: couponKeys.list(userIdForInvalidate) });
       }
     },
   });

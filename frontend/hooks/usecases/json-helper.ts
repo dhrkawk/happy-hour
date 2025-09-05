@@ -12,6 +12,9 @@ export async function jsonFetch<T>(input: RequestInfo, init?: RequestInit): Prom
       } catch {}
       throw new Error(msg);
     }
+    if (res.status === 204) {
+      return undefined as unknown as T; // 204 No Content일 경우 undefined 반환
+    }
     return res.json() as Promise<T>;
   }
   
