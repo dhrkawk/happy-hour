@@ -5,7 +5,7 @@ import type { Coupon, CouponItem, CouponWithItems } from '@/domain/entities/enti
 
 /* ---------------------------------- Types --------------------------------- */
 
-export type CouponStatus = 'issued' | 'redeemed' | 'canceled' | 'expired';
+export type CouponStatus = 'issued' | 'redeemed' | 'cancelled' | 'expired' | 'activating';
 
 export type CouponItemVM = {
   id?: string;
@@ -36,6 +36,7 @@ export type CouponVM = {
   updatedAtText?: string;
   expiresAtText?: string;
   expectedVisitText?: string;
+  activatedAt?: string; // 추가된 필드
 
   totalQty: number;
   totalPrice?: number | null;
@@ -63,7 +64,8 @@ const statusText = (s: string): string => {
   switch (s) {
     case 'issued':   return '발급됨';
     case 'redeemed': return '사용완료';
-    case 'canceled': return '취소됨';
+    case 'cancelled': return '취소됨'; // 'canceled' -> 'cancelled'로 변경
+    case 'activating': return '사용 중'; // 추가
     case 'expired':  return '만료됨';
     default:         return s;
   }
@@ -134,6 +136,7 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
     updatedAtText: fmtDateTime((coupon as any).updatedAt ?? (coupon as any).updated_at),
     expiresAtText: fmtDateTime((coupon as any).expiredTime ?? (coupon as any).expired_time, { dateStyle: 'medium' }),
     expectedVisitText: fmtDateTime((coupon as any).expectedVisitTime ?? (coupon as any).expected_visit_time),
+    activatedAt: (coupon as any).activatedAt ?? (coupon as any).activated_at, // 추가된 매핑
 
     totalQty,
     totalPrice,
@@ -146,6 +149,7 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
 export type CouponListItemVM = {
   id: string;
   title: string;
+  status: CouponStatus; // 추가
   statusText: string;
   isExpired: boolean;
   createdAtText: string;
@@ -159,6 +163,7 @@ export function buildCouponListVM(coupons: Coupon[]): CouponListItemVM[] {
     return {
       id: c.id,
       title,
+      status: c.status as CouponStatus, // 추가
       statusText: statusText(c.status),
       isExpired: expired,
       createdAtText: fmtDateTime((c as any).createdAt ?? (c as any).created_at) ?? '',

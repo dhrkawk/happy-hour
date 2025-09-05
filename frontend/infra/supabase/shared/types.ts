@@ -57,6 +57,7 @@ export type Database = {
       }
       coupons: {
         Row: {
+          activated_at: string | null
           created_at: string | null
           event_title: string
           expected_visit_time: string | null
@@ -71,6 +72,7 @@ export type Database = {
           weekdays: string[]
         }
         Insert: {
+          activated_at?: string | null
           created_at?: string | null
           event_title: string
           expected_visit_time?: string | null
@@ -85,6 +87,7 @@ export type Database = {
           weekdays: string[]
         }
         Update: {
+          activated_at?: string | null
           created_at?: string | null
           event_title?: string
           expected_visit_time?: string | null
@@ -416,6 +419,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_coupon: {
+        Args: { p_coupon_id: string }
+        Returns: undefined
+      }
       cancel_coupon: {
         Args: { p_coupon_id: string }
         Returns: undefined
@@ -431,6 +438,10 @@ export type Database = {
       event_with_discounts_and_gifts: {
         Args: { p_event_id: string; p_only_active?: boolean }
         Returns: Json
+      }
+      finalize_redemption: {
+        Args: { p_coupon_id: string }
+        Returns: undefined
       }
       redeem_coupon: {
         Args: { p_coupon_id: string }
@@ -450,8 +461,13 @@ export type Database = {
       }
     }
     Enums: {
-      coupon_status: "issued" | "redeemed" | "expired" | "cancelled"
-      role: "customer" | "owner" | "admin"
+      coupon_status:
+        | "issued"
+        | "redeemed"
+        | "expired"
+        | "cancelled"
+        | "activating"
+      role: "customer" | "store_owner" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -579,8 +595,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      coupon_status: ["issued", "redeemed", "expired", "cancelled"],
-      role: ["customer", "owner", "admin"],
+      coupon_status: [
+        "issued",
+        "redeemed",
+        "expired",
+        "cancelled",
+        "activating",
+      ],
+      role: ["customer", "store_owner", "admin"],
     },
   },
 } as const

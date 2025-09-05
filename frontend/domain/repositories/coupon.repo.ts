@@ -9,6 +9,9 @@ export interface CouponRepository {
     // PATCH api/coupons/[id]/redeem
     redeemCouponById(couponId: Id): Promise<void>
 
+    // PATCH api/coupons/[id]/activate
+    activateCouponById(couponId: Id): Promise<void>
+
     // PATCH api/coupons/[id]/cancel
     cancelCouponById(couponId: Id): Promise<void>
 
