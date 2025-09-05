@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
-import { ArrowLeft, MapPin, Clock, Gift, Percent, Minus, Plus, ShoppingCart } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Gift, Percent, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ export default function StorePage() {
   const { appState } = useAppContext()
   const { user } = appState
   // 장바구니 훅
-  const { state: cart, setHeader, addItem, updateItem, removeItem } = useCouponCart();
+  const { state: cart, setHeader, addItem, updateItem, removeItem, clear } = useCouponCart();
 
 
   // 스토어/이벤트 정보가 로드되면 헤더(공통 값) 세팅
@@ -135,6 +135,22 @@ export default function StorePage() {
   const handleSubmit = () => {
     router.push("/coupon-register")
   };
+
+  // 장바구니 라인아이템 요약 (메뉴명, 수량, 합계)
+  const cartLines = useMemo(() => {
+    return (cart.items as any[]).map((it) => {
+      const qty = Number(it.qty ?? (it.type === "gift" ? 1 : 0));
+      const unit = Number((it.final_price ?? it.original_price ?? 0) as number);
+      const total = it.type === "gift" ? 0 : unit * qty;
+      return {
+        key: `${it.type}:${it.menu_id}:${it.ref_id ?? ''}`,
+        name: it.menu_name ?? (it.type === "gift" ? "증정 상품" : "메뉴"),
+        qty,
+        total,
+        isGift: it.type === "gift",
+      };
+    });
+  }, [cart.items]);
 
   // 로딩/에러 화면
   if (isLoading || !vm) {
@@ -354,23 +370,52 @@ export default function StorePage() {
       {totalItems > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-30">
           <div className="mx-auto max-w-xl px-4 py-3 space-y-3 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
-            <div className="flex items-end justify-between">
+            {/* 헤더: 카트 아이콘, 선택 개수, 비우기 */}
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-gray-700">
                 <ShoppingCart className="w-5 h-5" />
                 <span className="text-base">
                   <span className="font-semibold">{totalItems}</span>개 선택
                 </span>
               </div>
+              <Button variant="outline" size="sm" onClick={clear} className="gap-1">
+                <Trash2 className="w-4 h-4" /> 장바구니 비우기
+              </Button>
+            </div>
+
+            {/* 아이템 내역 */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 max-h-40 overflow-auto">
+              {cartLines.map((line) => (
+                <div key={line.key} className="flex items-center justify-between py-1 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {line.isGift && <Gift className="w-4 h-4 text-green-700 shrink-0" />}
+                    <span className="truncate text-gray-800">{line.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-gray-600">x{line.qty}</span>
+                    <span className="font-semibold text-gray-900">{line.total.toLocaleString()}원</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 합계 영역 */}
+            <div className="flex items-end justify-between">
+              <div className="text-sm text-gray-600">
+                {discountPercent > 0 ? (
+                  <span className="text-blue-600 font-medium">{discountPercent}% 할인 적용됨</span>
+                ) : (
+                  <span>할인 없음</span>
+                )}
+              </div>
               <div className="text-right">
                 <div className="text-2xl font-extrabold text-gray-900">
                   {totalPayable.toLocaleString()}원
                 </div>
-                {discountPercent > 0 && (
-                  <div className="text-sm text-blue-600 font-medium">{discountPercent}% 할인 적용됨</div>
-                )}
               </div>
             </div>
 
+            {/* 전송 버튼 */}
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl text-base font-semibold"
               onClick={handleSubmit}
