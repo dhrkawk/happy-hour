@@ -18,7 +18,7 @@ function mapError(e: any) {
   return NextResponse.json({ error: 'INTERNAL_ERROR' }, { status: 500 });
 }
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(_req: Request, { params }: { params: { id: string } }) {
   const parsed = ParamsSchema.safeParse(params);
   if (!parsed.success) {
     return NextResponse.json({ error: 'INVALID_ID' }, { status: 400 });

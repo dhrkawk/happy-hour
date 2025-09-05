@@ -17,13 +17,19 @@ function CouponStatusBadge({ vm }: { vm: CouponListItemVM }) {
   if (vm.isExpired) {
     return <Badge variant="destructive">만료</Badge>;
   }
-  if (vm.statusText === '사용완료') {
-    return <Badge className="bg-gray-400 text-white">사용 완료</Badge>;
+
+  switch (vm.status) {
+    case 'redeemed':
+      return <Badge className="bg-gray-400 text-white">사용 완료</Badge>;
+    case 'cancelled': // 'canceled' -> 'cancelled'로 변경
+      return <Badge variant="destructive">취소됨</Badge>; // 빨간색으로 변경
+    case 'activating':
+      return <Badge className="bg-blue-600 text-white">사용 중</Badge>;
+    case 'issued':
+      return <Badge className="bg-green-600 text-white">사용 가능</Badge>;
+    default:
+      return <Badge variant="outline">알 수 없음</Badge>;
   }
-   if (vm.statusText === '취소됨') {
-    return <Badge variant="secondary">취소</Badge>;
-  }
-  return <Badge className="bg-green-600 text-white">사용 가능</Badge>;
 }
 
 export default function CouponBoxPage() {
@@ -50,8 +56,8 @@ export default function CouponBoxPage() {
 
   const isLoading = !user || areCouponsLoading;
 
-  const activeCoupons = useMemo(() => coupons?.filter(c => !c.isExpired && c.statusText === '발급됨') ?? [], [coupons]);
-  const usedOrExpiredCoupons = useMemo(() => coupons?.filter(c => c.isExpired || c.statusText !== '발급됨') ?? [], [coupons]);
+  const activeCoupons = useMemo(() => coupons?.filter(c => !c.isExpired && (c.statusText === '발급됨' || c.statusText === '사용 중')) ?? [], [coupons]);
+  const usedOrExpiredCoupons = useMemo(() => coupons?.filter(c => c.isExpired || (c.statusText !== '발급됨' && c.statusText !== '사용 중')) ?? [], [coupons]);
 
   const renderCouponList = (list: CouponListItemVM[], title: string) => (
     <div className="mb-8">

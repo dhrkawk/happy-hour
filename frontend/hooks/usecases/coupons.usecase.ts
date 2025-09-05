@@ -88,3 +88,19 @@ export function useCancelCoupon(userIdForInvalidate?: Id) {
     },
   });
 }
+
+/** PATCH api/coupons/[id]/activate */
+export function useActivateCoupon(userIdForInvalidate?: Id) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (couponId: Id) =>
+      jsonFetch<void>(`/api/coupons/${encodeURIComponent(couponId)}/activate`, { method: 'PATCH' }),
+    onSuccess: async (_data, couponId) => {
+      // 활성화가 성공하면, 쿠폰 목록과 상세 정보를 모두 무효화하여 최신 상태로 업데이트합니다.
+      await qc.invalidateQueries({ queryKey: couponKeys.detail(couponId) });
+      if (userIdForInvalidate) {
+        await qc.invalidateQueries({ queryKey: couponKeys.list(userIdForInvalidate) });
+      }
+    },
+  });
+}

@@ -1,15 +1,60 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Store, Calendar, CheckCircle, XCircle, Loader2, Info } from "lucide-react";
+import { ArrowLeft, Store, Calendar, CheckCircle, XCircle, Loader2, Info, QrCode } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useUser } from "@/hooks/use-user";
-import { useCouponWithItems, useRedeemCoupon, useCancelCoupon } from "@/hooks/usecases/coupons.usecase";
+import { useCouponWithItems, useActivateCoupon, useCancelCoupon } from "@/hooks/usecases/coupons.usecase";
 import { CouponVM, CouponItemVM } from "@/lib/vm/coupon.vm";
+
+// 5분 타이머 및 활성화 상태를 보여주는 배너 컴포넌트
+function ActivationTimerBanner({ vm, onTimeEnd }: { vm: CouponVM, onTimeEnd: () => void }) {
+  const [timeLeft, setTimeLeft] = useState("05:00");
+
+  useEffect(() => {
+    if (!vm.activatedAt) return;
+
+    const activatedTime = new Date(vm.activatedAt).getTime();
+    const expiryTime = activatedTime + 5 * 60 * 1000;
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = expiryTime - now;
+
+      if (distance <= 0) {
+        clearInterval(interval);
+        setTimeLeft("00:00");
+        onTimeEnd(); // 시간이 다 되면 부모 컴포넌트에 알림
+        return;
+      }
+
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      
+      setTimeLeft(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+    }, 1000);
+
+    return () => clearInterval(interval); // 컴포넌트 언마운트 시 인터벌 정리
+  }, [vm.activatedAt, onTimeEnd]);
+
+  return (
+    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6 text-center">
+      <p className="text-sm text-blue-700 mb-2">아래 쿠폰 번호를 점원에게 보여주세요.</p>
+      <div className="bg-white text-blue-600 font-mono text-2xl tracking-widest p-3 rounded-lg mb-4 inline-block">
+        {vm.id}
+      </div>
+      <div className="text-blue-800">
+        <p className="text-sm">남은 시간</p>
+        <p className="text-3xl font-bold">{timeLeft}</p>
+      </div>
+    </div>
+  );
+}
 
 function CouponStatusHeader({ vm }: { vm: CouponVM }) {
   if (vm.isExpired) {
@@ -27,7 +72,7 @@ function CouponStatusHeader({ vm }: { vm: CouponVM }) {
           <p className="font-semibold">사용 완료된 쿠폰입니다.</p>
         </div>
       );
-    case 'canceled':
+    case 'cancelled':
       return (
         <div className="bg-red-50 text-red-700 p-4 text-center rounded-lg">
           <p className="font-semibold">취소된 쿠폰입니다.</p>
@@ -45,18 +90,18 @@ export default function CouponDetailPage() {
 
   const { data: vm, isLoading, error, refetch } = useCouponWithItems(id, { enabled: !!id });
 
-  const { mutate: redeemCoupon, isPending: isRedeeming } = useRedeemCoupon(user?.id);
+  const { mutate: activateCoupon, isPending: isActivating } = useActivateCoupon(user?.id);
   const { mutate: cancelCoupon, isPending: isCanceling } = useCancelCoupon(user?.id);
 
-  const handleRedeem = () => {
-    if (confirm("쿠폰을 사용하시겠습니까? 사용한 쿠폰은 되돌릴 수 없습니다.")) {
-      redeemCoupon(id, { onSuccess: () => refetch() });
+  const handleActivate = () => {
+    if (confirm("쿠폰 사용을 시작하시겠습니까? 5분 내로 사용해야 합니다.")) {
+      activateCoupon(id);
     }
   };
 
   const handleCancel = () => {
     if (confirm("정말로 이 쿠폰을 취소하시겠습니까?")) {
-      cancelCoupon(id, { onSuccess: () => router.push('/coupon-box') });
+      cancelCoupon(id, { onSuccess: () => refetch() });
     }
   };
 
@@ -83,7 +128,7 @@ export default function CouponDetailPage() {
     );
   }
 
-  const canRedeem = vm.status === 'issued' && !vm.isExpired;
+  const canActivate = vm.status === 'issued' && !vm.isExpired;
   const canCancel = vm.status === 'issued' && !vm.isExpired;
 
   return (
@@ -100,6 +145,7 @@ export default function CouponDetailPage() {
       </header>
 
       <main className="px-4 py-5 pb-24">
+        {vm.status === 'activating' && <ActivationTimerBanner vm={vm} onTimeEnd={() => refetch()} />}
         <Card>
           <CardHeader>
             <CouponStatusHeader vm={vm} />
@@ -135,14 +181,14 @@ export default function CouponDetailPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-2 pt-4">
-            {canRedeem && (
+            {canActivate && (
               <Button 
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={handleRedeem}
-                disabled={isRedeeming}
+                onClick={handleActivate}
+                disabled={isActivating}
               >
-                {isRedeeming ? <Loader2 className="w-4 h-4 animate-spin"/> : <CheckCircle className="w-4 h-4 mr-2" />} 
-                {isRedeeming ? '사용 처리 중...' : '쿠폰 사용하기'}
+                {isActivating ? <Loader2 className="w-4 h-4 animate-spin"/> : <CheckCircle className="w-4 h-4 mr-2" />} 
+                {isActivating ? '활성화 중...' : '쿠폰 사용하기'}
               </Button>
             )}
             {canCancel && (
