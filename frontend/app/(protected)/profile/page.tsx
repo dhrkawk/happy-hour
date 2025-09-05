@@ -84,7 +84,7 @@ export default function ProfilePage() {
           <Card className="border-gray-100">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-teal-600 mb-1">{me.totalBookings}</div>
-              <div className="text-sm text-gray-600">총 예약 횟수</div>
+              <div className="text-sm text-gray-600">쿠폰 사용 횟수</div>
             </CardContent>
           </Card>
           <Card className="border-gray-100">
@@ -97,7 +97,7 @@ export default function ProfilePage() {
 
         {/* 메뉴 리스트 */}
         <div className="space-y-4">
-          <Link href="/bookings">
+          <Link href="/coupon-box">
             <Card className="border-gray-100 hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -105,7 +105,7 @@ export default function ProfilePage() {
                     <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
                       <ShoppingBag className="w-5 h-5 text-teal-600" />
                     </div>
-                    <span className="font-medium text-gray-800">예약 현황</span>
+                    <span className="font-medium text-gray-800">내 쿠폰함</span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400" />
                 </div>
