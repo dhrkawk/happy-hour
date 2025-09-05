@@ -3,13 +3,14 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, MapPin, Clock, Gift, Percent, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 
 import { useGetStoreDetail } from "@/hooks/usecases/stores.usecase";
 import type { StoreDetailVM, MenuWithDiscountVM, GiftVM } from "@/lib/vm/store.vm";
@@ -28,23 +29,27 @@ export default function StorePage() {
   const { user } = appState
   // 장바구니 훅
   const { state: cart, setHeader, addItem, updateItem, removeItem, clear } = useCouponCart();
+  const [openCart, setOpenCart] = useState(false);
 
 
-  // 스토어/이벤트 정보가 로드되면 헤더(공통 값) 세팅
+  // 1) 스토어/이벤트 공통 헤더는 로그인 여부와 무관하게 먼저 세팅
   useEffect(() => {
-    if (!vm || !user.isAuthenticated || !user.profile) return;
     if (!vm) return;
     setHeader({
-      user_id: user.profile?.userId,
       store_id: vm.id,
       event_id: vm.event?.id,
-      // 필요 시 user_id는 로그인 세션에서 setHeader로 주입
       event_title: vm.event?.title ?? "",
       happy_hour_start_time: (vm.event?.happyHourStartTime ?? "00:00:00").slice(0, 5), // HH:MM
       happy_hour_end_time: (vm.event?.happyHourEndTime ?? "00:00:00").slice(0, 5), // HH:MM
       weekdays: vm.event?.weekdays?.length ? vm.event.weekdays : ["MON"],
     });
-  }, [vm?.id, user]);
+  }, [vm?.id]);
+
+  // 2) 사용자 정보는 준비되면 별도로 세팅
+  useEffect(() => {
+    if (!user?.isAuthenticated || !user?.profile) return;
+    setHeader({ user_id: user.profile.userId });
+  }, [user?.isAuthenticated, user?.profile?.userId]);
 
   // 유틸: 현재 장바구니에서 특정 메뉴의 수량 찾기 (할인 아이템)
   const getMenuQty = (menuId: string) => {
@@ -53,6 +58,7 @@ export default function StorePage() {
   };
 
   const setMenuQty = (menu: MenuWithDiscountVM, qty: number) => {
+    if (!vm) return; // TS: vm may be null during early render
     const idx = cart.items.findIndex((it: any) => it.type === "discount" && it.menu_id === menu.menuId);
     if (qty <= 0) {
       if (idx >= 0) removeItem(idx);
@@ -71,7 +77,29 @@ export default function StorePage() {
     if (idx >= 0) {
       updateItem(idx, payload);
     } else {
-      addItem(payload as any);
+      try {
+        if (!vm) throw new Error('STORE_NOT_SELECTED');
+        // store_id가 혹시라도 비어있다면 즉시 보강
+        if (!cart.store_id) {
+          setHeader({
+            store_id: vm.id,
+            event_id: vm.event?.id,
+            event_title: vm.event?.title ?? "",
+            happy_hour_start_time: (vm.event?.happyHourStartTime ?? "00:00:00").slice(0, 5),
+            happy_hour_end_time: (vm.event?.happyHourEndTime ?? "00:00:00").slice(0, 5),
+            weekdays: vm.event?.weekdays?.length ? vm.event.weekdays : ["MON"],
+          });
+        }
+        addItem(payload as any);
+      } catch (e: any) {
+        const code = e?.message ?? String(e);
+        if (code === 'DIFFERENT_STORE_ITEMS') {
+          alert('다른 가게 상품이 장바구니에 있습니다. 비우고 다시 시도해주세요.');
+        } else if (code === 'STORE_NOT_SELECTED') {
+          alert('가게 정보가 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
+        }
+        return;
+      }
     }
   };
 
@@ -82,17 +110,39 @@ export default function StorePage() {
   };
 
   const toggleGift = (gift: GiftVM, checked: boolean) => {
+    if (!vm) return; // TS: vm may be null during early render
     const idx = cart.items.findIndex((it: any) => it.type === "gift" && it.ref_id === gift.giftOptionId);
     if (checked) {
       if (idx >= 0) return;
-      addItem({
-        type: "gift",
-        qty: 1, // 고정 1개
-        // 메타
-        ref_id: gift.giftOptionId,
-        menu_id: gift.menuId,
-        menu_name: gift.name,
-      } as any);
+      try {
+        if (!vm) throw new Error('STORE_NOT_SELECTED');
+        if (!cart.store_id) {
+          setHeader({
+            store_id: vm.id,
+            event_id: vm.event?.id,
+            event_title: vm.event?.title ?? "",
+            happy_hour_start_time: (vm.event?.happyHourStartTime ?? "00:00:00").slice(0, 5),
+            happy_hour_end_time: (vm.event?.happyHourEndTime ?? "00:00:00").slice(0, 5),
+            weekdays: vm.event?.weekdays?.length ? vm.event.weekdays : ["MON"],
+          });
+        }
+        addItem({
+          type: "gift",
+          qty: 1, // 고정 1개
+          // 메타
+          ref_id: gift.giftOptionId,
+          menu_id: gift.menuId,
+          menu_name: gift.name,
+        } as any);
+      } catch (e: any) {
+        const code = e?.message ?? String(e);
+        if (code === 'DIFFERENT_STORE_ITEMS') {
+          alert('다른 가게 상품이 장바구니에 있습니다. 비우고 다시 시도해주세요.');
+        } else if (code === 'STORE_NOT_SELECTED') {
+          alert('가게 정보가 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
+        }
+        return;
+      }
     } else {
       if (idx >= 0) removeItem(idx);
     }
@@ -366,40 +416,55 @@ export default function StorePage() {
         </div>
       </div>
 
-      {/* ===== 하단 고정 푸터: cart가 비어있지 않을 때만 렌더 ===== */}
+      {/* 플로팅 장바구니 버튼 */}
       {totalItems > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-30">
-          <div className="mx-auto max-w-xl px-4 py-3 space-y-3 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
-            {/* 헤더: 카트 아이콘, 선택 개수, 비우기 */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-gray-700">
-                <ShoppingCart className="w-5 h-5" />
-                <span className="text-base">
-                  <span className="font-semibold">{totalItems}</span>개 선택
-                </span>
-              </div>
-              <Button variant="outline" size="sm" onClick={clear} className="gap-1">
-                <Trash2 className="w-4 h-4" /> 장바구니 비우기
-              </Button>
+        <Button
+          aria-label="장바구니 열기"
+          className="fixed h-14 w-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 text-white z-40"
+          style={{
+            bottom: '1rem',
+            // align button with the right edge of the centered max-w-xl container
+            // max-w-xl = 36rem; keep 1rem inset from container edge, min 1rem from viewport edge
+            right: 'max(1rem, calc((100vw - 36rem) / 2 + 1rem))',
+          }}
+          onClick={() => setOpenCart((v) => !v)}
+        >
+          <div className="relative">
+            <ShoppingCart className="w-6 h-6" />
+            <span className="absolute -top-2 -right-3 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              {totalItems}
+            </span>
+          </div>
+        </Button>
+      )}
+
+      {/* 장바구니 드로어 (bottom sheet) */}
+      <Sheet open={openCart} onOpenChange={setOpenCart}>
+        <SheetContent side="bottom" className="max-w-xl mx-auto">
+          <SheetHeader>
+            <SheetTitle>장바구니</SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-4 space-y-3">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 max-h-64 overflow-auto">
+              {cartLines.length === 0 ? (
+                <div className="text-center text-gray-500 py-6">장바구니가 비어 있습니다.</div>
+              ) : (
+                cartLines.map((line) => (
+                  <div key={line.key} className="flex items-center justify-between py-1 text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {line.isGift && <Gift className="w-4 h-4 text-green-700 shrink-0" />}
+                      <span className="truncate text-gray-800">{line.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-gray-600">x{line.qty}</span>
+                      <span className="font-semibold text-gray-900">{line.total.toLocaleString()}원</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
-            {/* 아이템 내역 */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 max-h-40 overflow-auto">
-              {cartLines.map((line) => (
-                <div key={line.key} className="flex items-center justify-between py-1 text-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {line.isGift && <Gift className="w-4 h-4 text-green-700 shrink-0" />}
-                    <span className="truncate text-gray-800">{line.name}</span>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-gray-600">x{line.qty}</span>
-                    <span className="font-semibold text-gray-900">{line.total.toLocaleString()}원</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* 합계 영역 */}
             <div className="flex items-end justify-between">
               <div className="text-sm text-gray-600">
                 {discountPercent > 0 ? (
@@ -414,17 +479,18 @@ export default function StorePage() {
                 </div>
               </div>
             </div>
-
-            {/* 전송 버튼 */}
-            <Button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl text-base font-semibold"
-              onClick={handleSubmit}
-            >
-              🎟️&nbsp; 교환권 발급받기
-            </Button>
           </div>
-        </div>
-      )}
+
+          <SheetFooter className="mt-4 gap-2 sm:gap-2">
+            <Button variant="outline" onClick={clear} className="gap-1">
+              <Trash2 className="w-4 h-4" /> 장바구니 비우기
+            </Button>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSubmit}>
+              🎟️ 교환권 발급받기
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
