@@ -22,18 +22,18 @@ export function useCouponsByUserId(userId: Id | null | undefined, opts?: { enabl
   return useQuery({
     queryKey: userId ? couponKeys.list(userId) : (['coupons', 'list', 'anon'] as QueryKey),
     enabled: !!userId && (opts?.enabled ?? true),
-    queryFn: () => jsonFetch<Coupon[]>(`/api/coupons?userId=${encodeURIComponent(userId!)}`),
-    select: buildCouponListVM,
+    queryFn: () => jsonFetch<{ coupons: Coupon[] }>(`/api/coupons?userId=${encodeURIComponent(userId!)}`),
+    select: (data) => buildCouponListVM(data.coupons || []),
     staleTime: 5_000,
   });
 }
 
 /** GET api/coupons/[id] */
-export function useCouponWithItems(couponId: Id | null | undefined, opts?: { enabled?: boolean }) {
+export function useCouponWithItems(couponId: Id, opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: couponId ? couponKeys.detail(couponId) : (['coupons', 'detail', 'none'] as QueryKey),
     enabled: !!couponId && (opts?.enabled ?? true),
-    queryFn: () => jsonFetch<CouponWithItems>(`/api/coupons/${encodeURIComponent(couponId!)}`),
+    queryFn: () => jsonFetch<CouponWithItems>(`/api/coupons/${encodeURIComponent(couponId)}`),
     select: buildCouponWithItemsVM,
     staleTime: 5_000,
   });
@@ -81,6 +81,22 @@ export function useCancelCoupon(userIdForInvalidate?: Id) {
     mutationFn: (couponId: Id) =>
       jsonFetch<void>(`/api/coupons/${encodeURIComponent(couponId)}/cancel`, { method: 'PATCH' }),
     onSuccess: async (_data, couponId) => {
+      await qc.invalidateQueries({ queryKey: couponKeys.detail(couponId) });
+      if (userIdForInvalidate) {
+        await qc.invalidateQueries({ queryKey: couponKeys.list(userIdForInvalidate) });
+      }
+    },
+  });
+}
+
+/** PATCH api/coupons/[id]/activate */
+export function useActivateCoupon(userIdForInvalidate?: Id) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (couponId: Id) =>
+      jsonFetch<void>(`/api/coupons/${encodeURIComponent(couponId)}/activate`, { method: 'PATCH' }),
+    onSuccess: async (_data, couponId) => {
+      // 활성화가 성공하면, 쿠폰 목록과 상세 정보를 모두 무효화하여 최신 상태로 업데이트합니다.
       await qc.invalidateQueries({ queryKey: couponKeys.detail(couponId) });
       if (userIdForInvalidate) {
         await qc.invalidateQueries({ queryKey: couponKeys.list(userIdForInvalidate) });

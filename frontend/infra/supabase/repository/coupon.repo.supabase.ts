@@ -68,6 +68,15 @@ export class SupabaseCouponRepository implements CouponRepository {
   }
 
   /**
+   * 쿠폰 활성화 (5분 카운트다운 시작)
+   * RPC: public.activate_coupon(p_coupon_id uuid) -> void
+   */
+  async activateCouponById(couponId: Id): Promise<void> {
+    const { error } = await this.sb.rpc('activate_coupon', { p_coupon_id: couponId });
+    if (error) throw error;
+  }
+
+  /**
    * 쿠폰 취소
    * - 이미 만료/소진 상태면 실패 (RPC에서 검증)
    * RPC: public.cancel_coupon(p_coupon_id uuid) → void

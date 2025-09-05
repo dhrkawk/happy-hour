@@ -21,7 +21,7 @@ export function useUser() {
           .single()
 
         let storeData = null;
-        if (profile && (profile.role === 'store_owner' || profile.role === 'admin')) {
+        if (profile && (profile.role === 'store_owner' || profile.role === 'admin')) {  //admin 은 임시
           const { data: store, error: storeError } = await supabase
             .from('stores')
             .select('id')

@@ -12,7 +12,6 @@ import {
   Clock,
   Calendar,
 } from "lucide-react";
-import { createClient } from "@/infra/supabase/shared/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -124,7 +123,7 @@ export default function CouponRegisterPage() {
       // clear();
 
       // 상세로 이동(권장) 또는 보관함으로 이동
-      if (couponId) router.push(`/coupons/${couponId}`);
+      if (couponId) router.push(`/coupon-box/${couponId}`);
       else router.push(`/coupons`);
     } catch (e: any) {
       setSubmitError(e?.message ?? "교환권 발급에 실패했습니다.");
