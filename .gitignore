@@ -26,8 +26,12 @@ frontend/.next
 backend/
 gemini*.txt
 
+
 # gemini
 .gemini/
 
 # cursor
 .cursor/
+
+#docs
+docs/

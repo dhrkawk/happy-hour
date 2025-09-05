@@ -19,10 +19,10 @@ function mapError(e: any) {
   return NextResponse.json({ error: 'INTERNAL_ERROR' }, { status: 500 });
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // params를 await 하여 실제 id 값을 비동기적으로 가져옵니다.
-    const { id } = await params;
+    // Next.js Route Handler params는 동기 객체입니다.
+    const { id } = params;
 
     // 가져온 id 값의 유효성을 검사합니다.
     const parsedId = IdSchema.safeParse(id);
