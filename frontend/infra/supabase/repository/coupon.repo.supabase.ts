@@ -92,13 +92,23 @@ export class SupabaseCouponRepository implements CouponRepository {
   async getCouponsByUserId(userId: Id): Promise<Coupon[]> {
     const { data, error } = await this.sb
       .from('coupons')
-      .select('*')
+      .select('*, stores(name)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    const rows = (data ?? []) as CouponRow[];
-    return rows.map(Coupon.fromRow);
+    const rows = (data ?? []) as any[];
+    return rows.map((r) => {
+      const c = Coupon.fromRow(r as CouponRow);
+      const storeName = (r as any)?.stores?.name ?? null;
+      if (storeName) {
+        Object.assign(c as any, {
+          storeName,
+          store_name: storeName,
+        });
+      }
+      return c;
+    });
   }
 
 
@@ -106,26 +116,37 @@ export class SupabaseCouponRepository implements CouponRepository {
      * 단일 쿠폰 + 아이템들
      */
     async getCouponWithItemsById(couponId: Id): Promise<CouponWithItems> {
-        // 1) 쿠폰 헤더
+        // 1) 쿠폰 헤더 (+ stores.name 조인)
         const { data: cRow, error: cErr } = await this.sb
-        .from('coupons')
-        .select('*')
-        .eq('id', couponId)
-        .maybeSingle<CouponRow>();
+          .from('coupons')
+          .select('*, stores(name)')
+          .eq('id', couponId)
+          .maybeSingle<any>();
         if (cErr) throw cErr;
         if (!cRow) throw new Error('Coupon not found');
-    
+
         // 2) 쿠폰 아이템
         const { data: iRows, error: iErr } = await this.sb
-        .from('coupon_items')
-        .select('*')
-        .eq('coupon_id', couponId);
+          .from('coupon_items')
+          .select('*')
+          .eq('coupon_id', couponId);
         if (iErr) throw iErr;
-    
-        // 빌더에 raw row들을 전달
-        return buildCouponWithItems({
-        couponRow: cRow,
-        itemRows: (iRows ?? []) as CouponItemRow[],
+
+        // 3) 빌더에 raw row들을 전달하여 CouponWithItems 구성
+        const detail = buildCouponWithItems({
+          couponRow: cRow,
+          itemRows: (iRows ?? []) as CouponItemRow[],
         });
+
+        // 4) 조인 결과의 store.name을 화면용 필드로 coupon 객체에 동적 부여
+        const storeName = (cRow as any)?.stores?.name ?? null;
+        if (storeName) {
+          Object.assign(detail.coupon as any, {
+            storeName,
+            store_name: storeName,
+          });
+        }
+
+        return detail;
     }
 }
