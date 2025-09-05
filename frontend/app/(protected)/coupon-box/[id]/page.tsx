@@ -95,7 +95,10 @@ export default function CouponDetailPage() {
 
   const handleActivate = () => {
     if (confirm("쿠폰 사용을 시작하시겠습니까? 5분 내로 사용해야 합니다.")) {
-      activateCoupon(id);
+      activateCoupon(id, { onSuccess: () => {
+        console.log("[DEBUG] handleActivate: Mutation successful, calling refetch()");
+        refetch();
+      } });
     }
   };
 
