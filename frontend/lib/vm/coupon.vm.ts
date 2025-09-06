@@ -160,7 +160,9 @@ export type CouponListItemVM = {
 export function buildCouponListVM(coupons: Coupon[]): CouponListItemVM[] {
   return (coupons ?? []).map((c) => {
     const expired = c.status === 'expired' || isPast((c as any).expiredTime);
-    const title = (c as any).eventTitle ?? (c as any).event_title ?? '이벤트 쿠폰';
+    const eventTitle = (c as any).eventTitle ?? (c as any).event_title ?? '이벤트 쿠폰';
+    const storeName = (c as any).storeName ?? (c as any).store_name;
+    const title = storeName ? `[${storeName}] - ${eventTitle}` : eventTitle;
     return {
       id: c.id,
       storeId: c.storeId,

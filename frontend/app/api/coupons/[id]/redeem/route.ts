@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/infra/supabase/shared/server';
-import { SupabaseCouponRepository } from '@/infra/supabase//repository/coupon.repo.supabase';
+import { SupabaseCouponRepository } from '@/infra/supabase/repository/coupon.repo.supabase';
 
 // path param 유효성
 const ParamsSchema = z.object({ id: z.string().uuid() });

@@ -1,7 +1,7 @@
 // lib/contexts/coupon-cart.tsx
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useReducer } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
 import { z } from "zod";
 import {
   CreateCouponTxSchema,
@@ -72,10 +72,18 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 // ---- 로컬 스토리지 키 ------------------------------------------
 const LS_KEY = "coupon-cart-v1";
+const LS_META_KEY = "coupon-cart-v1-meta";
+const CART_TTL_MS = 30 * 60 * 1000; // 30분
+
+type CartMeta = {
+  startedAt: number;
+  lockedStoreId?: string;
+};
 
 // ---- Provider ---------------------------------------------------
 export function CouponCartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const ttlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 하이드레이션: 클라이언트에서만
   useEffect(() => {
@@ -92,9 +100,39 @@ export function CouponCartProvider({ children }: { children: React.ReactNode }) 
           localStorage.removeItem(LS_KEY);
         }
       }
+
+      // TTL 메타 확인 및 타이머 설정
+      const metaRaw = localStorage.getItem(LS_META_KEY);
+      if (metaRaw) {
+        const meta = JSON.parse(metaRaw) as CartMeta | null;
+        if (meta?.startedAt) {
+          const now = Date.now();
+          const expiry = meta.startedAt + CART_TTL_MS;
+          if (now >= expiry) {
+            // 이미 만료됨 → 즉시 초기화
+            dispatch({ type: "CLEAR" });
+            localStorage.removeItem(LS_KEY);
+            localStorage.removeItem(LS_META_KEY);
+          } else {
+            const msLeft = expiry - now;
+            ttlTimerRef.current = setTimeout(() => {
+              dispatch({ type: "CLEAR" });
+              localStorage.removeItem(LS_KEY);
+              localStorage.removeItem(LS_META_KEY);
+            }, msLeft);
+          }
+        }
+      }
     } catch {
       // noop
     }
+
+    return () => {
+      if (ttlTimerRef.current) {
+        clearTimeout(ttlTimerRef.current);
+        ttlTimerRef.current = null;
+      }
+    };
   }, []);
 
   // 상태 변경 → persist
@@ -103,6 +141,40 @@ export function CouponCartProvider({ children }: { children: React.ReactNode }) 
       localStorage.setItem(LS_KEY, JSON.stringify(state));
     } catch {
       // quota 등 무시
+    }
+
+    // 메타 동기화: 타이머만 관리, 락(store) 결정은 addItem에서만
+    try {
+      const metaRaw = localStorage.getItem(LS_META_KEY);
+      const meta: CartMeta | null = metaRaw ? (JSON.parse(metaRaw) as CartMeta) : null;
+
+      if (state.items.length > 0 && meta?.startedAt) {
+        if (!ttlTimerRef.current) {
+          const now = Date.now();
+          const expiry = meta.startedAt + CART_TTL_MS;
+          if (now < expiry) {
+            ttlTimerRef.current = setTimeout(() => {
+              dispatch({ type: "CLEAR" });
+              localStorage.removeItem(LS_KEY);
+              localStorage.removeItem(LS_META_KEY);
+            }, expiry - now);
+          } else {
+            // 만료된 경우 즉시 정리
+            dispatch({ type: "CLEAR" });
+            localStorage.removeItem(LS_KEY);
+            localStorage.removeItem(LS_META_KEY);
+          }
+        }
+      } else {
+        // 비워지면 메타/타이머 정리
+        localStorage.removeItem(LS_META_KEY);
+        if (ttlTimerRef.current) {
+          clearTimeout(ttlTimerRef.current);
+          ttlTimerRef.current = null;
+        }
+      }
+    } catch {
+      // noop
     }
   }, [state]);
 
@@ -181,11 +253,47 @@ export function useCouponCart() {
     const setHeader = (patch: Partial<Omit<CartState, "items">>) =>
       dispatch({ type: "SET_HEADER", payload: patch });
   
-    const addItem = (item: CartItem) => dispatch({ type: "ADD_ITEM", payload: item });
+    const addItem = (item: CartItem) => {
+      const itemsCount = state.items?.length ?? 0;
+      try {
+        const metaRaw = localStorage.getItem(LS_META_KEY);
+        const meta = metaRaw ? (JSON.parse(metaRaw) as CartMeta) : null;
+
+        if (itemsCount === 0) {
+          // 첫 담기: 가게 정보가 반드시 있어야 하며, 이때 락 설정
+          if (!state.store_id) throw new Error("STORE_NOT_SELECTED");
+          const newMeta: CartMeta = {
+            startedAt: Date.now(),
+            lockedStoreId: state.store_id as string,
+          };
+          localStorage.setItem(LS_META_KEY, JSON.stringify(newMeta));
+        } else {
+          // 이미 담긴 상태: 다른 가게면 차단
+          if (!meta || !meta.lockedStoreId) {
+            throw new Error("CART_NOT_LOCKED");
+          }
+          if (state.store_id && meta.lockedStoreId !== state.store_id) {
+            throw new Error("DIFFERENT_STORE_ITEMS");
+          }
+        }
+      } catch (e) {
+        throw e instanceof Error ? e : new Error("CART_GUARD_FAILED");
+      }
+
+      dispatch({ type: "ADD_ITEM", payload: item });
+    };
     const updateItem = (index: number, patch: Partial<CartItem>) =>
       dispatch({ type: "UPDATE_ITEM", index, payload: patch });
     const removeItem = (index: number) => dispatch({ type: "REMOVE_ITEM", index });
-    const clear = () => dispatch({ type: "CLEAR" });
+    const clear = () => {
+      dispatch({ type: "CLEAR" });
+      try {
+        localStorage.removeItem(LS_KEY);
+        localStorage.removeItem(LS_META_KEY);
+      } catch {
+        // noop
+      }
+    };
   
     return {
       state,

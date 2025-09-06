@@ -95,7 +95,10 @@ export default function CouponDetailPage() {
 
   const handleActivate = () => {
     if (confirm("쿠폰 사용을 시작하시겠습니까? 5분 내로 사용해야 합니다.")) {
-      activateCoupon(id);
+      activateCoupon(id, { onSuccess: () => {
+        console.log("[DEBUG] handleActivate: Mutation successful, calling refetch()");
+        refetch();
+      } });
     }
   };
 
@@ -134,13 +137,18 @@ export default function CouponDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50 max-w-xl mx-auto">
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-4 py-4 flex items-center gap-3">
+        <div className="px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link href="/coupon-box">
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <h1 className="text-lg font-semibold text-gray-800 truncate">{vm.eventTitle || '쿠폰 상세'}</h1>
+          </div>
           <Link href="/coupon-box">
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+            <Button variant="outline" size="sm">내 쿠폰함</Button>
           </Link>
-          <h1 className="text-lg font-semibold text-gray-800 truncate">{vm.eventTitle || '쿠폰 상세'}</h1>
         </div>
       </header>
 
