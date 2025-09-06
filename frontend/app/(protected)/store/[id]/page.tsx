@@ -148,7 +148,7 @@ export default function StorePage() {
 
   const handleSubmit = () => {
     if (hasUsableCoupon) {
-      toast.error('이미 사용 가능한 교환권이 있어요. 보관함에서 사용해주세요.');
+      alert('이미 사용 가능한 교환권이 있어요. 보관함에서 사용해주세요.');
       return;
     }
     router.push('/coupon-register');
