@@ -148,6 +148,7 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
 
 export type CouponListItemVM = {
   id: string;
+  storeId: string;
   title: string;
   status: CouponStatus; // 추가
   statusText: string;
@@ -162,6 +163,7 @@ export function buildCouponListVM(coupons: Coupon[]): CouponListItemVM[] {
     const title = (c as any).eventTitle ?? (c as any).event_title ?? '이벤트 쿠폰';
     return {
       id: c.id,
+      storeId: c.storeId,
       title,
       status: c.status as CouponStatus, // 추가
       statusText: statusText(c.status),
