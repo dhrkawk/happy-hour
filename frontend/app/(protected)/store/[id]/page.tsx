@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, MapPin, Clock, Gift, Percent, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 
 import { useGetStoreDetail } from "@/hooks/usecases/stores.usecase";
+import { useCouponsByUserId } from "@/hooks/usecases/coupons.usecase";
 import type { StoreDetailVM, MenuWithDiscountVM, GiftVM } from "@/lib/vm/store.vm";
 
 // 전역 장바구니 Context 훅
@@ -25,12 +25,25 @@ export default function StorePage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: vm, isLoading, error } = useGetStoreDetail(id, { onlyActive: true });
-  const { appState } = useAppContext()
-  const { user } = appState
+
+  const { appState } = useAppContext();
+  const { user } = appState;
+  const userId = user?.profile?.userId;
   // 장바구니 훅
+
   const { state: cart, setHeader, addItem, updateItem, removeItem, clear } = useCouponCart();
   const [openCart, setOpenCart] = useState(false);
 
+  // 이미 사용 가능한 쿠폰이 있는 경우
+  // 지금은 가지고 있는 쿠폰을 다 가지고 왔지만 나중에는 store_id,user_id로 한번에 필터링해서 가져오는
+  // 방식도 생각해보자!
+  const { data: coupons, isLoading: isCouponsLoading } = useCouponsByUserId(
+    userId,
+    { enabled: !!user }
+  );
+  const hasUsableCoupon = (coupons ?? []).some(c => {
+    return c.storeId === id && c.status === 'issued' && !c.isExpired;
+  });
 
   // 1) 스토어/이벤트 공통 헤더는 로그인 여부와 무관하게 먼저 세팅
   useEffect(() => {
@@ -183,7 +196,11 @@ export default function StorePage() {
   }, [cart.items]);
 
   const handleSubmit = () => {
-    router.push("/coupon-register")
+    if (hasUsableCoupon) {
+      alert('이미 사용 가능한 교환권이 있어요. 보관함에서 사용해주세요.');
+      return;
+    }
+    router.push('/coupon-register');
   };
 
   // 장바구니 라인아이템 요약 (메뉴명, 수량, 합계)
