@@ -161,3 +161,49 @@ export function useCreateStore() {
     },
   })
 }
+
+export type SortKey = "거리순" | "할인순" | "할인만" | "제휴만";
+export function useSortedAndFilteredStoreList(
+  stores: StoreListItemVM[] | undefined,
+  selectedCategory: string,          // "전체" | "한식" | ...
+  selectedSorting: SortKey       // "거리순" | "할인순" | "할인만" | "제휴만"
+) {
+  const items = useMemo(() => {
+    if (!stores) return [];
+
+    let arr = stores.slice();
+
+    // 1) 카테고리 필터
+    if (selectedCategory !== "전체") {
+      arr = arr.filter((s) => s.category === selectedCategory);
+    }
+
+    // 2) 정렬키에 따른 추가 필터
+    if (selectedSorting === "할인만") {
+      arr = arr.filter((s) => s.hasEvent && (s.maxDiscountRate ?? 0) > 0);
+    }
+    if (selectedSorting === "제휴만") {
+      arr = arr.filter((s) => !!s.partershipText);
+    }
+
+    // 3) 정렬
+    switch (selectedSorting) {
+      case "거리순":
+      case "할인만": // 필터만 다르고 정렬은 거리 기준
+      case "제휴만":
+        arr.sort((a, b) => a.distance - b.distance);
+        break;
+      case "할인순":
+        arr.sort(
+          (a, b) =>
+            (b.maxDiscountRate ?? 0) - (a.maxDiscountRate ?? 0) ||
+            a.distance - b.distance // 동률이면 가까운 순
+        );
+        break;
+    }
+
+    return arr;
+  }, [stores, selectedCategory, selectedSorting]);
+
+  return items;
+}

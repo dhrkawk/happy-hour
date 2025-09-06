@@ -34,7 +34,7 @@ function getEventIcon(type?: "discount" | "gift" | "combo") {
 
 export default function CouponRegisterPage() {
   const router = useRouter();
-  const { state: cart, toDTO } = useCouponCart();
+  const { state: cart, toDTO, clear } = useCouponCart();
   const weekdayLabels: Record<string, string> = {
     MON: "월",
     TUE: "화",
@@ -120,7 +120,7 @@ export default function CouponRegisterPage() {
       const res = await createMutate.mutateAsync(dto); // { couponId }
       const couponId = (res as any)?.couponId;
       // 성공 후 장바구니 비우기(선택)
-      // clear();
+      clear();
 
       // 상세로 이동(권장) 또는 보관함으로 이동
       if (couponId) router.push(`/coupon-box/${couponId}`);

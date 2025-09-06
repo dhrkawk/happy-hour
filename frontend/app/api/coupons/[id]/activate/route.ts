@@ -20,7 +20,7 @@ function mapError(e: any) {
 export async function PATCH(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     // Next.js Route Handler params는 동기 객체입니다.
-    const { id } = params;
+    const { id } = await params;
 
     // 가져온 id 값의 유효성을 검사합니다.
     const parsedId = IdSchema.safeParse(id);
