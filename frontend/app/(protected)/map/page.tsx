@@ -15,6 +15,7 @@ import { LocationErrorBanner } from "@/components/location-error-banner";
 
 import { useAppContext } from "@/contexts/app-context";
 import { useGetStoresWithEvents } from "@/hooks/usecases/stores.usecase";
+import { useSortedAndFilteredStoreList } from "@/hooks/usecases/stores.usecase";
 
 export default function MapPage() {
   const { appState, fetchLocation } = useAppContext();
@@ -27,7 +28,7 @@ export default function MapPage() {
     useState<"거리순" | "할인순" | "할인만" | "제휴만">("거리순");
 
   const { data, isLoading: storesLoading } = useGetStoresWithEvents(true);
-  const storeList = data ?? [];
+  const storeList = useSortedAndFilteredStoreList(data ?? [], selectedCategory, selectedSorting);
   const isLoading =  locationLoading || storesLoading;
 
   return (

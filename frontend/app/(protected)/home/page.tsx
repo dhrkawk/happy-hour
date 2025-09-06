@@ -12,7 +12,7 @@ import BottomNavigation from "@/components/bottom-navigation";
 import CategoryFilter from "@/components/category-filter";
 
 import { useAppContext } from "@/contexts/app-context";
-import { useGetStoresWithEvents } from "@/hooks/usecases/stores.usecase";
+import { useGetStoresWithEvents, useSortedAndFilteredStoreList } from "@/hooks/usecases/stores.usecase";
 
 export default function HomePage() {
   const { appState, fetchLocation } = useAppContext();
@@ -25,7 +25,7 @@ export default function HomePage() {
 
   // 서버에서 최소 데이터만: 활성 스토어 + 활성 이벤트 포함
   const {data, isLoading, error} = useGetStoresWithEvents(true);
-  const storeList = data ?? [];
+  const storeList = useSortedAndFilteredStoreList(data ?? [], selectedCategory, selectedSorting);
 
   const isSkeletonLoading = locationLoading || isLoading;
 
