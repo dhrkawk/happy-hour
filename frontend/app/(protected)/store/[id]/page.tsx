@@ -224,17 +224,116 @@ export default function StorePage() {
   const cartLines = useMemo(() => {
     return (cart.items as any[]).map((it) => {
       const qty = Number(it.qty ?? (it.type === "gift" ? 1 : 0));
-      const unit = Number((it.final_price ?? it.original_price ?? 0) as number);
-      const total = it.type === "gift" ? 0 : unit * qty;
+      const originalPrice = Number(it.original_price ?? 0);
+      const finalPrice = Number(it.final_price ?? originalPrice);
+
+      const isGift = it.type === "gift";
+      const showDiscount = !isGift && finalPrice < originalPrice;
+
       return {
         key: `${it.type}:${it.menu_id}:${it.ref_id ?? ''}`,
-        name: it.menu_name ?? (it.type === "gift" ? "증정 상품" : "메뉴"),
+        name: it.menu_name ?? (isGift ? "증정 상품" : "메뉴"),
         qty,
-        total,
-        isGift: it.type === "gift",
+        isGift,
+        showDiscount,
+        originalTotal: isGift ? 0 : originalPrice * qty,
+        finalTotal: isGift ? 0 : finalPrice * qty,
       };
     });
   }, [cart.items]);
+
+  const categoryGroupedMenus = useMemo(() => {
+    if (!vm) return null;
+
+    const officialCategories = vm.menuCategory ?? [];
+    const menuCategories = vm.menus.map(m => m.category ?? '기타');
+    const allCategoryNames = Array.from(new Set([...officialCategories, ...menuCategories]));
+
+    return allCategoryNames.map(category => {
+      const itemsInCategory = vm.menus.filter(m => (m.category ?? '기타') === category);
+      return (
+        <div key={category}>
+          <h4 className="text-lg font-semibold text-gray-700 mb-4">{category}</h4>
+          {itemsInCategory.length > 0 ? (
+            <div className="space-y-4">
+              {itemsInCategory.map((m: MenuWithDiscountVM) => {
+                const showDiscount =
+                  typeof m.finalPrice === "number" &&
+                  Number.isFinite(m.finalPrice) &&
+                  m.finalPrice! < m.price;
+
+                const qty = getMenuQty(m.menuId);
+                const handleAddOne = () => setMenuQty(m, qty + 1);
+                const handleSubOne = () => setMenuQty(m, qty - 1 <= 0 ? 0 : qty - 1);
+
+                return (
+                  <Card key={m.menuId} className="border-gray-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        {m.thumbnail ? (
+                          <img src={m.thumbnail} alt="" className="w-20 h-20 object-cover rounded-lg shrink-0" />
+                        ) : (
+                          <div className="w-20 h-20 rounded-lg bg-gray-100 shrink-0" />
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 pr-3">
+                              <h4 className="font-bold text-gray-800 text-lg mb-2">{m.name}</h4>
+                              {m.description && <p className="text-gray-600 mb-3">{m.description}</p>}
+                              <div className="flex items-center gap-3">
+                                {showDiscount ? (
+                                  <>
+                                    <span className="text-gray-400 line-through font-medium">
+                                      {m.price.toLocaleString()}원
+                                    </span>
+                                    <span className="text-xl font-bold text-blue-600">
+                                      {m.finalPrice!.toLocaleString()}원
+                                    </span>
+                                    {typeof m.discountRate === "number" && (
+                                      <Badge className="bg-blue-600 text-white font-medium">
+                                        {m.discountRate}% 할인
+                                      </Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-xl font-bold text-gray-900">
+                                    {m.price.toLocaleString()}원
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {qty <= 0 ? (
+                                <Button size="sm" onClick={() => setMenuQty(m, 1)} className="bg-gray-900 hover:bg-gray-800 text-white">
+                                  담기
+                                </Button>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <Button variant="outline" size="icon" onClick={handleSubOne}>
+                                    <Minus className="w-4 h-4" />
+                                  </Button>
+                                  <span className="w-6 text-center font-semibold">{qty}</span>
+                                  <Button variant="outline" size="icon" onClick={handleAddOne}>
+                                    <Plus className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 pl-2">이 카테고리에 등록된 메뉴가 없습니다.</p>
+          )}
+        </div>
+      );
+    });
+  }, [vm, getMenuQty, setMenuQty]);
 
   // 로딩/에러 화면
   if (isLoading || !vm) {
@@ -368,85 +467,11 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* 메뉴 리스트: 이미지 좌측 + 담기/수량 컨트롤 */}
+      {/* 메뉴 리스트: 카테고리별 그룹 */}
       <div className="px-4 py-6 pb-40"> {/* 푸터와 여백 확보 */}
         <h3 className="text-xl font-bold text-gray-800 mb-6">메뉴</h3>
-        <div className="space-y-4">
-          {vm.menus.map((m: MenuWithDiscountVM) => {
-            const showDiscount =
-              typeof m.finalPrice === "number" &&
-              Number.isFinite(m.finalPrice) &&
-              m.finalPrice! < m.price;
-
-            const qty = getMenuQty(m.menuId);
-            const handleAddOne = () => setMenuQty(m, qty + 1);
-            const handleSubOne = () => setMenuQty(m, qty - 1 <= 0 ? 0 : qty - 1);
-
-            return (
-              <Card key={m.menuId} className="border-gray-200">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    {/* 이미지 왼쪽 */}
-                    {m.thumbnail ? (
-                      <img src={m.thumbnail} alt="" className="w-20 h-20 object-cover rounded-lg shrink-0" />
-                    ) : (
-                      <div className="w-20 h-20 rounded-lg bg-gray-100 shrink-0" />
-                    )}
-
-                    {/* 내용 우측 */}
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 pr-3">
-                          <h4 className="font-bold text-gray-800 text-lg mb-2">{m.name}</h4>
-                          {m.description && <p className="text-gray-600 mb-3">{m.description}</p>}
-                          <div className="flex items-center gap-3">
-                            {showDiscount ? (
-                              <>
-                                <span className="text-gray-400 line-through font-medium">
-                                  {m.price.toLocaleString()}원
-                                </span>
-                                <span className="text-xl font-bold text-blue-600">
-                                  {m.finalPrice!.toLocaleString()}원
-                                </span>
-                                {typeof m.discountRate === "number" && (
-                                  <Badge className="bg-blue-600 text-white font-medium">
-                                    {m.discountRate}% 할인
-                                  </Badge>
-                                )}
-                              </>
-                            ) : (
-                              <span className="text-xl font-bold text-gray-900">
-                                {m.price.toLocaleString()}원
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 담기 / 수량 컨트롤 */}
-                        <div className="flex items-center gap-2">
-                          {qty <= 0 ? (
-                            <Button size="sm" onClick={() => setMenuQty(m, 1)} className="bg-gray-900 hover:bg-gray-800 text-white">
-                              담기
-                            </Button>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <Button variant="outline" size="icon" onClick={handleSubOne}>
-                                <Minus className="w-4 h-4" />
-                              </Button>
-                              <span className="w-6 text-center font-semibold">{qty}</span>
-                              <Button variant="outline" size="icon" onClick={handleAddOne}>
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="space-y-8">
+          {categoryGroupedMenus}
         </div>
       </div>
 
@@ -495,7 +520,14 @@ export default function StorePage() {
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-gray-600">x{line.qty}</span>
-                      <span className="font-semibold text-gray-900">{line.total.toLocaleString()}원</span>
+                      <div className="flex items-center gap-2 font-semibold text-gray-900">
+                        {line.showDiscount && (
+                          <span className="text-gray-400 line-through">
+                            {line.originalTotal.toLocaleString()}원
+                          </span>
+                        )}
+                        <span>{line.finalTotal.toLocaleString()}원</span>
+                      </div>
                     </div>
                   </div>
                 ))

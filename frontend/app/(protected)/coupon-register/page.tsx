@@ -49,7 +49,7 @@ export default function CouponRegisterPage() {
   const isEmpty = (cart.items?.length ?? 0) === 0;
 
   // 주문/합계 계산 (gift는 금액 0)
-  const { menuItems, totalPrice, originalPrice, discountPercent } = useMemo(() => {
+  const { menuItems, totalPrice, originalPrice, totalDiscount } = useMemo(() => {
     let total = 0;
     let original = 0;
 
@@ -85,16 +85,13 @@ export default function CouponRegisterPage() {
         };
       }) ?? [];
 
-    const percent =
-      original > 0 && total >= 0 && total < original
-        ? Math.round(((original - total) / original) * 100)
-        : 0;
+    const discount = original > total ? original - total : 0;
 
     return {
       menuItems: items,
       totalPrice: total,
       originalPrice: original,
-      discountPercent: percent,
+      totalDiscount: discount,
     };
   }, [cart.items]);
 
@@ -230,9 +227,9 @@ export default function CouponRegisterPage() {
             <div className="flex items-center gap-2 mb-3">
               <Badge className="bg-gray-900 text-white flex items-center gap-1">
                 {getEventIcon(eventType)}
-                {eventType === "discount" && (discountPercent > 0 ? `${discountPercent}% 할인` : "할인")}
+                {eventType === "discount" && (totalDiscount > 0 ? `할인` : "할인")}
                 {eventType === "gift" && "증정"}
-                {eventType === "combo" && (discountPercent > 0 ? `${discountPercent}% 세트할인` : "세트")}
+                {eventType === "combo" && (totalDiscount > 0 ? `세트할인` : "세트")}
               </Badge>
             </div>
 
@@ -258,12 +255,12 @@ export default function CouponRegisterPage() {
         </Card>
 
         {/* 적용된 혜택 안내 */}
-        {discountPercent > 0 && (
+        {totalDiscount > 0 && (
           <Card className="border-blue-200 bg-blue-50 mb-6">
             <CardContent className="p-4">
               <h3 className="font-semibold text-blue-700 mb-3">할인 안내</h3>
               <p className="text-sm text-blue-700">
-                선택한 메뉴에 총 {discountPercent}%의 할인이 적용되어&nbsp;
+                총 {totalDiscount.toLocaleString()}원의 할인이 적용되어&nbsp;
                 <span className="font-semibold">
                   {originalPrice.toLocaleString()}원
                 </span>
