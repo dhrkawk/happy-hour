@@ -21,6 +21,7 @@ import { useCouponCart } from "@/contexts/cart-context";
 
 import { formatTimeLeft } from "@/lib/vm/utils/utils";
 import { useAppContext } from "@/contexts/app-context";
+import { GoToStoreButton } from "@/components/naver-link";
 
 export default function StorePage() {
   const router = useRouter();
@@ -420,7 +421,7 @@ export default function StorePage() {
               <Badge variant="outline" className="border-gray-300 text-gray-600">{vm.category}</Badge>
             </div>
           </div>
-          <div>가게 정보 보러가기</div>
+          <GoToStoreButton naverLink={vm.naver_link} />
         </div>
       </div>
 
