@@ -25,7 +25,7 @@ export default function MapPage() {
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [selectedSorting, setSelectedSorting] =
-    useState<"거리순" | "할인순" | "할인만" | "제휴만">("거리순");
+    useState<"거리순" | "할인순" | "할인만" | "제휴만">("할인순");
 
   const { data, isLoading: storesLoading } = useGetStoresWithEvents(true);
   const storeList = useSortedAndFilteredStoreList(data ?? [], selectedCategory, selectedSorting);
@@ -96,7 +96,7 @@ export default function MapPage() {
             {selectedCategory === "전체" ? "근처 할인 가게" : `근처 ${selectedCategory} 가게`}{" "}
           </h2>
           <div className="flex items-center gap-2">
-            {(["거리순", "할인순", "할인만", "제휴만"] as const).map((label) => (
+            {(["할인순", "할인만", "제휴만", "거리순"] as const).map((label) => (
               <Badge key={label} variant="secondary" className="bg-white px-3 py-1 rounded-full">
                 <Button
                   variant="link"
