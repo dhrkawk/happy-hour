@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Ticket, Loader2, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,7 @@ function CouponStatusBadge({ vm }: { vm: CouponListItemVM }) {
 export default function CouponBoxPage() {
   const { appState } = useAppContext();
   const { user } = appState;
+  const router = useRouter();
 
   const {
     data: coupons,
@@ -96,6 +98,14 @@ export default function CouponBoxPage() {
         onSettled: () => setCancelingId(null),
       });
     }
+  };
+
+  const handleGoStore = (e: React.MouseEvent, coupon: CouponListItemVM) => {
+    e.preventDefault();
+    e.stopPropagation(); // 카드(쿠폰 상세)로의 네비게이션 방지
+    const storeId = coupon.storeId;
+    const href = `/store/${storeId}`;
+    router.push(href);
   };
 
   const isLoading = !user || areCouponsLoading;
@@ -135,7 +145,7 @@ export default function CouponBoxPage() {
                             ${isCurrentlyCanceling ? "opacity-50" : ""}`}
               >
                 <CardContent className="p-4">
-                  {/* 상단: 스토어명 + 티켓 + 상태/취소 */}
+                  {/* 상단: 스토어명 + 티켓 + 가게 보러가기 + 상태/취소 */}
                   <div className="mb-2 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -143,6 +153,16 @@ export default function CouponBoxPage() {
                         <h3 className="truncate text-[15px] font-semibold text-gray-900 tracking-tight">
                           {coupon.storeName}
                         </h3>
+
+                        {/* 가게 보러가기 버튼 (storeName 옆) */}
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="ml-1 h-6 px-2 text-[12px]"
+                          onClick={(e) => handleGoStore(e, coupon)}
+                        >
+                          가게 보러가기
+                        </Button>
                       </div>
                     </div>
 
@@ -150,24 +170,24 @@ export default function CouponBoxPage() {
                       <CouponStatusBadge vm={coupon} />
                       {coupon.statusText === "발급됨" && !coupon.isExpired && (
                         <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
-                        onClick={(e) => handleCancel(e, coupon.id)}
-                        disabled={isCurrentlyCanceling}
-                        aria-label="쿠폰 취소"
-                      >
-                        {isCurrentlyCanceling ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <XCircle className="h-5 w-5" />
-                        )}
-                      </Button>
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                          onClick={(e) => handleCancel(e, coupon.id)}
+                          disabled={isCurrentlyCanceling}
+                          aria-label="쿠폰 취소"
+                        >
+                          {isCurrentlyCanceling ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <XCircle className="h-5 w-5" />
+                          )}
+                        </Button>
                       )}
                     </div>
                   </div>
 
-                  {/* 가운데: 이벤트 조건 박스 (높이/정렬 보정 완료) */}
+                  {/* 가운데: 이벤트 조건 박스 */}
                   <div
                     className="rounded-xl border border-gray-200 bg-gray-50/70 p-3
                                shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
@@ -229,11 +249,6 @@ export default function CouponBoxPage() {
     <div className="mx-auto min-h-screen max-w-xl bg-gray-50">
       <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/90 backdrop-blur">
         <div className="flex items-center gap-3 px-4 py-4">
-          <Link href="/home">
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
           <h1 className="text-lg font-semibold text-gray-800">내 쿠폰함</h1>
         </div>
       </header>
