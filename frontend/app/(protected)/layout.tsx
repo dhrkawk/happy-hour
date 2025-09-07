@@ -14,6 +14,14 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // 2) 로깅
+  if (user) {
+    await supabase.from("daily_active_users").upsert({
+      user_id: user.id,
+      active_date: new Date().toISOString().slice(0,10)
+    })
+  }
+
   // 2) 프로필(온보딩 완료 여부) — 필요한 컬럼만!
   const { data: profile } = await supabase
     .from('user_profiles')

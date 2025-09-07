@@ -93,6 +93,7 @@ export type StoreDetailVM = {
   thumbnail: string;
   menuCategory: string[] | null;
   partershipText: string | null;
+  naver_link: string | null;
   event: EventVM | null;
   gifts: GiftVM[] | [];
   menus: MenuWithDiscountVM[] | [];
@@ -184,6 +185,7 @@ export function buildStoreDetailVM(base: StoreWithEventsAndMenus): StoreDetailVM
     thumbnail: store.storeThumbnail,
     menuCategory: store.menuCategory,
     partershipText: store.partnership,
+    naver_link: store.naver_link,
 
     event,
     gifts: [],

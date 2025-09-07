@@ -21,6 +21,7 @@ import { useCouponCart } from "@/contexts/cart-context";
 
 import { formatTimeLeft } from "@/lib/vm/utils/utils";
 import { useAppContext } from "@/contexts/app-context";
+import { GoToStoreButton } from "@/components/naver-link";
 
 export default function StorePage() {
   const router = useRouter();
@@ -420,7 +421,7 @@ export default function StorePage() {
               <Badge variant="outline" className="border-gray-300 text-gray-600">{vm.category}</Badge>
             </div>
           </div>
-          <div>가게 정보 보러가기</div>
+          <GoToStoreButton naverLink={vm.naver_link} />
         </div>
       </div>
 
@@ -430,14 +431,14 @@ export default function StorePage() {
         className="rounded-xl border border-gray-200 bg-gray-50/70 p-3
                   shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
       >
-        <div className="mb-1.5 text-sm font-medium text-gray-500">
+        <div className="mb-1.5 text-m font-bold text-500">
           {vm.event.title || "이벤트 조건"}
         </div>
 
         <div className="space-y-2 text-sm">
           {/* 기간: 한 줄 */}
           <KV
-            label="기간"
+            label="이벤트 기간"
             value={
               vm.event.startDate && vm.event.endDate
                 ? `${vm.event.startDate} ~ ${vm.event.endDate}`
@@ -448,7 +449,7 @@ export default function StorePage() {
           {/* 시간 + 요일: 같은 줄 */}
           <div className="flex flex-wrap gap-4">
             <KV
-              label="시간"
+              label="사용 가능 시간"
               value={
                 vm.event.happyHourStartTime && vm.event.happyHourEndTime
                   ? `${vm.event.happyHourStartTime.slice(0, 5)} ~ ${vm.event.happyHourEndTime.slice(0, 5)}`
@@ -456,10 +457,10 @@ export default function StorePage() {
               }
             />
             <KV
-              label="요일"
+              label="사용 가능 요일"
               value={(vm.event.weekdays ?? [])
                 .map((d: string) => WEEKDAYS[d] ?? d)
-                .join(", ") || "—"}
+                .join(" ") || "—"}
             />
           </div>
 
@@ -484,16 +485,16 @@ export default function StorePage() {
                   className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <Checkbox checked={checked} onCheckedChange={(c) => toggleGift(g, Boolean(c))} />
                     <Gift className="w-5 h-5 text-green-700" />
                     <div>
                       <div className="font-medium text-gray-900">{g.name}</div>
                       {g.description && <div className="text-sm text-gray-600">{g.description}</div>}
                     </div>
-                  </div>
-                  <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-500">
                     {g.remaining != null ? `잔여 ${g.remaining}` : "재고 정보 없음"}
                   </div>
+                  </div>
+                  <Checkbox checked={checked} onCheckedChange={(c) => toggleGift(g, Boolean(c))} />
                 </div>
               );
             })}
