@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Map, ShoppingBag, User } from "lucide-react"
+import { Home, Map, ShoppingBag, User, Ticket } from "lucide-react"
 
 export default function BottomNavigation() {
   const pathname = usePathname()
@@ -22,7 +22,7 @@ export default function BottomNavigation() {
     },
     {
       href: "/coupon-box",
-      icon: ShoppingBag,
+      icon: Ticket,
       label: "쿠폰함",
       isActive: pathname === "/coupon-box",
     },
