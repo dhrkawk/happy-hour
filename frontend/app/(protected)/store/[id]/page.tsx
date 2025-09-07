@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 
 import { useGetStoreDetail } from "@/hooks/usecases/stores.usecase";
 import { useCouponsByUserId } from "@/hooks/usecases/coupons.usecase";
@@ -162,15 +162,33 @@ export default function StorePage() {
   };
 
   // ===== 하단 푸터 요약 계산 =====
-  const { totalItems, totalOriginal, totalPayable, discountPercent } = useMemo(() => {
+  const { totalItems, totalOriginal, totalPayable, totalDiscount, hasGift } = useMemo(() => {
+    // vm이 아직 없으면 계산하지 않음
+    if (!vm || !vm.menus) {
+      return {
+        totalItems: 0,
+        totalOriginal: 0,
+        totalPayable: 0,
+        totalDiscount: 0,
+        hasGift: false,
+      };
+    }
+
     // gifts: 금액 0, 수량 1
     let items = 0;
     let original = 0;
     let payable = 0;
+    let giftValue = 0;
+    let hasGiftItem = false;
 
     for (const it of cart.items as any[]) {
       if (it.type === "gift") {
         items += 1;
+        hasGiftItem = true;
+        const giftMenu = vm.menus.find((m) => m.menuId === it.menu_id);
+        if (giftMenu) {
+          giftValue += giftMenu.price;
+        }
         continue;
       }
       // discount item
@@ -182,18 +200,17 @@ export default function StorePage() {
       payable += fin * qty;
     }
 
-    const percent =
-      original > 0 && payable >= 0 && payable < original
-        ? Math.round(((original - payable) / original) * 100)
-        : 0;
+    const priceDiscount = original > payable ? original - payable : 0;
+    const totalDiscount = priceDiscount + giftValue;
 
     return {
       totalItems: items,
       totalOriginal: original,
       totalPayable: payable,
-      discountPercent: percent,
+      totalDiscount,
+      hasGift: hasGiftItem,
     };
-  }, [cart.items]);
+  }, [cart.items, vm?.menus]);
 
   const handleSubmit = () => {
     if (hasUsableCoupon) {
@@ -460,6 +477,9 @@ export default function StorePage() {
         <SheetContent side="bottom" className="max-w-xl mx-auto">
           <SheetHeader>
             <SheetTitle>장바구니</SheetTitle>
+            <SheetDescription>
+              메뉴를 확인해주세요
+            </SheetDescription>
           </SheetHeader>
 
           <div className="mt-4 space-y-3">
@@ -484,8 +504,10 @@ export default function StorePage() {
 
             <div className="flex items-end justify-between">
               <div className="text-sm text-gray-600">
-                {discountPercent > 0 ? (
-                  <span className="text-blue-600 font-medium">{discountPercent}% 할인 적용됨</span>
+                {(totalDiscount > 0 || hasGift) ? (
+                  <span className="text-blue-600 font-medium">
+                    {totalDiscount.toLocaleString()}원 할인/증정 적용됨
+                  </span>
                 ) : (
                   <span>할인 없음</span>
                 )}

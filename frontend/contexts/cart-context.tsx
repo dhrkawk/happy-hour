@@ -52,7 +52,7 @@ function reducer(state: CartState, action: CartAction): CartState {
     case "REMOVE_ITEM":
       return { ...state, items: state.items.filter((_, i) => i !== action.index) };
     case "CLEAR":
-      return { ...initialState };
+      return { ...state, items: [], expected_visit_time: null };
     case "HYDRATE":
       return action.payload;
     default:
