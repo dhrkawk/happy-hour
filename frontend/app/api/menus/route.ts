@@ -10,6 +10,8 @@ const QuerySchema = z.object({
 });
 
 // GET /api/menus?storeId=...
+import { SupabaseStoreRepository } from '@/infra/supabase/repository/store.repo.supabase';
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -19,12 +21,21 @@ export async function GET(req: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'STORE_ID_REQUIRED' }, { status: 400 });
     }
+    const { storeId } = parsed.data;
 
     const sb = await createClient();
-    const repo = new SupabaseStoreMenuRepository(sb);
-    const menus = await repo.getMenusByStoreId(parsed.data.storeId);
+    const menuRepo = new SupabaseStoreMenuRepository(sb);
+    const storeRepo = new SupabaseStoreRepository(sb);
 
-    return NextResponse.json({ menus }, { status: 200 });
+    // Fetch both menus and store data (for categories) in parallel
+    const [menus, storeData] = await Promise.all([
+      menuRepo.getMenusByStoreId(storeId),
+      storeRepo.getStoreWithEventsAndMenusByStoreId(storeId),
+    ]);
+
+    const categories = storeData.store.menuCategory ?? [];
+
+    return NextResponse.json({ menus, categories }, { status: 200 });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'INTERNAL_ERROR' }, { status: 500 });
   }

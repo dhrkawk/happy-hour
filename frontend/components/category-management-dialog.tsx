@@ -12,6 +12,7 @@ interface CategoryManagementDialogProps {
   isOpen: boolean;
   onClose: () => void;
   storeId: string;
+  onUpdate: () => void; // Add this line
 }
 
 interface SortableCategoryItemProps {
@@ -60,6 +61,7 @@ export const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> =
   isOpen,
   onClose,
   storeId,
+  onUpdate,
 }) => {
   const [categories, setCategories] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState<string>("");
@@ -107,6 +109,7 @@ export const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> =
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update categories");
       }
+      onUpdate(); // Call the onUpdate callback on success
       // No need to setCategories here, as it's done by onDragEnd or other handlers
     } catch (err: any) {
       setError(err.message);

@@ -116,6 +116,15 @@ export class SupabaseStoreRepository implements StoreRepository {
     if (error) throw error;
   }
 
+  async partialUpdateStore(id: Id, dto: Partial<StoreUpdateDTO>): Promise<void> {
+    const { error } = await this.sb
+      .from('stores')
+      .update(dto)
+      .eq('id', id);
+  
+    if (error) throw error;
+  }
+
   async getMyStoreId(): Promise<Id | null> {
     const { data: { user }, error: userErr } = await this.sb.auth.getUser();
     if (userErr) throw userErr;
