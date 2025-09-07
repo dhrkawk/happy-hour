@@ -17,12 +17,9 @@ export function useGetMenusByStoreId(storeId?: string, enabled = true) {
     return useQuery({
       queryKey: qk.menusByStore(storeId),
       enabled: !!storeId && enabled,
-      // 서버는 { menus }를 주지만, select로 클라에선 StoreMenu[]만 받도록 변환
       queryFn: async () =>
-        jsonFetch<{ menus: any[] }>(`/api/menus?storeId=${encodeURIComponent(storeId!)}`),
-      select: (res): StoreMenu[] => (res.menus ?? []).map(StoreMenu.fromRow),
-      // 필요 시 캐시 정책
-      // staleTime: 60_000,
+        jsonFetch<{ menus: any[], categories: string[] }>(`/api/menus?storeId=${encodeURIComponent(storeId!)}`),
+      // select를 제거하여 { menus, categories } 객체 전체를 반환하도록 함
     });
   }
 

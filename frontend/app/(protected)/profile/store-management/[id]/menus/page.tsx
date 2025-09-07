@@ -13,10 +13,10 @@ import {
   useCreateMenus,
   useUpdateMenu,
   useDeleteMenu,
-  // 업로드 유틸을 usecase에서 export했다고 하셨으니 이걸 사용합니다.
   uploadStoreMenuThumbnail,
 } from "@/hooks/usecases/menus.usecase";
 
+import { StoreMenu } from "@/domain/entities/entities";
 import {
   StoreMenuInsertSchema,
   StoreMenuInsertDTO,
@@ -113,21 +113,24 @@ export default function ManageMenusPage() {
   const [uiError, setUiError] = useState<string | null>(null);
 
   // ----- react-query hooks -----
-  const { data, isLoading } = useGetMenusByStoreId(storeId);
-  const menus = Array.isArray(data) ? data : [];
+  const { data, isLoading, refetch } = useGetMenusByStoreId(storeId);
   const createMenus = useCreateMenus();
   const updateMenu = useUpdateMenu();
   const deleteMenu = useDeleteMenu();
 
-  // ----- categories -----
+  // ----- data processing -----
+  const menus: StoreMenu[] = useMemo(() => (data?.menus ?? []).map(StoreMenu.fromRow), [data?.menus]);
+  const officialCategories = useMemo(() => data?.categories ?? [], [data?.categories]);
+
+  // ----- categories (official + inferred) -----
   const categories = useMemo(() => {
-    const set = new Set<string>();
+    const combined = new Set(officialCategories);
     menus.forEach((m) => {
       const c = (m.category ?? "기타").trim();
-      if (c) set.add(c);
+      if (c) combined.add(c);
     });
-    return Array.from(set.size ? set : new Set(["기타"]));
-  }, [menus]);
+    return Array.from(combined.size ? combined : new Set(["기타"]));
+  }, [officialCategories, menus]);
 
   // ----- price 정수 보정 helper -----
   const priceCast = {
@@ -283,7 +286,6 @@ export default function ManageMenusPage() {
 
       {uiError && <p className="text-red-600 text-sm">{uiError}</p>}
 
-      {/* 메뉴 목록 (생략 가능: 기존과 동일) */}
       {/* 메뉴 목록 */}
       <div className="w-full max-w-2xl space-y-4">
         {isLoading && <p>로딩 중…</p>}
@@ -353,7 +355,6 @@ export default function ManageMenusPage() {
                     </div>
                     <div>
                       <Label>썸네일</Label>
-                      {/* ✅ 훅을 자식 컴포넌트로 분리해서 행 추가/삭제 시 안전 */}
                       <ThumbnailDropzone
                         storeId={storeId}
                         value={insertForm.watch(`rows.${i}.thumbnail`) as string | null}
@@ -423,6 +424,7 @@ export default function ManageMenusPage() {
         isOpen={categoryDialogOpen}
         onClose={() => setCategoryDialogOpen(false)}
         storeId={storeId}
+        onUpdate={refetch}
       />
     </div>
   );
