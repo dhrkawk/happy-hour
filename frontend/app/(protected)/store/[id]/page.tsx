@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { KV } from "../../coupon-box/page";
 
 import { useGetStoreDetail } from "@/hooks/usecases/stores.usecase";
 import { useCouponsByUserId } from "@/hooks/usecases/coupons.usecase";
@@ -29,6 +30,15 @@ export default function StorePage() {
   const { appState } = useAppContext();
   const { user } = appState;
   const userId = user?.profile?.userId;
+  const WEEKDAYS: Record<string, string> = {
+    MON: "월",
+    TUE: "화",
+    WED: "수",
+    THU: "목",
+    FRI: "금",
+    SAT: "토",
+    SUN: "일",
+  };
   // 장바구니 훅
 
   const { state: cart, setHeader, addItem, updateItem, removeItem, clear } = useCouponCart();
@@ -418,24 +428,50 @@ export default function StorePage() {
 
       {/* 이벤트 요약 */}
       {vm.event && (
-        <div className="px-4 pt-6">
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Percent className="w-4 h-4 text-blue-700" />
-                <h4 className="font-bold text-blue-900">{vm.event.title}</h4>
-              </div>
-              <div className="flex items-center gap-1 text-orange-600 font-medium">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">{formatTimeLeft(vm.event.endDate)}</span>
-              </div>
-            </div>
-            {vm.event.description && (
-              <p className="text-sm text-blue-900 mt-2">{vm.event.description}</p>
-            )}
-          </div>
+      <div
+        className="rounded-xl border border-gray-200 bg-gray-50/70 p-3
+                  shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+      >
+        <div className="mb-1.5 text-sm font-medium text-gray-500">
+          {vm.event.title || "이벤트 조건"}
         </div>
-      )}
+
+        <div className="space-y-2 text-sm">
+          {/* 기간: 한 줄 */}
+          <KV
+            label="기간"
+            value={
+              vm.event.startDate && vm.event.endDate
+                ? `${vm.event.startDate} ~ ${vm.event.endDate}`
+                : "—"
+            }
+          />
+
+          {/* 시간 + 요일: 같은 줄 */}
+          <div className="flex flex-wrap gap-4">
+            <KV
+              label="시간"
+              value={
+                vm.event.happyHourStartTime && vm.event.happyHourEndTime
+                  ? `${vm.event.happyHourStartTime.slice(0, 5)} ~ ${vm.event.happyHourEndTime.slice(0, 5)}`
+                  : "—"
+              }
+            />
+            <KV
+              label="요일"
+              value={(vm.event.weekdays ?? [])
+                .map((d: string) => WEEKDAYS[d] ?? d)
+                .join(", ") || "—"}
+            />
+          </div>
+
+          {/* 설명: 한 줄 */}
+          {vm.event.description && (
+            <KV label="설명" value={vm.event.description} />
+          )}
+        </div>
+      </div>
+    )}
 
       {/* === Gift 섹션: 상단 배치 + 토글 체크박스 (수량 1 고정) === */}
       {(vm.gifts?.length ?? 0) > 0 && (
@@ -517,9 +553,9 @@ export default function StorePage() {
                     <div className="flex items-center gap-2 min-w-0">
                       {line.isGift && <Gift className="w-4 h-4 text-green-700 shrink-0" />}
                       <span className="truncate text-gray-800">{line.name}</span>
+                      <span className="text-gray-600">x{line.qty}</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-gray-600">x{line.qty}</span>
                       <div className="flex items-center gap-2 font-semibold text-gray-900">
                         {line.showDiscount && (
                           <span className="text-gray-400 line-through">
