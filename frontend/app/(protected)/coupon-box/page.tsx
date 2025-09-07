@@ -30,7 +30,7 @@ function TicketChip() {
 }
 
 /** 라벨/값 한 줄 - 높이 균일화 */
-function KV({ label, value }: { label: string; value: React.ReactNode }) {
+export function KV({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 text-[13px] min-h-[28px]">
       <span className="inline-flex h-7 items-center rounded-md bg-white/60 px-1.5 text-gray-600 ring-1 ring-gray-200">
