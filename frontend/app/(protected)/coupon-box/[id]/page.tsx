@@ -170,22 +170,45 @@ export default function CouponDetailPage() {
           <CardContent>
             <h4 className="font-semibold text-md text-gray-800 mb-3 border-t pt-4">쿠폰 내역</h4>
             <div className="space-y-3">
-              {vm.items.map((item: CouponItemVM, index) => (
-                <div key={item.id || index} className="flex justify-between items-center text-sm">
-                  <div>
-                    <span className="font-medium text-gray-700">{item.name || '이름 없는 메뉴'}</span>
-                    <span className="text-gray-500 ml-2">x{item.qty}</span>
+              {vm.items.map((item: CouponItemVM, index) => {
+                const showDiscount = !item.isGift && typeof item.originalPrice === 'number' && typeof item.finalPrice === 'number' && item.originalPrice > item.finalPrice;
+                const itemQty = item.qty ?? 1;
+                const finalPrice = (item.finalPrice ?? item.originalPrice ?? 0) * itemQty;
+                const originalPrice = (item.originalPrice ?? 0) * itemQty;
+
+                return (
+                  <div key={item.id || index} className="flex justify-between items-center text-sm">
+                    <div>
+                      <span className="font-medium text-gray-700">{item.name || '이름 없는 메뉴'}</span>
+                      <span className="text-gray-500 ml-2">x{itemQty}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {item.discountBadge && <Badge variant="secondary">{item.discountBadge}</Badge>}
+                      <div className="flex items-center gap-2 font-semibold">
+                        {showDiscount && (
+                          <span className="text-gray-400 line-through">
+                            {originalPrice.toLocaleString()}원
+                          </span>
+                        )}
+                        <span className="text-gray-900">
+                          {item.isGift ? '무료' : `${finalPrice.toLocaleString()}원`}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {item.discountBadge && <Badge variant="secondary">{item.discountBadge}</Badge>}
-                    <span className="font-semibold">{item.priceText}</span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
             <div className="flex justify-between items-center font-bold text-lg border-t mt-4 pt-4">
               <span>총 합계</span>
-              <span>{vm.totalPriceText}</span>
+              <div className="flex items-center gap-3">
+                {(vm.totalOriginalPrice ?? 0) > (vm.totalPrice ?? 0) && (
+                  <span className="text-gray-400 font-normal line-through">
+                    {vm.totalOriginalPrice?.toLocaleString()}원
+                  </span>
+                )}
+                <span className="text-blue-600">{vm.totalPrice?.toLocaleString() ?? 0}원</span>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-2 pt-4">
