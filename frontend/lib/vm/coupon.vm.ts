@@ -18,7 +18,6 @@ export type CouponItemVM = {
   discountRate?: number | null;
 
   // 표시 전용
-  priceText: string;       // 예: "5,000원", "무료", "-"
   discountBadge?: string;  // 예: "20% 할인", "증정"
 };
 
@@ -40,7 +39,7 @@ export type CouponVM = {
 
   totalQty: number;
   totalPrice?: number | null;
-  totalPriceText: string;
+  totalOriginalPrice?: number | null;
 
   items: CouponItemVM[];
 };
@@ -106,22 +105,23 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
     originalPrice: (it as any).originalPrice ?? (it as any).original_price ?? null,
     finalPrice: (it as any).finalPrice ?? (it as any).final_price ?? null,
     discountRate: (it as any).discountRate ?? (it as any).discount_rate ?? null,
-    priceText: buildItemPriceText(it),
     discountBadge: buildItemDiscountBadge(it),
   }));
 
   const totalQty = itemVMs.reduce((s, i) => s + (i.qty ?? 0), 0);
-  const totalPriceRaw = itemVMs.reduce((sum, i) => {
-    if (i.isGift) return sum; // 증정은 합계에서 제외
-    const unit = typeof i.finalPrice === 'number'
-      ? i.finalPrice
-      : typeof i.originalPrice === 'number'
-        ? i.originalPrice
-        : 0;
-    return sum + unit * (i.qty ?? 0);
-  }, 0);
-  const totalPrice = Number.isFinite(totalPriceRaw) ? totalPriceRaw : null;
-  const totalPriceText = totalPrice === 0 ? '무료' : fmtMoney(totalPrice ?? undefined);
+  
+  const { totalPrice, totalOriginalPrice } = itemVMs.reduce((acc, i) => {
+    const qty = i.qty ?? 0;
+    const finalPrice = typeof i.finalPrice === 'number' ? i.finalPrice : (typeof i.originalPrice === 'number' ? i.originalPrice : 0);
+    const originalPrice = typeof i.originalPrice === 'number' ? i.originalPrice : finalPrice;
+    
+    if (!i.isGift) {
+        acc.totalPrice += finalPrice * qty;
+        acc.totalOriginalPrice += originalPrice * qty;
+    }
+    
+    return acc;
+  }, { totalPrice: 0, totalOriginalPrice: 0 });
 
   return {
     id: coupon.id,
@@ -140,7 +140,7 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
 
     totalQty,
     totalPrice,
-    totalPriceText,
+    totalOriginalPrice,
 
     items: itemVMs,
   };
