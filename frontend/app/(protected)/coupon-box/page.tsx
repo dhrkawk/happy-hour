@@ -135,7 +135,7 @@ export default function CouponBoxPage() {
 
           const weekdaysLabel = (coupon.weekdays || [])
             .map((d) => WEEKDAYS[d] ?? d)
-            .join(", ");
+            .join(" ");
 
           return (
             <Link href={`/coupon-box/${coupon.id}`} key={coupon.id} passHref>

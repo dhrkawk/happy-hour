@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCreateCouponWithItems } from "@/hooks/usecases/coupons.usecase";
+import { KV } from "../coupon-box/page";
 
 // 전역 장바구니(Context)
 import { useCouponCart } from "@/contexts/cart-context";
@@ -36,6 +37,16 @@ export default function CouponRegisterPage() {
   const router = useRouter();
   const { state: cart, toDTO, clear } = useCouponCart();
   const weekdayLabels: Record<string, string> = {
+    MON: "월",
+    TUE: "화",
+    WED: "수",
+    THU: "목",
+    FRI: "금",
+    SAT: "토",
+    SUN: "일",
+  };
+
+  const WEEKDAYS: Record<string, string> = {
     MON: "월",
     TUE: "화",
     WED: "수",
@@ -220,37 +231,44 @@ export default function CouponRegisterPage() {
         {/* 가게/이벤트 정보 */}
         <Card className="border-gray-200 mb-6">
           <CardContent className="p-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">
-              {cart.event_title ?? "이벤트"}
-            </h2>
+            <div
+                    className="rounded-xl border border-gray-200 bg-gray-50/70 p-3
+                               shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+                  >
+                    <div className="mb-1.5 text-m font-medium text-500">
+                      {cart.event_title}
+                    </div>
 
-            <div className="flex items-center gap-2 mb-3">
-              <Badge className="bg-gray-900 text-white flex items-center gap-1">
-                {getEventIcon(eventType)}
-                {eventType === "discount" && (totalDiscount > 0 ? `할인` : "할인")}
-                {eventType === "gift" && "증정"}
-                {eventType === "combo" && (totalDiscount > 0 ? `세트할인` : "세트")}
-              </Badge>
-            </div>
-
-            {(cart.happy_hour_start_time || cart.happy_hour_end_time || (cart.weekdays ?? []).length > 0) && (
-              <div className="p-3 bg-gray-50 rounded-lg space-y-2">
-                {cart.happy_hour_start_time && cart.happy_hour_end_time && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock className="w-4 h-4" />
-                    <span>
-                      {cart.happy_hour_start_time} ~ {cart.happy_hour_end_time}
-                    </span>
-                  </div>
-                )}
-                {(cart.weekdays ?? []).length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4" />
-                    <span>{cart.weekdays.map(day => weekdayLabels[day] ?? day).join(", ")}</span>
-                  </div>
-                )}
+                    <div className="grid grid-cols-1 gap-2 text-sm m:grid-cols-3">
+                      <KV
+                        label="사용 가능 시간"
+                        value={
+                          <>
+                            {cart.happy_hour_start_time?.slice(0, 5)} ~{" "}
+                            {cart.happy_hour_end_time?.slice(0, 5)}
+                          </>
+                        }
+                      />
+                      <div className="sm:col-span-1">
+                        <KV
+                          label="사용 가능 요일"
+                          value={(cart.weekdays || [])
+                            .map((d) => WEEKDAYS[d] ?? d)
+                            .join(" ")}
+                        />
+                      </div>
+                      <KV
+                        label="쿠폰 만료 날짜"
+                        value={
+                          <>
+                            {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                              .toISOString()
+                              .slice(0, 10)}
+                          </>
+                        }
+                      />
+                    </div>
               </div>
-            )}
           </CardContent>
         </Card>
 
