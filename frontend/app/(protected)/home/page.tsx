@@ -21,7 +21,7 @@ export default function HomePage() {
   
   // 화면 상태 (카테고리/정렬)
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
-  const [selectedSorting, setSelectedSorting] = useState<"거리순" | "할인순" | "할인만" | "제휴만">("거리순");
+  const [selectedSorting, setSelectedSorting] = useState<"거리순" | "할인순" | "할인만" | "제휴만">("할인순");
 
   // 서버에서 최소 데이터만: 활성 스토어 + 활성 이벤트 포함
   const {data, isLoading, error} = useGetStoresWithEvents(true);
@@ -73,7 +73,7 @@ export default function HomePage() {
             {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`}
           </h2>
           <div className="flex items-center gap-2">
-            {(["거리순", "할인순", "할인만", "제휴만"] as const).map((label) => (
+            {(["할인순", "할인만", "제휴만","거리순"] as const).map((label) => (
               <Badge key={label} variant="secondary" className="bg-white vorder-gray-700 px-3 py-1 rounded-full">
                 <Button
                   variant="link"
