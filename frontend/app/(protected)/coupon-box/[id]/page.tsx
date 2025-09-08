@@ -8,11 +8,11 @@ import { ArrowLeft, Store, Calendar, CheckCircle, XCircle, Loader2, Info, QrCode
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useUser } from "@/hooks/use-user";
 import { useCouponWithItems, useActivateCoupon, useCancelCoupon } from "@/hooks/usecases/coupons.usecase";
 import { CouponVM, CouponItemVM } from "@/lib/vm/coupon.vm";
 import { TicketChip } from "../page";
 import { useCouponCart } from "@/contexts/cart-context";
+import { useAppContext } from "@/contexts/app-context";
 
 // 5분 타이머 및 활성화 상태를 보여주는 배너 컴포넌트
 function ActivationTimerBanner({ vm, onTimeEnd }: { vm: CouponVM, onTimeEnd: () => void }) {
@@ -88,7 +88,8 @@ function CouponStatusHeader({ vm }: { vm: CouponVM }) {
 export default function CouponDetailPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
-  const { user } = useUser();
+  const { appState } = useAppContext();
+  const { user } = appState;
   const {clear} = useCouponCart();
   useEffect(() => {
     clear();
@@ -96,8 +97,8 @@ export default function CouponDetailPage() {
 
   const { data: vm, isLoading, error, refetch } = useCouponWithItems(id, { enabled: !!id });
 
-  const { mutate: activateCoupon, isPending: isActivating } = useActivateCoupon(user?.id);
-  const { mutate: cancelCoupon, isPending: isCanceling } = useCancelCoupon(user?.id);
+  const { mutate: activateCoupon, isPending: isActivating } = useActivateCoupon(user?.profile?.userId);
+  const { mutate: cancelCoupon, isPending: isCanceling } = useCancelCoupon(user?.profile?.userId);
   const WEEKDAYS: Record<string, string> = {
     MON: "월",
     TUE: "화",
@@ -191,7 +192,7 @@ export default function CouponDetailPage() {
                 className="ml-1 h-6 px-2 text-[12px]"
                 onClick={(e) => handleGoStore(e, vm)}
               >
-                가게 정보
+                가게 보기
               </Button>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600 pt-2">
