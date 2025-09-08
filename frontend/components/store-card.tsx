@@ -25,9 +25,20 @@ export function StoreCard({ vm }: Props) {
           {/* 정보 영역 */}
           <div className="flex-1 min-w-0">
             {/* 가게명 */}
+            <div className="flex gap-3">
             <h3 className="text-[16px] md:text-lg font-semibold text-gray-900 truncate">
               {vm.name}
             </h3>
+            {vm.partershipText && (
+                <Badge
+                  variant="outline"
+                  className="text-[11px] md:text-xs px-2 py-[2px] border-blue-200 text-blue-600 bg-blue-50"
+                  title={vm.partershipText ?? undefined}
+                >
+                  한양대 제휴
+                </Badge>
+              )}
+            </div>
 
             {/* 거리 + 카테고리 */}
             <div className="mt-0.5 flex items-center gap-2 min-w-0">
@@ -45,16 +56,6 @@ export function StoreCard({ vm }: Props) {
 
             {/* 배지 영역 (제휴 / 이벤트 / 최대할인) */}
             <div className="mt-2 min-h-[22px] flex items-center gap-x-2 gap-y-1 flex-wrap">
-              {vm.partershipText && (
-                <Badge
-                  variant="outline"
-                  className="text-[11px] md:text-xs px-2 py-[2px] border-blue-200 text-blue-600 bg-blue-50"
-                  title={vm.partershipText ?? undefined}
-                >
-                  한양대 제휴
-                </Badge>
-              )}
-
               {vm.hasEvent ? (
                 // 이벤트 진행중
                 <Badge className="text-[11px] md:text-xs px-2 py-[2px] bg-green-50 text-green-700 border border-green-200 flex items-center gap-1">
@@ -70,8 +71,8 @@ export function StoreCard({ vm }: Props) {
               )}
 
               {typeof vm.maxDiscountRate === "number" && (
-                <Badge className="text-[11px] md:text-xs px-2 py-[2px] bg-rose-500 text-white">
-                  최대 {vm.maxDiscountRate}%
+                <Badge className="ext-[11px] md:text-xs px-2 py-[2px] bg-red-50 text-red-700 border border-red-200 flex items-center gap-1">
+                  최대 {vm.maxDiscountRate}% 할인
                 </Badge>
               )}
 

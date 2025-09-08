@@ -161,7 +161,7 @@ export default function CouponBoxPage() {
                           className="ml-1 h-6 px-2 text-[12px]"
                           onClick={(e) => handleGoStore(e, coupon)}
                         >
-                          가게 보러가기
+                          가게 보기
                         </Button>
                       </div>
                     </div>

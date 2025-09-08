@@ -191,7 +191,7 @@ export default function CouponDetailPage() {
                 className="ml-1 h-6 px-2 text-[12px]"
                 onClick={(e) => handleGoStore(e, vm)}
               >
-                가게 보러가기
+                가게 정보
               </Button>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600 pt-2">
