@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,16 +37,14 @@ export default function MapPage() {
       <header className="bg-white shadow-sm border-b border-teal-100 sticky top-0 z-10">
         <div className="px-4 py-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/home">
-              <Button variant="ghost" size="sm" className="p-2">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
             <div>
               <h1 className="text-lg font-semibold text-gray-800">할인 가게 지도</h1>
-              <p className="text-xs text-gray-500 truncate">
-                {locationLoading ? "위치 찾는 중..." : address || "주소 정보 없음"}
-              </p>
+              <div className="flex items-center gap-1 text-sm text-gray-600 mt-1 truncate">
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">
+                  {locationLoading ? "위치 찾는 중..." : address || locationError || "위치 정보 없음"}
+                </span>
+              </div>
             </div>
           </div>
 
