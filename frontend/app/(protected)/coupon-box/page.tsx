@@ -141,7 +141,7 @@ export default function CouponBoxPage() {
             <Link href={`/coupon-box/${coupon.id}`} key={coupon.id} passHref>
               <Card
                 className={`group border-gray-200/80 bg-white/95 backdrop-blur transition-all
-                            duration-300 hover:-translate-y-[1px] hover:shadow-md
+                            duration-300 hover:-translate-y-[1px] hover:shadow-md mb-3
                             ${isCurrentlyCanceling ? "opacity-50" : ""}`}
               >
                 <CardContent className="p-4">

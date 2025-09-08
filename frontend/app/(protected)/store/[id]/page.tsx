@@ -324,7 +324,7 @@ export default function StorePage() {
                                   >
                                     <Minus className="w-8 h-8" />
                                   </Button>
-                                  <span className="w-6 text-center font-semibold">{qty}</span>
+                                  <span className="w-6 text-center">{qty}</span>
                                   <Button
                                     variant="outline"
                                     size="sm"
