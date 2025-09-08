@@ -53,11 +53,6 @@ export default function ProfilePage() {
       <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="px-4 py-4">
           <div className="flex items-center gap-3">
-            <Link href="/home">
-              <Button variant="ghost" size="sm" className="p-2">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
             <h1 className="text-lg font-semibold text-gray-800">마이페이지</h1>
           </div>
         </div>

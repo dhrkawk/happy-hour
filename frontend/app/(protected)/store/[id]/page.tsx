@@ -402,7 +402,7 @@ export default function StorePage() {
         </div>
       </div>
 
-      <div className="px-4 py-6 bg-white border-b border-gray-100">
+      <div className="px-4 py-6  bg-gray-50 border-b border-gray-100">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-3">
@@ -423,7 +423,6 @@ export default function StorePage() {
           </div>
           <GoToStoreButton naverLink={vm.naver_link} />
         </div>
-      </div>
 
       {/* 이벤트 요약 */}
       {vm.event && (
@@ -471,10 +470,13 @@ export default function StorePage() {
         </div>
       </div>
     )}
+      </div>
+
 
       {/* === Gift 섹션: 상단 배치 + 토글 체크박스 (수량 1 고정) === */}
+      <div className="px-4 py-6 pb-40 bg-gray-50 space-y-8"> {/* 푸터와 여백 확보 */}
       {(vm.gifts?.length ?? 0) > 0 && (
-        <div className="px-4 py-6">
+        <div>
           <h3 className="text-xl font-bold text-gray-800 mb-4">증정</h3>
           <div className="space-y-3">
             {vm.gifts.map((g) => {
@@ -482,7 +484,7 @@ export default function StorePage() {
               return (
                 <div
                   key={g.giftOptionId}
-                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                  className="flex items-center bg-white justify-between p-3 border border-gray-200 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <Gift className="w-5 h-5 text-green-700" />
@@ -501,9 +503,7 @@ export default function StorePage() {
           </div>
         </div>
       )}
-
       {/* 메뉴 리스트: 카테고리별 그룹 */}
-      <div className="px-4 py-6 pb-40"> {/* 푸터와 여백 확보 */}
         <h3 className="text-xl font-bold text-gray-800 mb-6">메뉴</h3>
         <div className="space-y-8">
           {categoryGroupedMenus}
