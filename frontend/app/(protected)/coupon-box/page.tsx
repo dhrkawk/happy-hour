@@ -16,7 +16,7 @@ import { useAppContext } from "@/contexts/app-context";
 /* ===========================
    Small Ticket chip (for title line)
 =========================== */
-function TicketChip() {
+export function TicketChip() {
   return (
     <span
       className="inline-flex h-6 w-6 items-center justify-center rounded-xl

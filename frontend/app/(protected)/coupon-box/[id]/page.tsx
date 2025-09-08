@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Store, Calendar, CheckCircle, XCircle, Loader2, Info, QrCode } from "lucide-react";
+import { ArrowLeft, Store, Calendar, CheckCircle, XCircle, Loader2, Info, QrCode, Clock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useUser } from "@/hooks/use-user";
 import { useCouponWithItems, useActivateCoupon, useCancelCoupon } from "@/hooks/usecases/coupons.usecase";
 import { CouponVM, CouponItemVM } from "@/lib/vm/coupon.vm";
+import { TicketChip } from "../page";
 
 // 5분 타이머 및 활성화 상태를 보여주는 배너 컴포넌트
 function ActivationTimerBanner({ vm, onTimeEnd }: { vm: CouponVM, onTimeEnd: () => void }) {
@@ -92,6 +93,23 @@ export default function CouponDetailPage() {
 
   const { mutate: activateCoupon, isPending: isActivating } = useActivateCoupon(user?.id);
   const { mutate: cancelCoupon, isPending: isCanceling } = useCancelCoupon(user?.id);
+  const WEEKDAYS: Record<string, string> = {
+    MON: "월",
+    TUE: "화",
+    WED: "수",
+    THU: "목",
+    FRI: "금",
+    SAT: "토",
+    SUN: "일",
+  };
+
+  const handleGoStore = (e: React.MouseEvent, vm: CouponVM) => {
+    e.preventDefault();
+    e.stopPropagation(); // 카드(쿠폰 상세)로의 네비게이션 방지
+    const storeId = vm.storeId;
+    const href = `/store/${storeId}`;
+    router.push(href);
+  };
 
   const handleActivate = () => {
     if (confirm("쿠폰 사용을 시작하시겠습니까? 5분 내로 사용해야 합니다.")) {
@@ -157,10 +175,31 @@ export default function CouponDetailPage() {
         <Card>
           <CardHeader>
             <CouponStatusHeader vm={vm} />
-            <CardTitle className="pt-4">{vm.eventTitle}</CardTitle>
             <div className="flex items-center gap-2 text-sm text-gray-600 pt-2">
-              <Store className="w-4 h-4" />
-              <span>{vm.storeName || '가게 정보 없음'}</span>
+              <TicketChip />
+              <CardTitle>
+                {vm.storeName}
+              </CardTitle>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="ml-1 h-6 px-2 text-[12px]"
+                onClick={(e) => handleGoStore(e, vm)}
+              >
+                가게 보러가기
+              </Button>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600 pt-2">
+              <Info className="w-4 h-4" />
+              <span>{vm.eventTitle || '가게 정보 없음'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Clock className="w-4 h-4" />
+              <span>사용 가능 시각: {vm.happyHourStartTime.slice(0,5)} ~ {vm.happyHourEndTime.slice(0,5)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Calendar className="w-4 h-4" />
+              <span>사용 가능 요일: {(vm.weekdays || []).map((d) => WEEKDAYS[d] ?? d).join(" ")}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Calendar className="w-4 h-4" />
@@ -235,6 +274,17 @@ export default function CouponDetailPage() {
             )}
           </CardFooter>
         </Card>
+        <Card className="border-blue-200 bg-blue-50 mt-6">
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-blue-700 mb-2">💡 쿠폰 사용 안내</h3>
+              <ul className="space-y-1 text-sm text-blue-600">
+                <li>• 가게 방문 시 쿠폰 번호를 직원에게 제시하세요</li>
+                <li>• 쿠폰별로 사용 가능한 시간대와 요일이 다를 수 있습니다</li>
+                <li>• 쿠폰은 1회만 사용 가능하며, 사용 후 복구할 수 없습니다</li>
+                <li>• 만료된 쿠폰은 사용할 수 없습니다</li>
+              </ul>
+            </CardContent>
+          </Card>
       </main>
     </div>
   );

@@ -2,6 +2,7 @@
 'use client';
 
 import type { Coupon, CouponItem, CouponWithItems } from '@/domain/entities/entities';
+import { StringValidation } from 'zod';
 
 /* ---------------------------------- Types --------------------------------- */
 
@@ -26,6 +27,10 @@ export type CouponVM = {
 
   eventTitle?: string | null;
   storeName?: string | null;
+  storeId: string;
+  happyHourStartTime: string;
+  happyHourEndTime: string;
+  weekdays: string[];
 
   status: CouponStatus;
   statusText: string;
@@ -127,6 +132,10 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
     id: coupon.id,
     eventTitle: (coupon as any).eventTitle ?? (coupon as any).event_title ?? undefined,
     storeName: (coupon as any).storeName ?? (coupon as any).store_name ?? undefined,
+    storeId: coupon.storeId,
+    weekdays: coupon.weekdays,
+    happyHourStartTime: coupon.happyHourStartTime,
+    happyHourEndTime: coupon.happyHourEndTime,
 
     status: coupon.status as CouponStatus,
     statusText: statusText(coupon.status),
