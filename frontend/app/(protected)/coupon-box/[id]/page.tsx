@@ -12,6 +12,7 @@ import { useUser } from "@/hooks/use-user";
 import { useCouponWithItems, useActivateCoupon, useCancelCoupon } from "@/hooks/usecases/coupons.usecase";
 import { CouponVM, CouponItemVM } from "@/lib/vm/coupon.vm";
 import { TicketChip } from "../page";
+import { useCouponCart } from "@/contexts/cart-context";
 
 // 5분 타이머 및 활성화 상태를 보여주는 배너 컴포넌트
 function ActivationTimerBanner({ vm, onTimeEnd }: { vm: CouponVM, onTimeEnd: () => void }) {
@@ -88,6 +89,10 @@ export default function CouponDetailPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { user } = useUser();
+  const {clear} = useCouponCart();
+  useEffect(() => {
+    clear();
+  }, []);
 
   const { data: vm, isLoading, error, refetch } = useCouponWithItems(id, { enabled: !!id });
 

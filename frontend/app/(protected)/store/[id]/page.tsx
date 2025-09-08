@@ -470,15 +470,19 @@ export default function StorePage() {
       {/* 이벤트 요약 */}
       {vm.event && (
       <div
-        className="rounded-xl border border-gray-200 bg-gray-50/70 p-3
-                  shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+        className="rounded-xl border border-white-200 bg-white p-4 
+                  shadow-sm"
       >
-        <div className="mb-1.5 text-m font-bold text-500">
-          {vm.event.title || "이벤트 조건"}
+        {/* 타이틀 */}
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-base font-bold">
+            {vm.event.title || "이벤트 조건"}
+          </span>
         </div>
 
-        <div className="space-y-2 text-sm">
-          {/* 기간: 한 줄 */}
+        {/* 내용 */}
+        <div className="space-y-2 text-sm text-gray-700">
+          {/* 기간 */}
           <KV
             label="이벤트 기간"
             value={
@@ -488,7 +492,7 @@ export default function StorePage() {
             }
           />
 
-        {/* 시간 + 요일: 같은 줄 */}
+          {/* 시간 */}
           <KV
             label="사용 가능 시간"
             value={
@@ -497,6 +501,8 @@ export default function StorePage() {
                 : "—"
             }
           />
+
+          {/* 요일 */}
           <KV
             label="사용 가능 요일"
             value={(vm.event.weekdays ?? [])
@@ -504,7 +510,7 @@ export default function StorePage() {
               .join(" ") || "—"}
           />
 
-          {/* 설명: 한 줄 */}
+          {/* 설명 */}
           {vm.event.description && (
             <KV label="설명" value={vm.event.description} />
           )}

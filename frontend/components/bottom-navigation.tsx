@@ -44,7 +44,7 @@ export default function BottomNavigation() {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
-                item.isActive ? "text-teal-600 bg-teal-50" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                item.isActive ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
               }`}
             >
               <IconComponent className={`w-6 h-6 mb-1 ${item.isActive ? "stroke-2" : "stroke-1.5"}`} />

@@ -127,9 +127,6 @@ export default function CouponRegisterPage() {
       const dto = toDTO();
       const res = await createMutate.mutateAsync(dto); // { couponId }
       const couponId = (res as any)?.couponId;
-      // 성공 후 장바구니 비우기(선택)
-      clear();
-
       // 상세로 이동(권장) 또는 보관함으로 이동
       if (couponId) router.push(`/coupon-box/${couponId}`);
       else router.push(`/coupons`);
@@ -141,7 +138,7 @@ export default function CouponRegisterPage() {
   // 빈 장바구니 뷰
   if (isEmpty) {
     return (
-      <div className="min-h-screen bg-white max-w-xl mx-auto relative">
+      <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative">
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="px-4 py-4">
             <div className="flex items-center gap-3">
@@ -167,7 +164,7 @@ export default function CouponRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
+    <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="px-4 py-4">
@@ -229,48 +226,45 @@ export default function CouponRegisterPage() {
         </Card>
 
         {/* 가게/이벤트 정보 */}
-        <Card className="border-gray-200 mb-6">
-          <CardContent className="p-4">
-            <div
-                    className="rounded-xl border border-gray-200 bg-gray-50/70 p-3
-                               shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
-                  >
-                    <div className="mb-1.5 text-m font-medium text-500">
-                      {cart.event_title}
-                    </div>
 
-                    <div className="grid grid-cols-1 gap-2 text-sm m:grid-cols-3">
-                      <KV
-                        label="사용 가능 시간"
-                        value={
-                          <>
-                            {cart.happy_hour_start_time?.slice(0, 5)} ~{" "}
-                            {cart.happy_hour_end_time?.slice(0, 5)}
-                          </>
-                        }
-                      />
-                      <div className="sm:col-span-1">
-                        <KV
-                          label="사용 가능 요일"
-                          value={(cart.weekdays || [])
-                            .map((d) => WEEKDAYS[d] ?? d)
-                            .join(" ")}
-                        />
-                      </div>
-                      <KV
-                        label="쿠폰 만료 날짜"
-                        value={
-                          <>
-                            {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                              .toISOString()
-                              .slice(0, 10)}
-                          </>
-                        }
-                      />
-                    </div>
-              </div>
-          </CardContent>
-        </Card>
+        <div
+          className="rounded-xl border border-gray-200 bg-white p-3
+                            shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] mb-6"
+        >
+          <div className="mb-1.5 text-m font-medium text-500">
+            {cart.event_title}
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 text-sm m:grid-cols-3">
+            <KV
+              label="사용 가능 시간"
+              value={
+                <>
+                  {cart.happy_hour_start_time?.slice(0, 5)} ~{" "}
+                  {cart.happy_hour_end_time?.slice(0, 5)}
+                </>
+              }
+            />
+            <div className="sm:col-span-1">
+              <KV
+                label="사용 가능 요일"
+                value={(cart.weekdays || [])
+                  .map((d) => WEEKDAYS[d] ?? d)
+                  .join(" ")}
+              />
+            </div>
+            <KV
+              label="쿠폰 만료 날짜"
+              value={
+                <>
+                  {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                    .toISOString()
+                    .slice(0, 10)}
+                </>
+              }
+            />
+          </div>
+        </div>
 
         {/* 적용된 혜택 안내 */}
         {totalDiscount > 0 && (
@@ -314,7 +308,7 @@ export default function CouponRegisterPage() {
         {/* 발급 버튼 */}
         <Button
           onClick={handleGoIssue}
-          className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 text-lg font-semibold"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold"
         >
           교환권 발급받기
         </Button>
