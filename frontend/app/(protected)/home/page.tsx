@@ -30,7 +30,7 @@ export default function HomePage() {
   const isSkeletonLoading = locationLoading || isLoading;
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
+    <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
         <div className="px-4 pt-4 pb-3">

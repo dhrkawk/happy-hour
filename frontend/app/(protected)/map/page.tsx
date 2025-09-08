@@ -32,7 +32,7 @@ export default function MapPage() {
   const isLoading =  locationLoading || storesLoading;
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto relative overflow-hidden">
+    <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative overflow-hidden">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-teal-100 sticky top-0 z-10">
         <div className="px-4 py-4 flex items-start justify-between">
