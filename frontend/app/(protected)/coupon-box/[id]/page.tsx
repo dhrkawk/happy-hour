@@ -12,6 +12,7 @@ import { useUser } from "@/hooks/use-user";
 import { useCouponWithItems, useActivateCoupon, useCancelCoupon } from "@/hooks/usecases/coupons.usecase";
 import { CouponVM, CouponItemVM } from "@/lib/vm/coupon.vm";
 import { TicketChip } from "../page";
+import { useCouponCart } from "@/contexts/cart-context";
 
 // 5분 타이머 및 활성화 상태를 보여주는 배너 컴포넌트
 function ActivationTimerBanner({ vm, onTimeEnd }: { vm: CouponVM, onTimeEnd: () => void }) {
@@ -88,6 +89,10 @@ export default function CouponDetailPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { user } = useUser();
+  const {clear} = useCouponCart();
+  useEffect(() => {
+    clear();
+  }, []);
 
   const { data: vm, isLoading, error, refetch } = useCouponWithItems(id, { enabled: !!id });
 
@@ -162,7 +167,7 @@ export default function CouponDetailPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
-            <h1 className="text-lg font-semibold text-gray-800 truncate">{vm.eventTitle || '쿠폰 상세'}</h1>
+            <h1 className="text-lg font-semibold text-gray-800 truncate">쿠폰 상세</h1>
           </div>
           <Link href="/coupon-box">
             <Button variant="outline" size="sm">내 쿠폰함</Button>
@@ -177,7 +182,7 @@ export default function CouponDetailPage() {
             <CouponStatusHeader vm={vm} />
             <div className="flex items-center gap-2 text-sm text-gray-600 pt-2">
               <TicketChip />
-              <CardTitle>
+              <CardTitle className="text-lg text-black">
                 {vm.storeName}
               </CardTitle>
               <Button

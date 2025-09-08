@@ -266,7 +266,7 @@ export default function StorePage() {
         <div key={category}>
           <h4 className="text-lg font-semibold text-gray-700 mb-4">{category}</h4>
           {itemsInCategory.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {itemsInCategory.map((m: MenuWithDiscountVM) => {
                 const showDiscount =
                   typeof m.finalPrice === "number" &&
@@ -280,57 +280,101 @@ export default function StorePage() {
                 return (
                   <Card key={m.menuId} className="border-gray-200">
                     <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-center gap-4">
+                        {/* 썸네일 */}
                         {m.thumbnail ? (
-                          <img src={m.thumbnail} alt="" className="w-20 h-20 object-cover rounded-lg shrink-0" />
+                          <img
+                            src={m.thumbnail}
+                            alt=""
+                            className="w-16 h-16 object-cover rounded-lg shrink-0"
+                          />
                         ) : (
-                          <div className="w-20 h-20 rounded-lg bg-gray-100 shrink-0" />
+                          <div className="w-16 h-16 rounded-lg bg-gray-100 shrink-0" />
                         )}
+
+                        {/* 본문 */}
                         <div className="flex-1">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 pr-3">
-                              <h4 className="font-bold text-gray-800 text-lg mb-2">{m.name}</h4>
-                              {m.description && <p className="text-gray-600 mb-3">{m.description}</p>}
-                              <div className="flex items-center gap-3">
-                                {showDiscount ? (
-                                  <>
-                                    <span className="text-gray-400 line-through font-medium">
-                                      {m.price.toLocaleString()}원
-                                    </span>
-                                    <span className="text-xl font-bold text-blue-600">
-                                      {m.finalPrice!.toLocaleString()}원
-                                    </span>
-                                    {typeof m.discountRate === "number" && (
-                                      <Badge className="bg-blue-600 text-white font-medium">
-                                        {m.discountRate}% 할인
-                                      </Badge>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="text-xl font-bold text-gray-900">
-                                    {m.price.toLocaleString()}원
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
+                          {/* 제목 + 담기 버튼 */}
+                          <div className="flex items-center justify-between">
+                            <h4
+                              className={`font-bold text-gray-800 text-lg leading-tight truncate ${
+                                showDiscount ? "mb-0.5" : "mb-1.5"
+                              }`}
+                            >
+                              {m.name}
+                            </h4>
+
+                            <div>
                               {qty <= 0 ? (
-                                <Button size="sm" onClick={() => setMenuQty(m, 1)} className="bg-gray-900 hover:bg-gray-800 text-white">
-                                  담기
-                                </Button>
+                                <Button
+                                size="sm"
+                                variant="secondary"
+                                className="ml-1 h-6 px-2 text-[12px] h-8 px-3"
+                                onClick={() => setMenuQty(m, 1)}
+                              >
+                                담기
+                              </Button>
                               ) : (
-                                <div className="flex items-center gap-2">
-                                  <Button variant="outline" size="icon" onClick={handleSubOne}>
-                                    <Minus className="w-4 h-4" />
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-4 h-8 p-0"
+                                    onClick={handleSubOne}
+                                  >
+                                    <Minus className="w-8 h-8" />
                                   </Button>
                                   <span className="w-6 text-center font-semibold">{qty}</span>
-                                  <Button variant="outline" size="icon" onClick={handleAddOne}>
-                                    <Plus className="w-4 h-4" />
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-4 h-8 p-0"
+                                    onClick={handleAddOne}
+                                  >
+                                    <Plus className="w-8 h-8" />
                                   </Button>
                                 </div>
                               )}
                             </div>
                           </div>
+
+                          {/* 설명 */}
+                          {m.description && (
+                            <p
+                              className={`text-gray-600 text-sm ${
+                                showDiscount ? "mb-1" : "mb-2"
+                              }`}
+                            >
+                              {m.description}
+                            </p>
+                          )}
+
+                          {/* 가격 영역 */}
+                          {showDiscount ? (
+                            <>
+                              {/* 원가 */}
+                              <span className="block text-gray-400 text-sm line-through leading-4">
+                                {m.price.toLocaleString()}원
+                              </span>
+                              {/* 할인가 + 할인율 */}
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-base font-bold text-blue-600 leading-5">
+                                  {m.finalPrice!.toLocaleString()}원
+                                </span>
+                                {typeof m.discountRate === "number" && (
+                                  <Badge className="bg-blue-600 text-white font-medium">
+                                    {m.discountRate}% 할인
+                                  </Badge>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center mt-1.5">
+                              <span className="text-base font-medium text-gray-900 leading-5">
+                                {m.price.toLocaleString()}원
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -418,7 +462,6 @@ export default function StorePage() {
                 <MapPin className="w-5 h-5" />
                 <span className="font-medium">{vm.address}</span>
               </div>
-              <Badge variant="outline" className="border-gray-300 text-gray-600">{vm.category}</Badge>
             </div>
           </div>
           <GoToStoreButton naverLink={vm.naver_link} />
@@ -427,15 +470,19 @@ export default function StorePage() {
       {/* 이벤트 요약 */}
       {vm.event && (
       <div
-        className="rounded-xl border border-gray-200 bg-gray-50/70 p-3
-                  shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+        className="rounded-xl border border-white-200 bg-white p-4 
+                  shadow-sm"
       >
-        <div className="mb-1.5 text-m font-bold text-500">
-          {vm.event.title || "이벤트 조건"}
+        {/* 타이틀 */}
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-base font-bold">
+            {vm.event.title || "이벤트 조건"}
+          </span>
         </div>
 
-        <div className="space-y-2 text-sm">
-          {/* 기간: 한 줄 */}
+        {/* 내용 */}
+        <div className="space-y-2 text-sm text-gray-700">
+          {/* 기간 */}
           <KV
             label="이벤트 기간"
             value={
@@ -445,25 +492,25 @@ export default function StorePage() {
             }
           />
 
-          {/* 시간 + 요일: 같은 줄 */}
-          <div className="flex flex-wrap gap-4">
-            <KV
-              label="사용 가능 시간"
-              value={
-                vm.event.happyHourStartTime && vm.event.happyHourEndTime
-                  ? `${vm.event.happyHourStartTime.slice(0, 5)} ~ ${vm.event.happyHourEndTime.slice(0, 5)}`
-                  : "—"
-              }
-            />
-            <KV
-              label="사용 가능 요일"
-              value={(vm.event.weekdays ?? [])
-                .map((d: string) => WEEKDAYS[d] ?? d)
-                .join(" ") || "—"}
-            />
-          </div>
+          {/* 시간 */}
+          <KV
+            label="사용 가능 시간"
+            value={
+              vm.event.happyHourStartTime && vm.event.happyHourEndTime
+                ? `${vm.event.happyHourStartTime.slice(0, 5)} ~ ${vm.event.happyHourEndTime.slice(0, 5)}`
+                : "—"
+            }
+          />
 
-          {/* 설명: 한 줄 */}
+          {/* 요일 */}
+          <KV
+            label="사용 가능 요일"
+            value={(vm.event.weekdays ?? [])
+              .map((d: string) => WEEKDAYS[d] ?? d)
+              .join(" ") || "—"}
+          />
+
+          {/* 설명 */}
           {vm.event.description && (
             <KV label="설명" value={vm.event.description} />
           )}

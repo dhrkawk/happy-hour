@@ -89,9 +89,9 @@ export default function MapPage() {
 
       {/* 리스트 */}
       <div className="px-4 py-4 space-y-3 pb-24">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-gray-800">
-            {selectedCategory === "전체" ? "근처 할인 가게" : `근처 ${selectedCategory} 가게`}{" "}
+            가게 목록
           </h2>
           <div className="flex items-center gap-2">
             {(["할인순", "할인만", "제휴만", "거리순"] as const).map((label) => (

@@ -87,7 +87,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* 헤더 */}
         <div className="flex items-center gap-3 mb-6">
@@ -99,7 +99,7 @@ export default function SignupPage() {
           <h1 className="text-xl font-semibold text-gray-800">회원가입</h1>
         </div>
 
-        <Card className="border-teal-100 shadow-lg">
+        <Card className="border-blue-100 shadow-lg">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center text-gray-800">계정 만들기</CardTitle>
             <p className="text-sm text-gray-600 text-center">해피아워에 가입하여 특별한 할인 혜택을 받아보세요</p>
@@ -118,7 +118,7 @@ export default function SignupPage() {
                     placeholder="이름을 입력하세요"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="pl-10 border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                    className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -135,7 +135,7 @@ export default function SignupPage() {
                     placeholder="이메일을 입력하세요"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="pl-10 border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                    className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -152,7 +152,7 @@ export default function SignupPage() {
                     placeholder="비밀번호를 입력하세요"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="pl-10 pr-10 border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                    className="pl-10 pr-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
                   <button
@@ -176,7 +176,7 @@ export default function SignupPage() {
                     placeholder="비밀번호를 다시 입력하세요"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className="pl-10 pr-10 border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                    className="pl-10 pr-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
                   <button
@@ -193,15 +193,15 @@ export default function SignupPage() {
                 <input
                   type="checkbox"
                   id="terms"
-                  className="mt-1 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                  className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   required
                 />
                 <label htmlFor="terms" className="text-sm text-gray-600">
-                  <Link href="/terms" className="text-teal-600 hover:text-teal-700">
+                  <Link href="/terms" className="text-blue-600 hover:text-blue-700">
                     서비스 이용약관
                   </Link>{" "}
                   및{" "}
-                  <Link href="/privacy" className="text-teal-600 hover:text-teal-700">
+                  <Link href="/privacy" className="text-blue-600 hover:text-blue-700">
                     개인정보처리방침
                   </Link>
                   에 동의합니다.
@@ -210,7 +210,7 @@ export default function SignupPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-teal-500 hover:bg-teal-600 text-white py-3"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -272,7 +272,7 @@ export default function SignupPage() {
             <div className="text-center pt-4">
               <p className="text-sm text-gray-600">
                 이미 계정이 있으신가요?{" "}
-                <Link href="/login" className="text-teal-600 hover:text-teal-700 font-medium">
+                <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
                   로그인
                 </Link>
               </p>

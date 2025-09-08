@@ -192,11 +192,11 @@ export default function CouponBoxPage() {
                     className="rounded-xl border border-gray-200 bg-gray-50/70 p-3
                                shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
                   >
-                    <div className="mb-1.5 text-xs font-medium text-gray-500">
+                    <div className="mb-1.5 text-sm font-medium text-black-500">
                       {coupon.eventTitle}
                     </div>
 
-                    <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-2 text-sm sm:grid-rows-3">
                       <KV
                         label="시간"
                         value={
