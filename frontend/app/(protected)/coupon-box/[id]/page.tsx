@@ -162,7 +162,7 @@ export default function CouponDetailPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
-            <h1 className="text-lg font-semibold text-gray-800 truncate">{vm.eventTitle || '쿠폰 상세'}</h1>
+            <h1 className="text-lg font-semibold text-gray-800 truncate">쿠폰 상세</h1>
           </div>
           <Link href="/coupon-box">
             <Button variant="outline" size="sm">내 쿠폰함</Button>
@@ -177,7 +177,7 @@ export default function CouponDetailPage() {
             <CouponStatusHeader vm={vm} />
             <div className="flex items-center gap-2 text-sm text-gray-600 pt-2">
               <TicketChip />
-              <CardTitle>
+              <CardTitle className="text-lg text-black">
                 {vm.storeName}
               </CardTitle>
               <Button

@@ -11,7 +11,7 @@ export function GoToStoreButton({ naverLink }: { naverLink: string | null }) {
         variant="outline"
         className="gap-1 text-blue-600 hover:text-blue-700 hover:border-blue-400"
       >
-        가게 정보 보러가기
+        가게 정보
         <ExternalLink className="h-4 w-4" />
       </Button>
     </Link>
