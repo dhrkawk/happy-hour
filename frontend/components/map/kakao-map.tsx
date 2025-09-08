@@ -36,7 +36,7 @@ export default function KakaoMap({
   const mapInstance = useRef<any>(null)
   const userMarkerInstance = useRef<any>(null)
   const storeMarkersInstance = useRef<
-    Array<{ marker: any; nameOverlay: any; detailOverlay?: any }>
+    Array<{ marker: any; nameOverlay: any; detailOverlay?: any; store: StoreListItemVM }>
   >([])
   const [isMapReady, setIsMapReady] = useState(false)
 
@@ -163,7 +163,7 @@ export default function KakaoMap({
       const maxRate = store.maxDiscountRate // 확장된 VM에 있을 때 표시
       const detailEl = document.createElement('div')
       detailEl.innerHTML = `
-      <div style="
+      <div onclick="window.location.href='/store/${store.id}'" style="
         background: white;
         border: 1px solid #ddd;
         padding: 10px;
@@ -172,6 +172,7 @@ export default function KakaoMap({
         font-size: 12px;
         width: 220px;
         line-height: 1.4;
+        cursor: pointer;
       ">
         <strong style="color:#0f766e">${store.name}</strong><br/>
         ${store.category ? `카테고리: ${store.category}<br/>` : ''}
@@ -199,22 +200,28 @@ export default function KakaoMap({
         zIndex: 20,
       })
 
-      window.kakao.maps.event.addListener(marker, 'mouseover', () => {
-        detailOverlay.setMap(mapInstance.current)
-      })
-      window.kakao.maps.event.addListener(marker, 'mouseout', () => {
-        detailOverlay.setMap(null)
-      })
-
       // 클릭 → 선택 + 중심 이동
       window.kakao.maps.event.addListener(marker, 'click', () => {
         mapInstance.current.panTo(pos)
-        onSelectStore(store.id)
+        onSelectStore(selectedStoreId === store.id ? null : store.id)
       })
 
-      storeMarkersInstance.current.push({ marker, nameOverlay, detailOverlay })
+      storeMarkersInstance.current.push({ marker, nameOverlay, detailOverlay, store })
     })
-  }, [stores, isMapReady, onSelectStore])
+  }, [stores, isMapReady, onSelectStore, selectedStoreId])
+
+  // 선택된 스토어에 따라 상세 오버레이 표시/숨김
+  useEffect(() => {
+    if (!mapInstance.current || !isMapReady) return
+
+    storeMarkersInstance.current.forEach(({ store, detailOverlay }) => {
+      if (store.id === selectedStoreId) {
+        detailOverlay.setMap(mapInstance.current)
+      } else {
+        detailOverlay.setMap(null)
+      }
+    })
+  }, [selectedStoreId, isMapReady])
 
   if (!userLocation) {
     return (
