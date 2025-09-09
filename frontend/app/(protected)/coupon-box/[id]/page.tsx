@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Store, Calendar, CheckCircle, XCircle, Loader2, Info, QrCode, Clock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import ConfirmDialog from "@/components/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCouponWithItems, useActivateCoupon, useCancelCoupon } from "@/hooks/usecases/coupons.usecase";
@@ -116,6 +117,8 @@ export default function CouponDetailPage() {
     const href = `/store/${storeId}`;
     router.push(href);
   };
+  const [confirmActivateOpen, setConfirmActivateOpen] = useState(false);
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
   const handleActivate = () => {
     if (confirm("쿠폰 사용을 시작하시겠습니까? 5분 내로 사용해야 합니다.")) {
@@ -260,7 +263,7 @@ export default function CouponDetailPage() {
             {canActivate && (
               <Button 
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={handleActivate}
+                onClick={() => setConfirmActivateOpen(true)}
                 disabled={isActivating}
               >
                 {isActivating ? <Loader2 className="w-4 h-4 animate-spin"/> : <CheckCircle className="w-4 h-4 mr-2" />} 
@@ -271,7 +274,7 @@ export default function CouponDetailPage() {
               <Button 
                 variant="outline" 
                 className="w-full"
-                onClick={handleCancel}
+                onClick={() => setConfirmCancelOpen(true)}
                 disabled={isCanceling}
               >
                 {isCanceling ? <Loader2 className="w-4 h-4 animate-spin"/> : <XCircle className="w-4 h-4 mr-2" />} 
@@ -292,6 +295,32 @@ export default function CouponDetailPage() {
             </CardContent>
           </Card>
       </main>
+      <ConfirmDialog
+        open={confirmActivateOpen}
+        onOpenChange={setConfirmActivateOpen}
+        title="쿠폰 사용"
+        message="쿠폰 사용을 시작하시겠습니까? 5분 이내 사용해야 합니다."
+        confirmText="사용 시작"
+        cancelText="돌아가기"
+        onConfirm={() => {
+          setConfirmActivateOpen(false);
+          activateCoupon(id, { onSuccess: () => refetch() });
+        }}
+        onCancel={() => setConfirmActivateOpen(false)}
+      />
+      <ConfirmDialog
+        open={confirmCancelOpen}
+        onOpenChange={setConfirmCancelOpen}
+        title="쿠폰 취소"
+        message="정말로 이 쿠폰을 취소하시겠습니까?"
+        confirmText="취소하기"
+        cancelText="돌아가기"
+        onConfirm={() => {
+          setConfirmCancelOpen(false);
+          cancelCoupon(id, { onSuccess: () => refetch() });
+        }}
+        onCancel={() => setConfirmCancelOpen(false)}
+      />
     </div>
   );
 }

@@ -8,12 +8,10 @@ interface CategoryFilterProps {
 }
 
 const categories = [
-  { id: "전체", label: "전체", emoji: "🍽️" },
-  { id: "한식", label: "한식", emoji: "🍲" },
-  { id: "양식", label: "양식", emoji: "🍕" },
-  { id: "중식", label: "중식", emoji: "🥟" },
-  { id: "일식", label: "일식", emoji: "🍣" },
+  { id: "전체", label: "전체", emoji: "🌐" },
+  { id: "식당", label: "식당", emoji: "🍽️" },
   { id: "카페", label: "카페", emoji: "☕" },
+  { id: "기타", label: "기타", emoji: "🧩" },
 ]
 
 export default function CategoryFilter({ selectedCategory, onCategoryChange }: CategoryFilterProps) {
@@ -38,3 +36,4 @@ export default function CategoryFilter({ selectedCategory, onCategoryChange }: C
     </div>
   )
 }
+

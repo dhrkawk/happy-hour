@@ -25,6 +25,7 @@ import {
 } from "@/domain/schemas/schemas";
 
 import { Button } from "@/components/ui/button";
+import ConfirmDialog from "@/components/confirm-dialog";
 import { Card, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,6 +112,8 @@ export default function ManageMenusPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [uiError, setUiError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   // ----- react-query hooks -----
   const { data, isLoading, refetch } = useGetMenusByStoreId(storeId);
@@ -309,7 +312,7 @@ export default function ManageMenusPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Button type="button" variant="outline" onClick={() => openEditDialog(menu)}>수정</Button>
-                      <Button type="button" variant="destructive" size="sm" onClick={() => handleDelete(menu.id)}>삭제</Button>
+                      <Button type="button" variant="destructive" size="sm" onClick={() => { setPendingDeleteId(menu.id); setConfirmOpen(true)}}>삭제</Button>
                     </div>
                   </Card>
                 ))}
@@ -419,6 +422,27 @@ export default function ManageMenusPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="메뉴 삭제"
+        message="정말로 이 메뉴를 삭제하시겠습니까?"
+        confirmText="삭제하기"
+        cancelText="취소"
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={() => {
+          if (!pendingDeleteId) return;
+          setConfirmOpen(false);
+          deleteMenu.mutate(
+            { id: pendingDeleteId, storeId },
+            {
+              onSettled: () => setPendingDeleteId(null),
+              onError: (e: any) => setUiError(e?.message ?? "삭제 중 오류가 발생했습니다."),
+            }
+          );
+        }}
+      />
 
       <CategoryManagementDialog
         isOpen={categoryDialogOpen}

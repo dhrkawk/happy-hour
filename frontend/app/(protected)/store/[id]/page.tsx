@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { ArrowLeft, MapPin, Clock, Gift, Percent, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,8 @@ import { useCouponCart } from "@/contexts/cart-context";
 import { formatTimeLeft } from "@/lib/vm/utils/utils";
 import { useAppContext } from "@/contexts/app-context";
 import { GoToStoreButton } from "@/components/naver-link";
+
+import AlertDialogBasic from "@/components/alert-dialog-basic";
 
 export default function StorePage() {
   const router = useRouter();
@@ -44,6 +46,13 @@ export default function StorePage() {
 
   const { state: cart, setHeader, addItem, updateItem, removeItem, clear } = useCouponCart();
   const [openCart, setOpenCart] = useState(false);
+
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const showAlert = useCallback((msg: string) => {
+    setAlertMessage(String(msg ?? ""));
+    setAlertOpen(true);
+  }, []);
 
   // 이미 사용 가능한 쿠폰이 있는 경우
   // 지금은 가지고 있는 쿠폰을 다 가지고 왔지만 나중에는 store_id,user_id로 한번에 필터링해서 가져오는
@@ -118,9 +127,9 @@ export default function StorePage() {
       } catch (e: any) {
         const code = e?.message ?? String(e);
         if (code === 'DIFFERENT_STORE_ITEMS') {
-          alert('다른 가게 상품이 장바구니에 있습니다. 비우고 다시 시도해주세요.');
+          showAlert('다른 가게 상품이 장바구니에 있습니다. 비우고 다시 시도해주세요.');
         } else if (code === 'STORE_NOT_SELECTED') {
-          alert('가게 정보가 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
+          showAlert('가게 정보가 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
         }
         return;
       }
@@ -161,9 +170,9 @@ export default function StorePage() {
       } catch (e: any) {
         const code = e?.message ?? String(e);
         if (code === 'DIFFERENT_STORE_ITEMS') {
-          alert('다른 가게 상품이 장바구니에 있습니다. 비우고 다시 시도해주세요.');
+          showAlert('다른 가게 상품이 장바구니에 있습니다. 비우고 다시 시도해주세요.');
         } else if (code === 'STORE_NOT_SELECTED') {
-          alert('가게 정보가 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
+          showAlert('가게 정보가 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
         }
         return;
       }
@@ -225,7 +234,7 @@ export default function StorePage() {
 
   const handleSubmit = () => {
     if (hasUsableCoupon) {
-      alert('이미 사용 가능한 교환권이 있어요. 보관함에서 사용해주세요.');
+      showAlert('이미 사용 가능한 교환권이 있어요. 보관함에서 사용해주세요.');
       return;
     }
     router.push('/coupon-register');
@@ -581,7 +590,7 @@ export default function StorePage() {
 
       {/* 장바구니 드로어 (bottom sheet) */}
       <Sheet open={openCart} onOpenChange={setOpenCart}>
-        <SheetContent side="bottom" className="max-w-xl mx-auto">
+        <SheetContent side="bottom" className="max-w-xl mx-auto" aria-describedby="cart-sheet-desc">
           <SheetHeader>
             <SheetTitle>장바구니</SheetTitle>
             <SheetDescription>
@@ -644,6 +653,14 @@ export default function StorePage() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+      <AlertDialogBasic
+        open={alertOpen}
+        onOpenChange={setAlertOpen}
+        title="알림"
+        message={alertMessage}
+        okText="확인"
+        onOk={() => setAlertOpen(false)}
+      />
     </div>
   );
 }

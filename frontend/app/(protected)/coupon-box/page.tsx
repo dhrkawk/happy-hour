@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Ticket, Loader2, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import ConfirmDialog from "@/components/confirm-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import BottomNavigation from "@/components/bottom-navigation";
@@ -88,6 +89,8 @@ export default function CouponBoxPage() {
     SAT: "토",
     SUN: "일",
   };
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingCouponId, setPendingCouponId] = useState<string | null>(null);
 
   const handleCancel = (e: React.MouseEvent, couponId: string) => {
     e.preventDefault();
@@ -274,6 +277,26 @@ export default function CouponBoxPage() {
       </main>
 
       <BottomNavigation />
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="쿠폰 취소"
+        message="정말로 이 쿠폰을 취소하시겠습니까?"
+        confirmText="취소하기"
+        cancelText="돌아가기"
+        onCancel={() => setPendingCouponId(null)}
+        onConfirm={() => {
+          if (!pendingCouponId) return;
+          setConfirmOpen(false);
+          setCancelingId(pendingCouponId);
+          cancelCoupon(pendingCouponId, {
+            onSettled: () => {
+              setCancelingId(null);
+              setPendingCouponId(null);
+            }
+          });
+        }}
+      />
     </div>
   );
 }

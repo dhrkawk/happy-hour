@@ -6,9 +6,17 @@ import { createClient } from "@/infra/supabase/shared/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import AlertDialogBasic from "@/components/alert-dialog-basic"
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
+
+  const [alertOpen, setAlertOpen] = useState(false)
+  const [alertMessage, setAlertMessage] = useState("")
+  const showAlert = (msg: string) => {
+    setAlertMessage(msg ?? "")
+    setAlertOpen(true)
+  }
 
   const handleSocialLogin = async (provider: "kakao" | "google") => {
     setIsLoading(true)
@@ -21,7 +29,7 @@ export default function LoginPage() {
       },
     })
     if (error) {
-      alert("소셜 로그인 오류: " + error.message)
+      showAlert("소셜 로그인 오류: " + error.message)
       setIsLoading(false)
     }
   }
@@ -88,6 +96,14 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+      <AlertDialogBasic
+        open={alertOpen}
+        onOpenChange={setAlertOpen}
+        title="알림"
+        message={alertMessage}
+        okText="확인"
+        onOk={() => setAlertOpen(false)}
+      />
     </div>
   )
 }
