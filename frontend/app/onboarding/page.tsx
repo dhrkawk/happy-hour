@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog'
+import AlertDialogBasic from '@/components/alert-dialog-basic'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -25,6 +26,8 @@ export default function OnboardingPage() {
   const [agreedLocation, setAgreedLocation] = useState(false)
   const [agreedMarketing, setAgreedMarketing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [alertOpen, setAlertOpen] = useState(false)
+  const [alertMessage, setAlertMessage] = useState<string>("")
 
   const [timer, setTimer] = useState(0)
 
@@ -164,6 +167,14 @@ export default function OnboardingPage() {
           </form>
         </CardContent>
       </Card>
+      <AlertDialogBasic
+        open={alertOpen}
+        onOpenChange={setAlertOpen}
+        title="알림"
+        message={alertMessage}
+        okText="확인"
+        onOk={() => setAlertOpen(false)}
+      />
     </div>
   )
 }

@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -12,12 +11,21 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { createClient } from "@/infra/supabase/shared/client"
+import AlertDialogBasic from "@/components/alert-dialog-basic"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  // 모달 상태
+  const [alertOpen, setAlertOpen] = useState(false)
+  const [alertMessage, setAlertMessage] = useState("")
+  const showAlert = (msg: string) => {
+    setAlertMessage(msg ?? "")
+    setAlertOpen(true)
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,12 +38,12 @@ export default function LoginPage() {
     })
 
     if (error) {
-      alert('이메일 또는 비밀번호가 잘못되었습니다.')
+      showAlert("이메일 또는 비밀번호가 잘못되었습니다.")
       setIsLoading(false)
       return
     }
 
-    window.location.href = '/home'
+    window.location.href = "/home"
   }
 
   const handleSocialLogin = async (provider: "kakao" | "google") => {
@@ -45,11 +53,11 @@ export default function LoginPage() {
       provider,
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { access_type: 'offline', prompt: 'consent' },
+        queryParams: { access_type: "offline", prompt: "consent" },
       },
     })
     if (error) {
-      alert('소셜 로그인 오류: ' + error.message)
+      showAlert("소셜 로그인 오류: " + error.message)
       setIsLoading(false)
     }
   }
@@ -69,7 +77,9 @@ export default function LoginPage() {
         <Card className="border-teal-100 shadow-lg">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center text-gray-800">로그인</CardTitle>
-            <p className="text-sm text-gray-600 text-center">계정에 로그인하여 할인 혜택을 받아보세요</p>
+            <p className="text-sm text-gray-600 text-center">
+              계정에 로그인하여 할인 혜택을 받아보세요
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* 이메일/비밀번호 로그인 */}
@@ -115,7 +125,10 @@ export default function LoginPage() {
 
               <div className="flex items-center justify-between">
                 <label className="flex items-center space-x-2 text-sm">
-                  <input type="checkbox" className="rounded border-gray-300 text-teal-600 focus:ring-teal-500" />
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                  />
                   <span className="text-gray-600">로그인 상태 유지</span>
                 </label>
                 <Link href="/forgot-password" className="text-sm text-teal-600 hover:text-teal-700">
@@ -200,6 +213,16 @@ export default function LoginPage() {
           <p>로그인하시면 개인정보처리방침 및 서비스 이용약관에 동의하는 것으로 간주됩니다.</p>
         </div>
       </div>
+
+      {/* 공통 모달 */}
+      <AlertDialogBasic
+        open={alertOpen}
+        onOpenChange={setAlertOpen}
+        title="알림"
+        message={alertMessage}
+        okText="확인"
+        onOk={() => setAlertOpen(false)}
+      />
     </div>
   )
 }

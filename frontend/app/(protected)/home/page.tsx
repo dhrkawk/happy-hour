@@ -70,7 +70,7 @@ export default function HomePage() {
       <main className="px-4 py-4 space-y-4 pb-24">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">
-            {selectedCategory === "전체" ? "지금 할인 중인 가게" : `${selectedCategory} 할인 가게`}
+            {selectedCategory === "전체" ? "할인/제휴 가게" : `${selectedCategory} 할인 가게`}
           </h2>
           <div className="flex items-center gap-2">
             {(["거리순", "할인순", "할인만", "제휴만"] as const).map((label) => (

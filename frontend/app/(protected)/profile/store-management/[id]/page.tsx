@@ -1,5 +1,5 @@
 "use client"
-import { ArrowLeft, Loader2, ChevronRight, ShoppingBag, Percent, Calendar, Gift, Store } from "lucide-react"
+import { ArrowLeft, ChevronRight, ShoppingBag, Percent, Calendar } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -27,21 +27,7 @@ export default function StoreManagementPage() {
       </header>
 
       <div className="px-4 py-6 space-y-4">
-        <Link href={`/profile/store-management/${storeId}/store`}>
-          <Card className="border-gray-100 hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                    <Store className="w-5 h-5 text-red-600" />
-                  </div>
-                  <span className="font-medium text-gray-800">가게 정보 관리</span>
-                </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* 가게 정보 관리는 제외됨 */}
 
         <Link href={`/profile/store-management/${storeId}/menus`}>
           <Card className="border-gray-100 hover:shadow-md transition-shadow">
@@ -94,3 +80,4 @@ export default function StoreManagementPage() {
     </div>
   )
 }
+

@@ -13,6 +13,9 @@ import { Label } from "@/components/ui/label"
 import { createClient } from "@/infra/supabase/shared/client"
 import { Separator } from "@/components/ui/separator"
 
+import AlertDialogBasic from "@/components/alert-dialog-basic"
+
+
 export default function SignupPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
@@ -25,6 +28,13 @@ export default function SignupPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
 
+  const [alertOpen, setAlertOpen] = useState(false)
+  const [alertMessage, setAlertMessage] = useState("")
+  const showAlert = (msg: string) => {
+    setAlertMessage(msg ?? "")
+    setAlertOpen(true)
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -36,7 +46,7 @@ export default function SignupPage() {
     e.preventDefault()
 
     if (formData.password !== formData.confirmPassword) {
-      alert("비밀번호가 일치하지 않습니다.")
+      showAlert("비밀번호가 일치하지 않습니다.")
       return
     }
 
@@ -53,7 +63,7 @@ export default function SignupPage() {
       })
 
       if (error) {
-        alert(`회원가입 실패: ${error.message}`)
+        showAlert(`회원가입 실패: ${error.message}`)
         setIsLoading(false)
         return
       }
@@ -61,7 +71,7 @@ export default function SignupPage() {
       router.push("/signup/verify-email")
     } catch (err) {
       console.error(err)
-      alert("회원가입 중 오류가 발생했습니다.")
+      showAlert("회원가입 중 오류가 발생했습니다.")
       setIsLoading(false)
     }
   }
@@ -77,7 +87,7 @@ export default function SignupPage() {
         },
       })
       if (error) {
-        alert(`소셜 회원가입 실패: ${error.message}`)
+        showAlert(`소셜 회원가입 실패: ${error.message}`)
         setIsLoading(false)
       }
     } catch (err) {
@@ -280,6 +290,15 @@ export default function SignupPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialogBasic
+        open={alertOpen}
+        onOpenChange={setAlertOpen}
+        title="알림"
+        message={alertMessage}
+        okText="확인"
+        onOk={() => setAlertOpen(false)}
+      />
     </div>
   )
 }
