@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,28 +25,26 @@ export default function MapPage() {
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [selectedSorting, setSelectedSorting] =
-    useState<"거리순" | "할인순" | "할인만" | "제휴만">("거리순");
+    useState<"거리순" | "할인순" | "할인만" | "제휴만">("할인순");
 
   const { data, isLoading: storesLoading } = useGetStoresWithEvents(true);
   const storeList = useSortedAndFilteredStoreList(data ?? [], selectedCategory, selectedSorting);
   const isLoading =  locationLoading || storesLoading;
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto relative overflow-hidden">
+    <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative overflow-hidden">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-teal-100 sticky top-0 z-10">
         <div className="px-4 py-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/home">
-              <Button variant="ghost" size="sm" className="p-2">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
             <div>
               <h1 className="text-lg font-semibold text-gray-800">할인 가게 지도</h1>
-              <p className="text-xs text-gray-500 truncate">
-                {locationLoading ? "위치 찾는 중..." : address || "주소 정보 없음"}
-              </p>
+              <div className="flex items-center gap-1 text-sm text-gray-600 mt-1 truncate">
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">
+                  {locationLoading ? "위치 찾는 중..." : address || locationError || "위치 정보 없음"}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -91,12 +89,12 @@ export default function MapPage() {
 
       {/* 리스트 */}
       <div className="px-4 py-4 space-y-3 pb-24">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-gray-800">
-            {selectedCategory === "전체" ? "근처 할인 가게" : `근처 ${selectedCategory} 가게`}{" "}
+            가게 목록
           </h2>
           <div className="flex items-center gap-2">
-            {(["거리순", "할인순", "할인만", "제휴만"] as const).map((label) => (
+            {(["할인순", "할인만", "제휴만", "거리순"] as const).map((label) => (
               <Badge key={label} variant="secondary" className="bg-white px-3 py-1 rounded-full">
                 <Button
                   variant="link"

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Map, ShoppingBag, User } from "lucide-react"
+import { Home, Map, ShoppingBag, User, Ticket } from "lucide-react"
 
 export default function BottomNavigation() {
   const pathname = usePathname()
@@ -22,7 +22,7 @@ export default function BottomNavigation() {
     },
     {
       href: "/coupon-box",
-      icon: ShoppingBag,
+      icon: Ticket,
       label: "쿠폰함",
       isActive: pathname === "/coupon-box",
     },
@@ -35,7 +35,7 @@ export default function BottomNavigation() {
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-30">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 z-30">
       <div className="flex justify-around max-w-md mx-auto">
         {navItems.map((item) => {
           const IconComponent = item.icon
@@ -44,7 +44,7 @@ export default function BottomNavigation() {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
-                item.isActive ? "text-teal-600 bg-teal-50" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                item.isActive ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
               }`}
             >
               <IconComponent className={`w-6 h-6 mb-1 ${item.isActive ? "stroke-2" : "stroke-1.5"}`} />

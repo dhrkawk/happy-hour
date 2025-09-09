@@ -111,6 +111,21 @@ export type Database = {
           },
         ]
       }
+      daily_active_users: {
+        Row: {
+          active_date: string
+          user_id: string
+        }
+        Insert: {
+          active_date: string
+          user_id: string
+        }
+        Update: {
+          active_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       discounts: {
         Row: {
           created_at: string
@@ -332,6 +347,7 @@ export type Database = {
           lng: number
           menu_category: string[] | null
           name: string
+          naver_link: string | null
           owner_id: string
           partnership: string | null
           phone: string
@@ -347,6 +363,7 @@ export type Database = {
           lng: number
           menu_category?: string[] | null
           name: string
+          naver_link?: string | null
           owner_id: string
           partnership?: string | null
           phone: string
@@ -362,6 +379,7 @@ export type Database = {
           lng?: number
           menu_category?: string[] | null
           name?: string
+          naver_link?: string | null
           owner_id?: string
           partnership?: string | null
           phone?: string

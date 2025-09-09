@@ -48,16 +48,11 @@ export default function ProfilePage() {
   const storeManagementLink = storeId ? `/profile/store-management/${storeId}` : '#'
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
+    <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="px-4 py-4">
           <div className="flex items-center gap-3">
-            <Link href="/home">
-              <Button variant="ghost" size="sm" className="p-2">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
             <h1 className="text-lg font-semibold text-gray-800">마이페이지</h1>
           </div>
         </div>
@@ -69,7 +64,7 @@ export default function ProfilePage() {
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <Avatar className="w-16 h-16">
-                <AvatarFallback className="bg-teal-500 text-white text-xl">{me.name}</AvatarFallback>
+                <AvatarFallback className="bg-blue-500 text-white text-xl">{me.name}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <h2 className="text-xl font-semibold text-gray-800">{me.name}</h2>
@@ -83,13 +78,13 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 gap-4">
           <Card className="border-gray-100">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-teal-600 mb-1">{me.totalBookings}</div>
+              <div className="text-2xl font-bold text-blue-600 mb-1">{me.totalBookings}</div>
               <div className="text-sm text-gray-600">쿠폰 사용 횟수</div>
             </CardContent>
           </Card>
           <Card className="border-gray-100">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-orange-500 mb-1">{me.totalSavingsText}</div>
+              <div className="text-2xl font-bold text-blue-600 mb-1">{me.totalSavingsText}</div>
               <div className="text-sm text-gray-600">총 절약 금액</div>
             </CardContent>
           </Card>

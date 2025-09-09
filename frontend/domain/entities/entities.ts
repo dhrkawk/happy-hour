@@ -223,6 +223,7 @@ export class Store {
     public ownerId: UUID,
     public menuCategory: string[] | null,
     public partnership: string | null,
+    public naver_link: string | null,
   ) {}
   static fromRow(r: any): Store {
     return new Store(
@@ -239,6 +240,7 @@ export class Store {
       r.owner_id,
       r.menu_category,
       r.partnership,
+      r.naver_link,
     );
   }
 }

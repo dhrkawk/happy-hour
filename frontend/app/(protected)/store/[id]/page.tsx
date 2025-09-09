@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { KV } from "../../coupon-box/page";
 
 import { useGetStoreDetail } from "@/hooks/usecases/stores.usecase";
 import { useCouponsByUserId } from "@/hooks/usecases/coupons.usecase";
@@ -20,6 +21,7 @@ import { useCouponCart } from "@/contexts/cart-context";
 
 import { formatTimeLeft } from "@/lib/vm/utils/utils";
 import { useAppContext } from "@/contexts/app-context";
+import { GoToStoreButton } from "@/components/naver-link";
 
 import AlertDialogBasic from "@/components/alert-dialog-basic";
 
@@ -31,6 +33,15 @@ export default function StorePage() {
   const { appState } = useAppContext();
   const { user } = appState;
   const userId = user?.profile?.userId;
+  const WEEKDAYS: Record<string, string> = {
+    MON: "월",
+    TUE: "화",
+    WED: "수",
+    THU: "목",
+    FRI: "금",
+    SAT: "토",
+    SUN: "일",
+  };
   // 장바구니 훅
 
   const { state: cart, setHeader, addItem, updateItem, removeItem, clear } = useCouponCart();
@@ -171,15 +182,33 @@ export default function StorePage() {
   };
 
   // ===== 하단 푸터 요약 계산 =====
-  const { totalItems, totalOriginal, totalPayable, discountPercent } = useMemo(() => {
+  const { totalItems, totalOriginal, totalPayable, totalDiscount, hasGift } = useMemo(() => {
+    // vm이 아직 없으면 계산하지 않음
+    if (!vm || !vm.menus) {
+      return {
+        totalItems: 0,
+        totalOriginal: 0,
+        totalPayable: 0,
+        totalDiscount: 0,
+        hasGift: false,
+      };
+    }
+
     // gifts: 금액 0, 수량 1
     let items = 0;
     let original = 0;
     let payable = 0;
+    let giftValue = 0;
+    let hasGiftItem = false;
 
     for (const it of cart.items as any[]) {
       if (it.type === "gift") {
         items += 1;
+        hasGiftItem = true;
+        const giftMenu = vm.menus.find((m) => m.menuId === it.menu_id);
+        if (giftMenu) {
+          giftValue += giftMenu.price;
+        }
         continue;
       }
       // discount item
@@ -191,18 +220,17 @@ export default function StorePage() {
       payable += fin * qty;
     }
 
-    const percent =
-      original > 0 && payable >= 0 && payable < original
-        ? Math.round(((original - payable) / original) * 100)
-        : 0;
+    const priceDiscount = original > payable ? original - payable : 0;
+    const totalDiscount = priceDiscount + giftValue;
 
     return {
       totalItems: items,
       totalOriginal: original,
       totalPayable: payable,
-      discountPercent: percent,
+      totalDiscount,
+      hasGift: hasGiftItem,
     };
-  }, [cart.items]);
+  }, [cart.items, vm?.menus]);
 
   const handleSubmit = () => {
     if (hasUsableCoupon) {
@@ -216,17 +244,160 @@ export default function StorePage() {
   const cartLines = useMemo(() => {
     return (cart.items as any[]).map((it) => {
       const qty = Number(it.qty ?? (it.type === "gift" ? 1 : 0));
-      const unit = Number((it.final_price ?? it.original_price ?? 0) as number);
-      const total = it.type === "gift" ? 0 : unit * qty;
+      const originalPrice = Number(it.original_price ?? 0);
+      const finalPrice = Number(it.final_price ?? originalPrice);
+
+      const isGift = it.type === "gift";
+      const showDiscount = !isGift && finalPrice < originalPrice;
+
       return {
         key: `${it.type}:${it.menu_id}:${it.ref_id ?? ''}`,
-        name: it.menu_name ?? (it.type === "gift" ? "증정 상품" : "메뉴"),
+        name: it.menu_name ?? (isGift ? "증정 상품" : "메뉴"),
         qty,
-        total,
-        isGift: it.type === "gift",
+        isGift,
+        showDiscount,
+        originalTotal: isGift ? 0 : originalPrice * qty,
+        finalTotal: isGift ? 0 : finalPrice * qty,
       };
     });
   }, [cart.items]);
+
+  const categoryGroupedMenus = useMemo(() => {
+    if (!vm) return null;
+
+    const officialCategories = vm.menuCategory ?? [];
+    const menuCategories = vm.menus.map(m => m.category ?? '기타');
+    const allCategoryNames = Array.from(new Set([...officialCategories, ...menuCategories]));
+
+    return allCategoryNames.map(category => {
+      const itemsInCategory = vm.menus.filter(m => (m.category ?? '기타') === category);
+      return (
+        <div key={category}>
+          <h4 className="text-lg font-semibold text-gray-700 mb-4">{category}</h4>
+          {itemsInCategory.length > 0 ? (
+            <div className="space-y-2">
+              {itemsInCategory.map((m: MenuWithDiscountVM) => {
+                const showDiscount =
+                  typeof m.finalPrice === "number" &&
+                  Number.isFinite(m.finalPrice) &&
+                  m.finalPrice! < m.price;
+
+                const qty = getMenuQty(m.menuId);
+                const handleAddOne = () => setMenuQty(m, qty + 1);
+                const handleSubOne = () => setMenuQty(m, qty - 1 <= 0 ? 0 : qty - 1);
+
+                return (
+                  <Card key={m.menuId} className="border-gray-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        {/* 썸네일 */}
+                        {m.thumbnail ? (
+                          <img
+                            src={m.thumbnail}
+                            alt=""
+                            className="w-16 h-16 object-cover rounded-lg shrink-0"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg bg-gray-100 shrink-0" />
+                        )}
+
+                        {/* 본문 */}
+                        <div className="flex-1">
+                          {/* 제목 + 담기 버튼 */}
+                          <div className="flex items-center justify-between">
+                            <h4
+                              className={`font-bold text-gray-800 text-lg leading-tight truncate ${
+                                showDiscount ? "mb-0.5" : "mb-1.5"
+                              }`}
+                            >
+                              {m.name}
+                            </h4>
+
+                            <div>
+                              {qty <= 0 ? (
+                                <Button
+                                size="sm"
+                                variant="secondary"
+                                className="ml-1 h-6 px-2 text-[12px] h-8 px-3"
+                                onClick={() => setMenuQty(m, 1)}
+                              >
+                                담기
+                              </Button>
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-4 h-8 p-0"
+                                    onClick={handleSubOne}
+                                  >
+                                    <Minus className="w-8 h-8" />
+                                  </Button>
+                                  <span className="w-6 text-center">{qty}</span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-4 h-8 p-0"
+                                    onClick={handleAddOne}
+                                  >
+                                    <Plus className="w-8 h-8" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 설명 */}
+                          {m.description && (
+                            <p
+                              className={`text-gray-600 text-sm ${
+                                showDiscount ? "mb-1" : "mb-2"
+                              }`}
+                            >
+                              {m.description}
+                            </p>
+                          )}
+
+                          {/* 가격 영역 */}
+                          {showDiscount ? (
+                            <>
+                              {/* 원가 */}
+                              <span className="block text-gray-400 text-sm line-through leading-4">
+                                {m.price.toLocaleString()}원
+                              </span>
+                              {/* 할인가 + 할인율 */}
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-base font-bold text-blue-600 leading-5">
+                                  {m.finalPrice!.toLocaleString()}원
+                                </span>
+                                {typeof m.discountRate === "number" && (
+                                  <Badge className="bg-blue-600 text-white font-medium">
+                                    {m.discountRate}% 할인
+                                  </Badge>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center mt-1.5">
+                              <span className="text-base font-medium text-gray-900 leading-5">
+                                {m.price.toLocaleString()}원
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 pl-2">이 카테고리에 등록된 메뉴가 없습니다.</p>
+          )}
+        </div>
+      );
+    });
+  }, [vm, getMenuQty, setMenuQty]);
 
   // 로딩/에러 화면
   if (isLoading || !vm) {
@@ -284,7 +455,7 @@ export default function StorePage() {
         </div>
       </div>
 
-      <div className="px-4 py-6 bg-white border-b border-gray-100">
+      <div className="px-4 py-6  bg-gray-50 border-b border-gray-100">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-3">
@@ -295,44 +466,73 @@ export default function StorePage() {
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-4 mb-3">
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-gray-600">
                 <MapPin className="w-5 h-5" />
                 <span className="font-medium">{vm.address}</span>
               </div>
-              <Badge variant="outline" className="border-gray-300 text-gray-600">{vm.category}</Badge>
-            </div>
-            <div className="text-sm text-gray-500">
-              {typeof vm.distanceText === "string" ? vm.distanceText : "거리 정보 없음"}
             </div>
           </div>
+          <GoToStoreButton naverLink={vm.naver_link} />
         </div>
-      </div>
 
       {/* 이벤트 요약 */}
       {vm.event && (
-        <div className="px-4 pt-6">
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Percent className="w-4 h-4 text-blue-700" />
-                <h4 className="font-bold text-blue-900">{vm.event.title}</h4>
-              </div>
-              <div className="flex items-center gap-1 text-orange-600 font-medium">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">{formatTimeLeft(vm.event.endDate)}</span>
-              </div>
-            </div>
-            {vm.event.description && (
-              <p className="text-sm text-blue-900 mt-2">{vm.event.description}</p>
-            )}
-          </div>
+      <div
+        className="rounded-xl border border-white-200 bg-white p-4 
+                  shadow-sm"
+      >
+        {/* 타이틀 */}
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-base font-bold">
+            {vm.event.title || "이벤트 조건"}
+          </span>
         </div>
-      )}
+
+        {/* 내용 */}
+        <div className="space-y-2 text-sm text-gray-700">
+          {/* 기간 */}
+          <KV
+            label="이벤트 기간"
+            value={
+              vm.event.startDate && vm.event.endDate
+                ? `${vm.event.startDate} ~ ${vm.event.endDate}`
+                : "—"
+            }
+          />
+
+          {/* 시간 */}
+          <KV
+            label="사용 가능 시간"
+            value={
+              vm.event.happyHourStartTime && vm.event.happyHourEndTime
+                ? `${vm.event.happyHourStartTime.slice(0, 5)} ~ ${vm.event.happyHourEndTime.slice(0, 5)}`
+                : "—"
+            }
+          />
+
+          {/* 요일 */}
+          <KV
+            label="사용 가능 요일"
+            value={(vm.event.weekdays ?? [])
+              .map((d: string) => WEEKDAYS[d] ?? d)
+              .join(" ") || "—"}
+          />
+
+          {/* 설명 */}
+          {vm.event.description && (
+            <KV label="설명" value={vm.event.description} />
+          )}
+        </div>
+      </div>
+    )}
+      </div>
+
 
       {/* === Gift 섹션: 상단 배치 + 토글 체크박스 (수량 1 고정) === */}
+      <div className="px-4 py-6 pb-40 bg-gray-50 space-y-8"> {/* 푸터와 여백 확보 */}
       {(vm.gifts?.length ?? 0) > 0 && (
-        <div className="px-4 py-6">
+        <div>
           <h3 className="text-xl font-bold text-gray-800 mb-4">증정</h3>
           <div className="space-y-3">
             {vm.gifts.map((g) => {
@@ -340,105 +540,29 @@ export default function StorePage() {
               return (
                 <div
                   key={g.giftOptionId}
-                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                  className="flex items-center bg-white justify-between p-3 border border-gray-200 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <Checkbox checked={checked} onCheckedChange={(c) => toggleGift(g, Boolean(c))} />
                     <Gift className="w-5 h-5 text-green-700" />
                     <div>
                       <div className="font-medium text-gray-900">{g.name}</div>
                       {g.description && <div className="text-sm text-gray-600">{g.description}</div>}
                     </div>
-                  </div>
-                  <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-500">
                     {g.remaining != null ? `잔여 ${g.remaining}` : "재고 정보 없음"}
                   </div>
+                  </div>
+                  <Checkbox checked={checked} onCheckedChange={(c) => toggleGift(g, Boolean(c))} />
                 </div>
               );
             })}
           </div>
         </div>
       )}
-
-      {/* 메뉴 리스트: 이미지 좌측 + 담기/수량 컨트롤 */}
-      <div className="px-4 py-6 pb-40"> {/* 푸터와 여백 확보 */}
+      {/* 메뉴 리스트: 카테고리별 그룹 */}
         <h3 className="text-xl font-bold text-gray-800 mb-6">메뉴</h3>
-        <div className="space-y-4">
-          {vm.menus.map((m: MenuWithDiscountVM) => {
-            const showDiscount =
-              typeof m.finalPrice === "number" &&
-              Number.isFinite(m.finalPrice) &&
-              m.finalPrice! < m.price;
-
-            const qty = getMenuQty(m.menuId);
-            const handleAddOne = () => setMenuQty(m, qty + 1);
-            const handleSubOne = () => setMenuQty(m, qty - 1 <= 0 ? 0 : qty - 1);
-
-            return (
-              <Card key={m.menuId} className="border-gray-200">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    {/* 이미지 왼쪽 */}
-                    {m.thumbnail ? (
-                      <img src={m.thumbnail} alt="" className="w-20 h-20 object-cover rounded-lg shrink-0" />
-                    ) : (
-                      <div className="w-20 h-20 rounded-lg bg-gray-100 shrink-0" />
-                    )}
-
-                    {/* 내용 우측 */}
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 pr-3">
-                          <h4 className="font-bold text-gray-800 text-lg mb-2">{m.name}</h4>
-                          {m.description && <p className="text-gray-600 mb-3">{m.description}</p>}
-                          <div className="flex items-center gap-3">
-                            {showDiscount ? (
-                              <>
-                                <span className="text-gray-400 line-through font-medium">
-                                  {m.price.toLocaleString()}원
-                                </span>
-                                <span className="text-xl font-bold text-blue-600">
-                                  {m.finalPrice!.toLocaleString()}원
-                                </span>
-                                {typeof m.discountRate === "number" && (
-                                  <Badge className="bg-blue-600 text-white font-medium">
-                                    {m.discountRate}% 할인
-                                  </Badge>
-                                )}
-                              </>
-                            ) : (
-                              <span className="text-xl font-bold text-gray-900">
-                                {m.price.toLocaleString()}원
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 담기 / 수량 컨트롤 */}
-                        <div className="flex items-center gap-2">
-                          {qty <= 0 ? (
-                            <Button size="sm" onClick={() => setMenuQty(m, 1)} className="bg-gray-900 hover:bg-gray-800 text-white">
-                              담기
-                            </Button>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <Button variant="outline" size="icon" onClick={handleSubOne}>
-                                <Minus className="w-4 h-4" />
-                              </Button>
-                              <span className="w-6 text-center font-semibold">{qty}</span>
-                              <Button variant="outline" size="icon" onClick={handleAddOne}>
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="space-y-8">
+          {categoryGroupedMenus}
         </div>
       </div>
 
@@ -469,6 +593,9 @@ export default function StorePage() {
         <SheetContent side="bottom" className="max-w-xl mx-auto" aria-describedby="cart-sheet-desc">
           <SheetHeader>
             <SheetTitle>장바구니</SheetTitle>
+            <SheetDescription>
+              메뉴를 확인해주세요
+            </SheetDescription>
           </SheetHeader>
 
           <div className="mt-4 space-y-3">
@@ -481,10 +608,17 @@ export default function StorePage() {
                     <div className="flex items-center gap-2 min-w-0">
                       {line.isGift && <Gift className="w-4 h-4 text-green-700 shrink-0" />}
                       <span className="truncate text-gray-800">{line.name}</span>
+                      <span className="text-gray-600">x{line.qty}</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-gray-600">x{line.qty}</span>
-                      <span className="font-semibold text-gray-900">{line.total.toLocaleString()}원</span>
+                      <div className="flex items-center gap-2 font-semibold text-gray-900">
+                        {line.showDiscount && (
+                          <span className="text-gray-400 line-through">
+                            {line.originalTotal.toLocaleString()}원
+                          </span>
+                        )}
+                        <span>{line.finalTotal.toLocaleString()}원</span>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -493,8 +627,10 @@ export default function StorePage() {
 
             <div className="flex items-end justify-between">
               <div className="text-sm text-gray-600">
-                {discountPercent > 0 ? (
-                  <span className="text-blue-600 font-medium">{discountPercent}% 할인 적용됨</span>
+                {(totalDiscount > 0 || hasGift) ? (
+                  <span className="text-blue-600 font-medium">
+                    {totalDiscount.toLocaleString()}원 할인/증정 적용됨
+                  </span>
                 ) : (
                   <span>할인 없음</span>
                 )}

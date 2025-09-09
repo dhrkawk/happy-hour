@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCreateCouponWithItems } from "@/hooks/usecases/coupons.usecase";
+import { KV } from "../coupon-box/page";
 
 // 전역 장바구니(Context)
 import { useCouponCart } from "@/contexts/cart-context";
@@ -45,11 +46,21 @@ export default function CouponRegisterPage() {
     SUN: "일",
   };
 
+  const WEEKDAYS: Record<string, string> = {
+    MON: "월",
+    TUE: "화",
+    WED: "수",
+    THU: "목",
+    FRI: "금",
+    SAT: "토",
+    SUN: "일",
+  };
+
   // 빈 카트 처리
   const isEmpty = (cart.items?.length ?? 0) === 0;
 
   // 주문/합계 계산 (gift는 금액 0)
-  const { menuItems, totalPrice, originalPrice, discountPercent } = useMemo(() => {
+  const { menuItems, totalPrice, originalPrice, totalDiscount } = useMemo(() => {
     let total = 0;
     let original = 0;
 
@@ -85,16 +96,13 @@ export default function CouponRegisterPage() {
         };
       }) ?? [];
 
-    const percent =
-      original > 0 && total >= 0 && total < original
-        ? Math.round(((original - total) / original) * 100)
-        : 0;
+    const discount = original > total ? original - total : 0;
 
     return {
       menuItems: items,
       totalPrice: total,
       originalPrice: original,
-      discountPercent: percent,
+      totalDiscount: discount,
     };
   }, [cart.items]);
 
@@ -119,9 +127,6 @@ export default function CouponRegisterPage() {
       const dto = toDTO();
       const res = await createMutate.mutateAsync(dto); // { couponId }
       const couponId = (res as any)?.couponId;
-      // 성공 후 장바구니 비우기(선택)
-      clear();
-
       // 상세로 이동(권장) 또는 보관함으로 이동
       if (couponId) router.push(`/coupon-box/${couponId}`);
       else router.push(`/coupons`);
@@ -133,7 +138,7 @@ export default function CouponRegisterPage() {
   // 빈 장바구니 뷰
   if (isEmpty) {
     return (
-      <div className="min-h-screen bg-white max-w-xl mx-auto relative">
+      <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative">
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="px-4 py-4">
             <div className="flex items-center gap-3">
@@ -159,7 +164,7 @@ export default function CouponRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
+    <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="px-4 py-4">
@@ -221,49 +226,53 @@ export default function CouponRegisterPage() {
         </Card>
 
         {/* 가게/이벤트 정보 */}
-        <Card className="border-gray-200 mb-6">
-          <CardContent className="p-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">
-              {cart.event_title ?? "이벤트"}
-            </h2>
 
-            <div className="flex items-center gap-2 mb-3">
-              <Badge className="bg-gray-900 text-white flex items-center gap-1">
-                {getEventIcon(eventType)}
-                {eventType === "discount" && (discountPercent > 0 ? `${discountPercent}% 할인` : "할인")}
-                {eventType === "gift" && "증정"}
-                {eventType === "combo" && (discountPercent > 0 ? `${discountPercent}% 세트할인` : "세트")}
-              </Badge>
+        <div
+          className="rounded-xl border border-gray-200 bg-white p-3
+                            shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] mb-6"
+        >
+          <div className="mb-1.5 text-m font-medium text-500">
+            {cart.event_title}
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 text-sm m:grid-cols-3">
+            <KV
+              label="사용 가능 시간"
+              value={
+                <>
+                  {cart.happy_hour_start_time?.slice(0, 5)} ~{" "}
+                  {cart.happy_hour_end_time?.slice(0, 5)}
+                </>
+              }
+            />
+            <div className="sm:col-span-1">
+              <KV
+                label="사용 가능 요일"
+                value={(cart.weekdays || [])
+                  .map((d) => WEEKDAYS[d] ?? d)
+                  .join(" ")}
+              />
             </div>
-
-            {(cart.happy_hour_start_time || cart.happy_hour_end_time || (cart.weekdays ?? []).length > 0) && (
-              <div className="p-3 bg-gray-50 rounded-lg space-y-2">
-                {cart.happy_hour_start_time && cart.happy_hour_end_time && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock className="w-4 h-4" />
-                    <span>
-                      {cart.happy_hour_start_time} ~ {cart.happy_hour_end_time}
-                    </span>
-                  </div>
-                )}
-                {(cart.weekdays ?? []).length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4" />
-                    <span>{cart.weekdays.map(day => weekdayLabels[day] ?? day).join(", ")}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            <KV
+              label="쿠폰 만료 날짜"
+              value={
+                <>
+                  {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                    .toISOString()
+                    .slice(0, 10)}
+                </>
+              }
+            />
+          </div>
+        </div>
 
         {/* 적용된 혜택 안내 */}
-        {discountPercent > 0 && (
+        {totalDiscount > 0 && (
           <Card className="border-blue-200 bg-blue-50 mb-6">
             <CardContent className="p-4">
               <h3 className="font-semibold text-blue-700 mb-3">할인 안내</h3>
               <p className="text-sm text-blue-700">
-                선택한 메뉴에 총 {discountPercent}%의 할인이 적용되어&nbsp;
+                총 {totalDiscount.toLocaleString()}원의 할인이 적용되어&nbsp;
                 <span className="font-semibold">
                   {originalPrice.toLocaleString()}원
                 </span>
@@ -299,7 +308,7 @@ export default function CouponRegisterPage() {
         {/* 발급 버튼 */}
         <Button
           onClick={handleGoIssue}
-          className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 text-lg font-semibold"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold"
         >
           교환권 발급받기
         </Button>

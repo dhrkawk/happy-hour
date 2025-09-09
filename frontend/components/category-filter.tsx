@@ -25,8 +25,8 @@ export default function CategoryFilter({ selectedCategory, onCategoryChange }: C
           onClick={() => onCategoryChange(category.id)}
           className={`flex-shrink-0 whitespace-nowrap ${
             selectedCategory === category.id
-              ? "bg-teal-400 hover:bg-teal-500 text-white"
-              : "bg-white hover:bg-teal-50 text-gray-700 border-gray-300"
+              ? "bg-blue-400 hover:bg-blue-500 text-white"
+              : "bg-white hover:bg-blue-50 text-gray-700 border-gray-300"
           }`}
         >
           <span className="mr-1">{category.emoji}</span>

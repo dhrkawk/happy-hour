@@ -2,6 +2,7 @@
 'use client';
 
 import type { Coupon, CouponItem, CouponWithItems } from '@/domain/entities/entities';
+import { StringValidation } from 'zod';
 
 /* ---------------------------------- Types --------------------------------- */
 
@@ -18,7 +19,6 @@ export type CouponItemVM = {
   discountRate?: number | null;
 
   // 표시 전용
-  priceText: string;       // 예: "5,000원", "무료", "-"
   discountBadge?: string;  // 예: "20% 할인", "증정"
 };
 
@@ -27,6 +27,10 @@ export type CouponVM = {
 
   eventTitle?: string | null;
   storeName?: string | null;
+  storeId: string;
+  happyHourStartTime: string;
+  happyHourEndTime: string;
+  weekdays: string[];
 
   status: CouponStatus;
   statusText: string;
@@ -40,7 +44,7 @@ export type CouponVM = {
 
   totalQty: number;
   totalPrice?: number | null;
-  totalPriceText: string;
+  totalOriginalPrice?: number | null;
 
   items: CouponItemVM[];
 };
@@ -106,27 +110,32 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
     originalPrice: (it as any).originalPrice ?? (it as any).original_price ?? null,
     finalPrice: (it as any).finalPrice ?? (it as any).final_price ?? null,
     discountRate: (it as any).discountRate ?? (it as any).discount_rate ?? null,
-    priceText: buildItemPriceText(it),
     discountBadge: buildItemDiscountBadge(it),
   }));
 
   const totalQty = itemVMs.reduce((s, i) => s + (i.qty ?? 0), 0);
-  const totalPriceRaw = itemVMs.reduce((sum, i) => {
-    if (i.isGift) return sum; // 증정은 합계에서 제외
-    const unit = typeof i.finalPrice === 'number'
-      ? i.finalPrice
-      : typeof i.originalPrice === 'number'
-        ? i.originalPrice
-        : 0;
-    return sum + unit * (i.qty ?? 0);
-  }, 0);
-  const totalPrice = Number.isFinite(totalPriceRaw) ? totalPriceRaw : null;
-  const totalPriceText = totalPrice === 0 ? '무료' : fmtMoney(totalPrice ?? undefined);
+  
+  const { totalPrice, totalOriginalPrice } = itemVMs.reduce((acc, i) => {
+    const qty = i.qty ?? 0;
+    const finalPrice = typeof i.finalPrice === 'number' ? i.finalPrice : (typeof i.originalPrice === 'number' ? i.originalPrice : 0);
+    const originalPrice = typeof i.originalPrice === 'number' ? i.originalPrice : finalPrice;
+    
+    if (!i.isGift) {
+        acc.totalPrice += finalPrice * qty;
+        acc.totalOriginalPrice += originalPrice * qty;
+    }
+    
+    return acc;
+  }, { totalPrice: 0, totalOriginalPrice: 0 });
 
   return {
     id: coupon.id,
     eventTitle: (coupon as any).eventTitle ?? (coupon as any).event_title ?? undefined,
     storeName: (coupon as any).storeName ?? (coupon as any).store_name ?? undefined,
+    storeId: coupon.storeId,
+    weekdays: coupon.weekdays,
+    happyHourStartTime: coupon.happyHourStartTime,
+    happyHourEndTime: coupon.happyHourEndTime,
 
     status: coupon.status as CouponStatus,
     statusText: statusText(coupon.status),
@@ -140,7 +149,7 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
 
     totalQty,
     totalPrice,
-    totalPriceText,
+    totalOriginalPrice,
 
     items: itemVMs,
   };
@@ -149,12 +158,16 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
 export type CouponListItemVM = {
   id: string;
   storeId: string;
-  title: string;
+  eventTitle: string;
+  storeName: string;
   status: CouponStatus; // 추가
   statusText: string;
   isExpired: boolean;
   createdAtText: string;
   expiresAtText?: string;
+  happyHourStartTime: string;
+  happyHourEndTime: string;
+  weekdays: string[];
 };
 
 export function buildCouponListVM(coupons: Coupon[]): CouponListItemVM[] {
@@ -162,16 +175,19 @@ export function buildCouponListVM(coupons: Coupon[]): CouponListItemVM[] {
     const expired = c.status === 'expired' || isPast((c as any).expiredTime);
     const eventTitle = (c as any).eventTitle ?? (c as any).event_title ?? '이벤트 쿠폰';
     const storeName = (c as any).storeName ?? (c as any).store_name;
-    const title = storeName ? `[${storeName}] - ${eventTitle}` : eventTitle;
     return {
       id: c.id,
       storeId: c.storeId,
-      title,
+      eventTitle: eventTitle,
+      storeName: storeName,
       status: c.status as CouponStatus, // 추가
       statusText: statusText(c.status),
       isExpired: expired,
       createdAtText: fmtDateTime((c as any).createdAt ?? (c as any).created_at) ?? '',
       expiresAtText: fmtDateTime((c as any).expiredTime ?? (c as any).expired_time, { dateStyle: 'medium' }),
+      happyHourStartTime: c.happyHourStartTime,
+      happyHourEndTime: c.happyHourEndTime,
+      weekdays: c.weekdays,
     };
   });
 }

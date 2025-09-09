@@ -13,6 +13,7 @@ import CategoryFilter from "@/components/category-filter";
 
 import { useAppContext } from "@/contexts/app-context";
 import { useGetStoresWithEvents, useSortedAndFilteredStoreList } from "@/hooks/usecases/stores.usecase";
+import Image from "next/image";
 
 export default function HomePage() {
   const { appState, fetchLocation } = useAppContext();
@@ -21,7 +22,7 @@ export default function HomePage() {
   
   // 화면 상태 (카테고리/정렬)
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
-  const [selectedSorting, setSelectedSorting] = useState<"거리순" | "할인순" | "할인만" | "제휴만">("거리순");
+  const [selectedSorting, setSelectedSorting] = useState<"거리순" | "할인순" | "할인만" | "제휴만">("할인순");
 
   // 서버에서 최소 데이터만: 활성 스토어 + 활성 이벤트 포함
   const {data, isLoading, error} = useGetStoresWithEvents(true);
@@ -30,13 +31,16 @@ export default function HomePage() {
   const isSkeletonLoading = locationLoading || isLoading;
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto relative">
+    <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative">
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
         <div className="px-4 pt-4 pb-3">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold text-teal-600">아워캠퍼스</h1>
+              <div className="flex gap-1">
+              <Image src="/logo.svg" alt="🍽️" width={32} height={32} />
+              <h1 className="text-2xl font-bold text-blue-600">OURCAMPUS</h1>
+              </div>
               <div className="flex items-center gap-1 text-sm text-gray-600 mt-1 truncate">
                 <MapPin className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">
@@ -68,12 +72,12 @@ export default function HomePage() {
 
       {/* 가게 리스트 */}
       <main className="px-4 py-4 space-y-4 pb-24">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-gray-800">
-            {selectedCategory === "전체" ? "할인/제휴 가게" : `${selectedCategory} 할인 가게`}
+            가게 목록
           </h2>
           <div className="flex items-center gap-2">
-            {(["거리순", "할인순", "할인만", "제휴만"] as const).map((label) => (
+            {(["할인순", "할인만", "제휴만","거리순"] as const).map((label) => (
               <Badge key={label} variant="secondary" className="bg-white vorder-gray-700 px-3 py-1 rounded-full">
                 <Button
                   variant="link"
@@ -96,7 +100,7 @@ export default function HomePage() {
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">해당 카테고리의 할인 가게가 없습니다</h3>
             <p className="text-gray-600 mb-4">다른 카테고리를 선택해보세요!</p>
-            <Button onClick={() => setSelectedCategory("전체")} className="bg-teal-500 hover:bg-teal-600 text-white">
+            <Button onClick={() => setSelectedCategory("전체")} className="bg-blue-500 hover:bg-blue-600 text-white">
               전체 가게 보기
             </Button>
           </div>
