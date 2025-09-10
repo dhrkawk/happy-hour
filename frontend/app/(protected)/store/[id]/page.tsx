@@ -72,6 +72,7 @@ export default function StorePage() {
       store_id: vm.id,
       event_id: vm.event?.id,
       event_title: vm.event?.title ?? "",
+      event_description: vm.event?.description,
       happy_hour_start_time: (vm.event?.happyHourStartTime ?? "00:00:00").slice(0, 5), // HH:MM
       happy_hour_end_time: (vm.event?.happyHourEndTime ?? "00:00:00").slice(0, 5), // HH:MM
       weekdays: vm.event?.weekdays?.length ? vm.event.weekdays : ["MON"],

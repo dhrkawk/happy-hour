@@ -270,6 +270,11 @@ export default function CouponRegisterPage() {
                 </>
               }
             />
+             <KV
+              label="설명"
+              value={(cart.event_description)
+              }
+            />
           </div>
         </div>
 

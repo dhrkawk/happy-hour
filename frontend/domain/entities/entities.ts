@@ -54,6 +54,7 @@ export class Coupon {
     public happyHourEndTime: TimeHHMMSS,
     public weekdays: string[],
     public eventTitle: string,
+    public eventDescription: string | null,
     public activatedAt: Timestamp | null, // 추가된 필드
   ) {}
   static fromRow(r: any): Coupon {
@@ -70,6 +71,7 @@ export class Coupon {
       r.happy_hour_end_time,
       r.weekdays,
       r.event_title,
+      r.event_description,
       r.activated_at // 추가된 매핑
     );
   }

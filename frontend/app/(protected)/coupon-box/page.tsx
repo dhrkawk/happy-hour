@@ -201,7 +201,7 @@ export default function CouponBoxPage() {
 
                     <div className="grid grid-cols-1 gap-2 text-sm sm:grid-rows-3">
                       <KV
-                        label="시간"
+                        label="사용 가능 시간"
                         value={
                           <>
                             {coupon.happyHourStartTime?.slice(0, 5)} ~{" "}
@@ -209,10 +209,14 @@ export default function CouponBoxPage() {
                           </>
                         }
                       />
-                      <KV label="요일" value={weekdaysLabel || "—"} />
+                      <KV label="사용 가능 요일" value={weekdaysLabel || "—"} />
                       <KV
-                        label="만료"
+                        label="유효기간"
                         value={coupon.expiresAtText ? coupon.expiresAtText : "만료 정보 없음"}
+                      />
+                      <KV
+                        label="설명"
+                        value={coupon.eventDescription ? coupon.eventDescription : "정보 없음"}
                       />
                     </div>
                   </div>
