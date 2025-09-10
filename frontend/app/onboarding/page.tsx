@@ -51,6 +51,7 @@ export default function OnboardingPage() {
       total_savings: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      marketing_consent: agreedMarketing,
     })
 
     setIsLoading(false)

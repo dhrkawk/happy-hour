@@ -1,9 +1,21 @@
+// app/layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
-import { Providers } from "./providers"; // 여기 import
+import { Providers } from "./providers";
 
-const inter = Inter({ subsets: ["latin"] });
+// 👉 SUIT Variable (woff2) 폰트 등록
+const suit = localFont({
+  variable: "--font-suit",
+  src: [
+    {
+      path: "../public/fonts/SUIT-Variable.woff2",
+      weight: "100 900", // Variable font는 범위 지정
+      style: "normal",
+    },
+  ],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "해피아워 - 할인 가게 찾기",
@@ -17,12 +29,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
-      <body className={inter.className}>
+    <html lang="ko" className={suit.variable}>
+      <body className="font-suit">
         <Providers>{children}</Providers>
       </body>
     </html>
   );
 }
-
-

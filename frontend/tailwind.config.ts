@@ -76,7 +76,6 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -96,6 +95,26 @@ const config: Config = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      fontFamily: {
+        // SUIT Variable 직접 연결
+        suit: [
+          "var(--font-suit)",
+          "ui-sans-serif",
+          "system-ui",
+          "Apple SD Gothic Neo",
+          "Noto Sans KR",
+          "sans-serif",
+        ],
+        // 기본 sans도 SUIT Variable로 덮어쓰려면 ↓
+        sans: [
+          "var(--font-suit)",
+          "ui-sans-serif",
+          "system-ui",
+          "Apple SD Gothic Neo",
+          "Noto Sans KR",
+          "sans-serif",
+        ],
       },
     },
   },
