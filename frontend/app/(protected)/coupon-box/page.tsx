@@ -154,19 +154,14 @@ export default function CouponBoxPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <TicketChip />
-                        <h3 className="truncate text-[15px] font-semibold text-gray-900 tracking-tight">
-                          {coupon.storeName}
-                        </h3>
-
-                        {/* 가게 보러가기 버튼 (storeName 옆) */}
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="ml-1 h-6 px-2 text-[12px]"
+                        <div
                           onClick={(e) => handleGoStore(e, coupon)}
+                          className="cursor-pointer"
                         >
-                          가게 보기
-                        </Button>
+                          <h3 className="truncate text-[15px] font-semibold text-gray-900 tracking-tight hover:underline">
+                            {coupon.storeName}
+                          </h3>
+                        </div>
                       </div>
                     </div>
 

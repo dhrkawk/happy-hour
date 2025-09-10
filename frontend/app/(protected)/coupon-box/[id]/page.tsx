@@ -49,7 +49,7 @@ function ActivationTimerBanner({ vm, onTimeEnd }: { vm: CouponVM, onTimeEnd: () 
     <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6 text-center">
       <p className="text-sm text-blue-700 mb-2">아래 쿠폰 번호를 점원에게 보여주세요.</p>
       <div className="bg-white text-blue-600 font-mono text-2xl tracking-widest p-3 rounded-lg mb-4 inline-block">
-        {vm.id}
+        {vm.id.slice(-12)}
       </div>
       <div className="text-blue-800">
         <p className="text-sm">남은 시간</p>
