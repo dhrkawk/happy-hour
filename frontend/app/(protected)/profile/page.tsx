@@ -2,6 +2,7 @@
 
 import { ArrowLeft, Settings, LogOut, ChevronRight, ShoppingBag, MessageCircle, Store } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation" // ✅ 추가
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -10,19 +11,19 @@ import { createClient } from "@/infra/supabase/shared/client"
 import { useGetUserProfile } from "@/hooks/usecases/profile.usecase"
 import { Loader2 } from "lucide-react"
 import { useGetMyStoreId } from "@/hooks/usecases/stores.usecase"
-import { useMemo } from "react"
 
 export default function ProfilePage() {
+  const router = useRouter() // ✅ 추가
+
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
     window.location.href = '/login'
   }
- 
+
   const { data: me, isLoading: meLoading, error: meError } = useGetUserProfile();
-  const { data: storeId, isLoading: storeIdLoading, error: storeIdError } = useGetMyStoreId();
-  const sid = useMemo(() => (storeId ? String(storeId) : ""), [storeId]);
-  
+  const { data: storeIds, isLoading: storeIdLoading, error: storeIdError } = useGetMyStoreId();
+
   if (meLoading || storeIdLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -45,7 +46,29 @@ export default function ProfilePage() {
   }
 
   const isStoreOwnerOrAdmin = me.role === 'store_owner' || me.role === 'admin'
-  const storeManagementLink = storeId ? `/profile/store-management/${storeId}` : '#'
+  const count = storeIds?.length ?? 0
+  const primaryStoreId = storeIds?.[0]
+
+  // ✅ 가게 관리 카드 클릭 시 분기 이동
+  const handleStoreManageClick = () => {
+    if (count === 0) {
+      router.push("/profile/store-registration")
+    } else if (count === 1 && primaryStoreId) {
+      router.push(`/profile/store-management/${primaryStoreId}`)
+    } else {
+      router.push("/profile/store-selection")
+    }
+  }
+
+  // 라벨도 상황에 맞게 표시
+  const storeManageLabel =
+    count === 0 ? "나의 가게 등록하기" : count === 1 ? "가게 관리" : "가게 선택 후 관리"
+
+  const storeManageIconColor =
+    count === 0 ? "text-blue-600" : count === 1 ? "text-green-600" : "text-emerald-600"
+
+  const storeManageBgColor =
+    count === 0 ? "bg-blue-100" : count === 1 ? "bg-green-100" : "bg-emerald-100"
 
   return (
     <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative">
@@ -124,40 +147,24 @@ export default function ProfilePage() {
             </Card>
           </Link>
 
+          {/* ✅ 가게 관리 카드: 클릭 시 분기 이동 */}
           {isStoreOwnerOrAdmin && (
-            sid != "" ? (
-              <Link href={`/profile/store-management/${encodeURIComponent(sid)}`}>
-                <Card className="border-gray-100 hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                          <Store className="w-5 h-5 text-green-600" />
-                        </div>
-                        <span className="font-medium text-gray-800">가게 관리</span>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
+            <Card
+              className="border-gray-100 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={handleStoreManageClick}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 ${storeManageBgColor} rounded-lg flex items-center justify-center`}>
+                      <Store className={`w-5 h-5 ${storeManageIconColor}`} />
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ) : (
-              <Link href="/profile/store-registration">
-                <Card className="border-blue-100 hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Store className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <span className="font-medium text-gray-800">나의 가게 등록하기</span>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            )
+                    <span className="font-medium text-gray-800">{storeManageLabel}</span>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           <Card

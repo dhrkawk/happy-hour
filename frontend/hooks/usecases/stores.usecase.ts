@@ -8,7 +8,6 @@ import { buildStoreDetailVM, buildStoreListVMs, enrichStoreDetailVM, StoreListIt
 import { Id } from '@/domain/shared/repository';
 import { useAppContext } from '@/contexts/app-context';
 import { distanceKm, distanceText } from '@/lib/vm/utils/utils';
-import { useGetEventDetail } from '../events/use-get-event-detail';
 import { useGetEventWithDiscountsAndGifts } from './events.usecase';
 import { StoreDetailVM } from '@/lib/vm/store.vm';
 import { useMemo } from 'react';
@@ -124,7 +123,7 @@ export function useGetMyStoreId() {
 
   return useQuery({
     queryKey: key,
-    queryFn: () => jsonFetch<string>('/api/stores/mine'),
+    queryFn: () => jsonFetch<string[]>('/api/stores/mine'),
     select: (d) => d ?? null,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
