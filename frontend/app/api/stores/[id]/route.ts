@@ -18,7 +18,7 @@ export async function GET(
   const onlyActiveEvents = parseBool(searchParams.get('onlyActiveEvents'));
 
   try {
-    const {id} = await params;
+    const { id } = await params;
     const data = await repo.getStoreWithEventsAndMenusByStoreId(id, {
       onlyActiveEvents,
     });
