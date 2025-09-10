@@ -165,8 +165,8 @@ export default function StoreEventsPage() {
   const { data: menusData, isLoading: menusLoading } =
     useGetMenusByStoreId(storeId);
   const menus = useMemo<StoreMenu[]>(
-    () => (Array.isArray(menusData) ? menusData : []),
-    [menusData]
+    () => (menusData?.menus ?? []).map(StoreMenu.fromRow),
+    [menusData?.menus]
   );
 
   /* ===== 다이얼로그 상태 ===== */
