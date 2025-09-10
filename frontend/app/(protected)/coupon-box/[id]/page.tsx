@@ -235,7 +235,7 @@ export default function CouponDetailPage() {
                       <span className="text-gray-500 ml-2">x{itemQty}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {item.discountBadge && <Badge variant="secondary">{item.discountBadge}</Badge>}
+                      {/* {item.discountBadge && <Badge variant="secondary">{item.discountBadge}</Badge>} */}
                       <div className="flex items-center gap-2 font-semibold">
                         {showDiscount && (
                           <span className="text-gray-400 line-through">
