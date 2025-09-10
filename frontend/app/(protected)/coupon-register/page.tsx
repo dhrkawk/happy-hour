@@ -20,6 +20,7 @@ import { KV } from "../coupon-box/page";
 
 // 전역 장바구니(Context)
 import { useCouponCart } from "@/contexts/cart-context";
+import AlertDialogBasic from "@/components/alert-dialog-basic";
 
 // 이벤트 타입 아이콘
 function getEventIcon(type?: "discount" | "gift" | "combo") {
@@ -132,6 +133,12 @@ export default function CouponRegisterPage() {
       else router.push(`/coupons`);
     } catch (e: any) {
       setSubmitError(e?.message ?? "교환권 발급에 실패했습니다.");
+      if(e?.message.includes("STOCK")) {
+        alert("선택하신 메뉴의 재고가 부족합니다.");
+        const storeId = cart.store_id;
+        clear();
+        router.push(`/store/${storeId}`);
+      }
     }
   };
 
