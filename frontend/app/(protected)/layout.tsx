@@ -15,11 +15,17 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   if (!user) redirect('/login')
 
   // 2) 로깅
-  if (user) {
-    await supabase.from("daily_active_users").upsert({
-      user_id: user.id,
-      active_date: new Date().toISOString().slice(0,10)
-    })
+  const activeDate = new Date().toISOString().slice(0, 10) // "YYYY-MM-DD"
+  const { error: dauError } = await supabase
+    .from('daily_active_users')
+    .upsert(
+      { user_id: user.id, active_date: activeDate },
+      { onConflict: 'user_id,active_date' } // 유니크 키와 일치해야 함
+    )
+
+  if (dauError) {
+    // 서버 콘솔로 꼭 확인 (Vercel이면 Functions Logs에서 확인)
+    console.error('DAU upsert failed:', dauError)
   }
 
   // 2) 프로필(온보딩 완료 여부) — 필요한 컬럼만!
@@ -30,7 +36,6 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     .maybeSingle<UserProfile>()
 
   if (!profile) redirect('/onboarding')
-
   
   return (
     <AppProvider initialUser={buildUserProfileVM(profile)}>

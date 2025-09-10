@@ -16,5 +16,5 @@ export interface StoreRepository {
     updateStore(id: Id, dto: StoreUpdateDTO): Promise<void>
 
     // GET api/stores/mine
-    getMyStoreId(): Promise<Id | null>;
+    getMyStoreIds(): Promise<Id[]>;
 }
