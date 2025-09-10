@@ -316,8 +316,9 @@ export default function CouponRegisterPage() {
         <Button
           onClick={handleGoIssue}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold"
+          disabled={createMutate.isPending}
         >
-          교환권 발급받기
+          {createMutate.isPending ? "발급 중..." : "교환권 발급받기"}
         </Button>
       </div>
     </div>
