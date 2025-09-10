@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Clock } from "lucide-react";
 import {
@@ -665,18 +665,122 @@ function EventBasicFields({
 }
 
 /* ===== discounts 전용 컴포넌트 ===== */
+
+// 한 행의 로직을 관리하는 내부 컴포넌트
+function DiscountItem({
+  form,
+  i,
+  menus,
+  menusLoading,
+}: {
+  form: UseFormReturn<any>;
+  i: number;
+  menus: StoreMenu[];
+  menusLoading: boolean;
+}) {
+  const menuId = form.watch(`discounts.${i}.menu_id`);
+
+  const originalPrice = useMemo(() => {
+    if (!menuId || !menus) return null;
+    const menu = menus.find((m) => m.id === menuId);
+    return menu?.price ?? null;
+  }, [menuId, menus]);
+
+  // 필드 값 변경 감지 및 자동 계산
+  useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      if (type !== 'change') return;
+
+      const currentName = name as string;
+
+      // 할인율 -> 최종가
+      if (currentName === `discounts.${i}.discount_rate`) {
+        if (originalPrice !== null) {
+          const rate = value.discounts[i]?.discount_rate ?? 0;
+          const newFinalPrice = Math.round(originalPrice * (1 - rate / 100));
+          if (form.getValues(`discounts.${i}.final_price`) !== newFinalPrice) {
+             form.setValue(`discounts.${i}.final_price`, newFinalPrice, { shouldDirty: true });
+          }
+        }
+      }
+
+      // 최종가 -> 할인율
+      if (currentName === `discounts.${i}.final_price`) {
+        if (originalPrice !== null && originalPrice > 0) {
+          const price = value.discounts[i]?.final_price ?? 0;
+          const newDiscountRate = Math.round((1 - price / originalPrice) * 100);
+           if (form.getValues(`discounts.${i}.discount_rate`) !== newDiscountRate) {
+            form.setValue(`discounts.${i}.discount_rate`, newDiscountRate, { shouldDirty: true });
+          }
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, i, originalPrice]);
+
+
+  return (
+    <div className="grid md:grid-cols-5 gap-3">
+      <div>
+        <Label>메뉴</Label>
+        <MenuSelect
+          value={menuId as any}
+          onChange={(id) => {
+            form.setValue(`discounts.${i}.menu_id`, id as any, { shouldDirty: true });
+            // 메뉴 변경시 가격/할인율 초기화
+            form.setValue(`discounts.${i}.final_price`, 0);
+            form.setValue(`discounts.${i}.discount_rate`, 0);
+          }}
+          menus={menus}
+          disabled={menusLoading}
+        />
+      </div>
+      <div>
+        <Label>할인율(%)</Label>
+        <Input
+          type="number"
+          {...form.register(`discounts.${i}.discount_rate`, { valueAsNumber: true })}
+        />
+      </div>
+      <div>
+        <Label>최종가</Label>
+        <Input
+          type="number"
+          {...form.register(`discounts.${i}.final_price`, { valueAsNumber: true })}
+        />
+      </div>
+      <div>
+        <Label>남은 수량(옵션)</Label>
+        <Input
+          type="number"
+          {...form.register(`discounts.${i}.remaining`, { valueAsNumber: true })}
+        />
+      </div>
+      <div>
+        <Label>활성</Label>
+        <Select
+          value={String(form.watch(`discounts.${i}.is_active`) ?? true)}
+          onValueChange={(v) => form.setValue(`discounts.${i}.is_active`, v === "true")}
+        >
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="true">활성</SelectItem>
+            <SelectItem value="false">비활성</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
 function DiscountArray({
   form,
   fa,
   menus,
   menusLoading,
 }: {
-  form: UseFormReturn<CreateEventWithDiscountsAndGiftsDTO>;
-  fa: UseFieldArrayReturn<
-    CreateEventWithDiscountsAndGiftsDTO,
-    "discounts",
-    "id"
-  >;
+  form: UseFormReturn<any>;
+  fa: UseFieldArrayReturn<any, "discounts", "id">;
   menus: StoreMenu[];
   menusLoading: boolean;
 }) {
@@ -684,65 +788,7 @@ function DiscountArray({
     <Card>
       <CardContent className="space-y-4 pt-4">
         {fa.fields.map((f, i) => (
-          <div key={f.id} className="grid md:grid-cols-5 gap-3">
-            <div>
-              <Label>메뉴</Label>
-              <MenuSelect
-                value={form.watch(`discounts.${i}.menu_id`) as unknown as string}
-                onChange={(id) =>
-                  form.setValue(`discounts.${i}.menu_id`, id as any, {
-                    shouldDirty: true,
-                  })
-                }
-                menus={menus}
-                disabled={menusLoading}
-              />
-            </div>
-            <div>
-              <Label>할인율(%)</Label>
-              <Input
-                type="number"
-                {...form.register(`discounts.${i}.discount_rate`, {
-                  valueAsNumber: true,
-                })}
-              />
-            </div>
-            <div>
-              <Label>최종가</Label>
-              <Input
-                type="number"
-                {...form.register(`discounts.${i}.final_price`, {
-                  valueAsNumber: true,
-                })}
-              />
-            </div>
-            <div>
-              <Label>남은 수량(옵션)</Label>
-              <Input
-                type="number"
-                {...form.register(`discounts.${i}.remaining`, {
-                  valueAsNumber: true,
-                })}
-              />
-            </div>
-            <div>
-              <Label>활성</Label>
-              <Select
-                value={String(form.watch(`discounts.${i}.is_active`) ?? true)}
-                onValueChange={(v) =>
-                  form.setValue(`discounts.${i}.is_active`, v === "true")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="true">활성</SelectItem>
-                  <SelectItem value="false">비활성</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <DiscountItem key={f.id} form={form} i={i} menus={menus} menusLoading={menusLoading} />
         ))}
 
         <div className="flex gap-2">
@@ -752,7 +798,7 @@ function DiscountArray({
             onClick={() =>
               fa.append({
                 menu_id: "" as any,
-                discount_rate: 10,
+                discount_rate: 0,
                 final_price: 0,
                 remaining: null,
                 is_active: true,

@@ -42,6 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { CategoryManagementDialog } from "@/components/category-management-dialog";
 
@@ -326,56 +327,58 @@ export default function ManageMenusPage() {
         <DialogContent className="sm:max-w-[760px]">
           <DialogHeader>
             <DialogTitle>{isNew ? "메뉴 등록(여러 개)" : "메뉴 수정"}</DialogTitle>
-            <CardDescription>{isNew ? "Drag & Drop으로 썸네일 업로드 가능" : "메뉴 정보를 수정합니다."}</CardDescription>
+            <DialogDescription>{isNew ? "Drag & Drop으로 썸네일 업로드 가능" : "메뉴 정보를 수정합니다."}</DialogDescription>
           </DialogHeader>
 
           {isNew ? (
-            <form onSubmit={handleInsertSubmit} className="space-y-5">
-              {fields.map((f, i) => (
-                <Card key={f.id} className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                    <div>
-                      <Label>메뉴명</Label>
-                      <Input {...insertForm.register(`rows.${i}.name`)} />
+            <form onSubmit={handleInsertSubmit} className="space-y-4">
+              <div className="max-h-[60vh] overflow-y-auto space-y-4 p-1">
+                {fields.map((f, i) => (
+                  <Card key={f.id} className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                      <div>
+                        <Label>메뉴명</Label>
+                        <Input {...insertForm.register(`rows.${i}.name`)} />
+                      </div>
+                      <div>
+                        <Label>가격</Label>
+                        <Input type="number" {...insertForm.register(`rows.${i}.price`, priceCast)} />
+                      </div>
+                      <div>
+                        <Label>카테고리</Label>
+                        <Select
+                          onValueChange={(value) => insertForm.setValue(`rows.${i}.category`, value, { shouldDirty: true })}
+                          value={insertForm.watch(`rows.${i}.category`) ?? "기타"}
+                        >
+                          <SelectTrigger><SelectValue placeholder="카테고리" /></SelectTrigger>
+                          <SelectContent>
+                            {categories.map((c) => (
+                              <SelectItem key={`opt-${f.id}-${c}`} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>썸네일</Label>
+                        <ThumbnailDropzone
+                          storeId={storeId}
+                          value={insertForm.watch(`rows.${i}.thumbnail`) as string | null}
+                          onUploaded={(url) =>
+                            insertForm.setValue(`rows.${i}.thumbnail`, url, { shouldDirty: true })
+                          }
+                        />
+                      </div>
+                      <div className="flex items-end justify-end">
+                        <Button type="button" variant="ghost" onClick={() => remove(i)}>
+                          <Trash2 className="h-4 w-4 mr-1" /> 삭제
+                        </Button>
+                      </div>
                     </div>
-                    <div>
-                      <Label>가격</Label>
-                      <Input type="number" {...insertForm.register(`rows.${i}.price`, priceCast)} />
-                    </div>
-                    <div>
-                      <Label>카테고리</Label>
-                      <Select
-                        onValueChange={(value) => insertForm.setValue(`rows.${i}.category`, value, { shouldDirty: true })}
-                        value={insertForm.watch(`rows.${i}.category`) ?? "기타"}
-                      >
-                        <SelectTrigger><SelectValue placeholder="카테고리" /></SelectTrigger>
-                        <SelectContent>
-                          {categories.map((c) => (
-                            <SelectItem key={`opt-${f.id}-${c}`} value={c}>{c}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>썸네일</Label>
-                      <ThumbnailDropzone
-                        storeId={storeId}
-                        value={insertForm.watch(`rows.${i}.thumbnail`) as string | null}
-                        onUploaded={(url) =>
-                          insertForm.setValue(`rows.${i}.thumbnail`, url, { shouldDirty: true })
-                        }
-                      />
-                    </div>
-                    <div className="flex items-end justify-end">
-                      <Button type="button" variant="ghost" onClick={() => remove(i)}>
-                        <Trash2 className="h-4 w-4 mr-1" /> 삭제
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))}
+              </div>
 
-              <DialogFooter className="gap-2">
+              <DialogFooter className="gap-2 pt-4">
                 <Button
                   type="button"
                   variant="secondary"
