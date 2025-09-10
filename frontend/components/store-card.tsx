@@ -32,7 +32,7 @@ export function StoreCard({ vm }: Props) {
             {vm.partershipText && (
                 <Badge
                   variant="outline"
-                  className="text-[11px] text-xs border-blue-200 text-blue-600 bg-blue-50"
+                  className="px-1.5 py-0.5 mt-1 mb-1 text-[10px] border-blue-200 text-blue-600 bg-blue-50 leading-none"
                   title={vm.partershipText ?? undefined}
                 >
                   한양대 제휴
