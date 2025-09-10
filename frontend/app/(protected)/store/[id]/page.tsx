@@ -72,6 +72,7 @@ export default function StorePage() {
       store_id: vm.id,
       event_id: vm.event?.id,
       event_title: vm.event?.title ?? "",
+      event_description: vm.event?.description,
       happy_hour_start_time: (vm.event?.happyHourStartTime ?? "00:00:00").slice(0, 5), // HH:MM
       happy_hour_end_time: (vm.event?.happyHourEndTime ?? "00:00:00").slice(0, 5), // HH:MM
       weekdays: vm.event?.weekdays?.length ? vm.event.weekdays : ["MON"],
@@ -306,7 +307,7 @@ export default function StorePage() {
                           {/* 제목 + 담기 버튼 */}
                           <div className="flex items-center justify-between">
                             <h4
-                              className={`font-bold text-gray-800 text-lg leading-tight truncate ${
+                              className={`font-semibold text-gray-800 text-m leading-tight truncate ${
                                 showDiscount ? "mb-0.5" : "mb-1.5"
                               }`}
                             >
@@ -362,12 +363,12 @@ export default function StorePage() {
                           {showDiscount ? (
                             <>
                               {/* 원가 */}
-                              <span className="block text-gray-400 text-sm line-through leading-4">
+                              <span className="block text-gray-400 text-xs line-through leading-4">
                                 {m.price.toLocaleString()}원
                               </span>
                               {/* 할인가 + 할인율 */}
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-base font-bold text-blue-600 leading-5">
+                                <span className="text-m font-bold text-blue-600 leading-5">
                                   {m.finalPrice!.toLocaleString()}원
                                 </span>
                                 {typeof m.discountRate === "number" && (

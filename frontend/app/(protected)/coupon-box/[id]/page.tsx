@@ -214,6 +214,10 @@ export default function CouponDetailPage() {
               <Calendar className="w-4 h-4" />
               <span>{vm.expiresAtText ? `만료일: ${vm.expiresAtText}` : "만료 정보 없음"}</span>
             </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Calendar className="w-4 h-4" />
+              <span>{vm.eventDescription ? `설명: ${vm.eventDescription}` : "정보 없음"}</span>
+            </div>
           </CardHeader>
           <CardContent>
             <h4 className="font-semibold text-md text-gray-800 mb-3 border-t pt-4">쿠폰 내역</h4>
@@ -231,7 +235,7 @@ export default function CouponDetailPage() {
                       <span className="text-gray-500 ml-2">x{itemQty}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {item.discountBadge && <Badge variant="secondary">{item.discountBadge}</Badge>}
+                      {/* {item.discountBadge && <Badge variant="secondary">{item.discountBadge}</Badge>} */}
                       <div className="flex items-center gap-2 font-semibold">
                         {showDiscount && (
                           <span className="text-gray-400 line-through">
