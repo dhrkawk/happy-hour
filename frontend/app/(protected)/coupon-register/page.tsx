@@ -261,7 +261,7 @@ export default function CouponRegisterPage() {
               />
             </div>
             <KV
-              label="쿠폰 만료 날짜"
+              label="쿠폰 유효기간"
               value={
                 <>
                   {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
