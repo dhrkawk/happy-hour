@@ -24,6 +24,8 @@ export function createStoreOverlayElement(store: StoreListItemVM) {
     shadow: "0 6px 18px rgba(0,0,0,0.08)",
   };
 
+  
+
   const root = document.createElement("div");
   root.style.cssText = `
     background:${c.cardBg};
@@ -43,9 +45,19 @@ export function createStoreOverlayElement(store: StoreListItemVM) {
     root.style.transform = "translateY(0)";
   };
 
+  // 썸네일 (옵션)
+  if (store.thumbnail) {
+    const thumb = document.createElement("div");
+    thumb.style.cssText = "height:100px; overflow:hidden; background:#e5e7eb;";
+    thumb.innerHTML = `<img src="${store.thumbnail}" alt="${store.name}" style="width:100%; height:100%; object-fit:cover;">`;
+    root.appendChild(thumb);
+  }
+  
+
   const body = document.createElement("div");
   body.style.cssText = "padding:12px 14px 14px;";
   root.appendChild(body);
+  
 
   // 상단: 이름 + 제휴 배지
   const titleRow = document.createElement("div");

@@ -25,11 +25,16 @@ import { useAppContext } from "@/contexts/app-context";
 import { GoToStoreButton } from "@/components/naver-link";
 
 import AlertDialogBasic from "@/components/alert-dialog-basic";
+import { Separator } from "@/components/ui/separator"
+import ConfirmDialog from "@/components/confirm-dialog";
 
 export default function StorePage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: vm, isLoading, error } = useGetStoreDetail(id, { onlyActive: true });
+  const [confirmActivateOpen, setConfirmActivateOpen] = useState(false);
+  const [confirmActivateOpen2, setConfirmActivateOpen2] = useState(false);
+
 
   const { appState } = useAppContext();
   const { user } = appState;
@@ -299,7 +304,21 @@ export default function StorePage() {
                 m.finalPrice! < m.price;
 
               const qty = getMenuQty(m.menuId);
-              const handleAddOne = () => setMenuQty(m, qty + 1);
+              const handleAddOne = () => {
+                // 최대 개수 제한
+                if (qty >= 5) {
+                  setConfirmActivateOpen(true);
+                  return;
+                }
+              
+                // 남은 재고 제한
+                if (m.remaining !== null && qty + 1 > m.remaining) {
+                  setConfirmActivateOpen2(true);
+                  return;
+                }
+              
+                setMenuQty(m, qty + 1);
+              };
               const handleSubOne = () => setMenuQty(m, qty - 1 <= 0 ? 0 : qty - 1);
 
               return (
@@ -391,6 +410,9 @@ export default function StorePage() {
                                   {m.discountRate}% 할인
                                 </Badge>
                               )}
+                            <div className="text-xs text-gray-500">
+                              {m.remaining != null ? `재고 ${m.remaining}` : ""}
+                            </div>
                             </div>
                           </>
                         ) : (
@@ -454,7 +476,7 @@ export default function StorePage() {
                   <ArrowLeft className="w-6 h-6" />
                 </Button>
               </Link>
-              <h1 className="text-xl font-bold text-gray-800">가게 정보</h1>
+              <h1 className="text-lg font-semibold text-gray-800">가게 정보</h1>
             </div>
           </div>
         </div>
@@ -552,7 +574,7 @@ export default function StorePage() {
       <div className="px-4 py-6 pb-40 bg-gray-50 space-y-8"> {/* 푸터와 여백 확보 */}
       {(vm.gifts?.length ?? 0) > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">증정</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">증정 택 1</h3>
           <div className="space-y-3">
             {vm.gifts.map((g) => {
               const checked = isGiftChecked(g);
@@ -568,7 +590,7 @@ export default function StorePage() {
                       {g.description && <div className="text-sm text-gray-600">{g.description}</div>}
                     </div>
                     <div className="text-sm text-gray-500">
-                    {g.remaining != null ? `잔여 ${g.remaining}` : "재고 정보 없음"}
+                    {g.remaining != null ? `잔여 ${g.remaining}` : ""}
                   </div>
                   </div>
                   <Checkbox checked={checked} onCheckedChange={(c) => toggleGift(g, Boolean(c))} />
@@ -588,11 +610,11 @@ export default function StorePage() {
             </label>
           </div>
         </div>
+      <Separator className="bg-gray-300" />
         <div className="space-y-8">
           {categoryGroupedMenus}
         </div>
       </div>
-
       {/* 플로팅 장바구니 버튼 */}
       {totalItems > 0 && (
         <Button
@@ -687,6 +709,26 @@ export default function StorePage() {
         message={alertMessage}
         okText="확인"
         onOk={() => setAlertOpen(false)}
+      />
+      <ConfirmDialog
+        open={confirmActivateOpen}
+        onOpenChange={setConfirmActivateOpen}
+        title="알림"
+        message="한 메뉴는 최대 5개까지만 담을 수 있어요."
+        onConfirm={() => {
+          setConfirmActivateOpen(false);
+        }}
+        onCancel={() => setConfirmActivateOpen(false)}
+      />
+      <ConfirmDialog
+        open={confirmActivateOpen2}
+        onOpenChange={setConfirmActivateOpen2}
+        title="알림"
+        message="재고를 확인해주세요."
+        onConfirm={() => {
+          setConfirmActivateOpen2(false);
+        }}
+        onCancel={() => setConfirmActivateOpen2(false)}
       />
     </div>
   );
