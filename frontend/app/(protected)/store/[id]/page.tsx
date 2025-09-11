@@ -508,9 +508,8 @@ export default function StorePage() {
             <div className="flex items-center gap-1">
               <div className="flex items-center gap-1 text-gray-600">
                 <MapPin className="w-3 h-3" />
-                <Link href={vm.naver_link!}>
+                {vm.naver_link && (<Link href={vm.naver_link}/>)}
                   <span className="text-sm">{vm.address}</span>
-                </Link>
               </div>
             </div>
           </div>

@@ -30,28 +30,20 @@ export default function MapPage() {
 
   // ✅ 스크롤 컨테이너(main)와 지도 앵커 ref
   const mainRef = useRef<HTMLDivElement>(null);
-  const mapTopRef = useRef<HTMLDivElement>(null);
 
   const handleSelectFromList = (id: string) => {
     setSelectedStoreId(id);
 
-    // 1) 앵커 기준 스크롤 (컨테이너/윈도우 어느 쪽이든 잘 동작)
-    mapTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-
-    // 2) 컨테이너 직접 스크롤 (컨테이너가 main일 때)
+    // 오직 main 스크롤만 제어 (윈도우/scrollIntoView 사용 금지)
     if (mainRef.current) {
       mainRef.current.scrollTo({ top: 0, behavior: "smooth" });
-      // smooth 미지원/먹히지 않을 때 즉시 이동 fallback
+
+      // 일부 브라우저에서 smooth가 안 먹을 때 fallback
       setTimeout(() => {
         if (mainRef.current && mainRef.current.scrollTop > 0) {
           mainRef.current.scrollTop = 0;
         }
-      }, 250);
-    }
-
-    // 3) 그래도 안되면 window 스크롤 (스크롤이 window에 걸린 경우)
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 300);
     }
   };
 
@@ -107,11 +99,10 @@ export default function MapPage() {
             <LocationErrorBanner />
           </div>
         )}
-        <div ref={mapTopRef} className="scroll-mt-20" />
 
         {/* 지도 */}
         <div className="px-4 pt-3">
-          <div className="relative h-[35vh] sm:h-[40vh]">
+          <div className="relative h-[40vh] sm:h-[45vh]">
             <KakaoMap
               userLocation={coordinates}
               stores={storeList}
