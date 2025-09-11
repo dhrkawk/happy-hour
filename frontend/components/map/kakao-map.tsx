@@ -69,18 +69,11 @@ export default function KakaoMap({
   // 지도 빈 곳 클릭 시 선택 해제(모달 닫기)
   useEffect(() => {
     if (!mapInstance.current || !isMapReady) return
-
+    const map = mapInstance.current
     const handleMapClick = () => onSelectStore(null)
-
-    window.kakao.maps.event.addListener(mapInstance.current, 'click', handleMapClick)
-    // 필요하면 드래그/줌 시에도 닫기:
-    // window.kakao.maps.event.addListener(mapInstance.current, 'dragstart', handleMapClick)
-    // window.kakao.maps.event.addListener(mapInstance.current, 'zoom_changed', handleMapClick)
-
+    window.kakao.maps.event.addListener(map, 'click', handleMapClick)
     return () => {
-      window.kakao.maps.event.removeListener(mapInstance.current, 'click', handleMapClick)
-      // window.kakao.maps.event.removeListener(mapInstance.current, 'dragstart', handleMapClick)
-      // window.kakao.maps.event.removeListener(mapInstance.current, 'zoom_changed', handleMapClick)
+      window.kakao.maps.event.removeListener(map, 'click', handleMapClick)
     }
   }, [isMapReady, onSelectStore])
 
@@ -88,8 +81,6 @@ export default function KakaoMap({
   useEffect(() => {
     if (!mapInstance.current || !userLocation || !isMapReady) return
     const userPos = new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng)
-
-    // 지도 중심 이동
     mapInstance.current.panTo(userPos)
 
     if (userMarkerInstance.current) {
@@ -116,45 +107,38 @@ export default function KakaoMap({
     userMarkerInstance.current = marker
   }, [userLocation, isMapReady])
 
-  // 선택 변경 시: 상세 오버레이 토글 + 이동/줌 앵커 기준
+  // ✅ 선택 변경 시: 상세 오버레이 토글 + 단일 panTo(픽셀 오프셋 포함)
   useEffect(() => {
     if (!mapInstance.current || !isMapReady) return
+    const map = mapInstance.current
 
-    let targetPos: any | null = null
-
+    // 1) 오버레이 표시/숨김만 처리 (좌표는 stores에서 직접 찾음)
     storeMarkersInstance.current.forEach(({ store, detailOverlay }) => {
-      if (store.id === selectedStoreId) {
-        detailOverlay.setMap(mapInstance.current)
-        targetPos = new window.kakao.maps.LatLng(store.lat, store.lng)
-      } else {
-        detailOverlay.setMap(null)
-      }
+      detailOverlay.setMap(store.id === selectedStoreId ? map : null)
     })
 
-    if (targetPos) {
-      const level = mapInstance.current.getLevel?.() ?? 3;
-    
-      // 현재 지도 중심 좌표에서 위도 오프셋 계산
-      const offsetMeters = 100; // 원하는 만큼 아래로 밀고 싶으면 값 조절 (미터 단위)
-      const projection = mapInstance.current.getProjection();
-      const point = projection.pointFromCoords(targetPos);
-    
-      // y좌표를 줄이면 위로 이동 → 결과적으로 화면에서 아래쪽에 표시됨
-      point.y -= offsetMeters;
-    
-      const adjustedPos = projection.coordsFromPoint(point);
-    
-      if (level > 3 && mapInstance.current.setLevel) {
-        mapInstance.current.setLevel(3, { anchor: adjustedPos, animate: true });
-      } else {
-        mapInstance.current.panTo(adjustedPos);
-      }
-    }
-  }, [selectedStoreId, isMapReady])
+    // 2) 이동할 타겟 좌표는 최신 stores 배열에서 직접 가져오기
+    if (!selectedStoreId) return
+    const s = stores.find((x) => x.id === selectedStoreId)
+    if (!s || !s.lat || !s.lng) return
 
-  // 스토어 마커 & 오버레이 생성 (선택만 바뀔 때 재생성되지 않도록 selectedStoreId 제외)
+    const target = new window.kakao.maps.LatLng(s.lat, s.lng)
+
+    // 3) 현재 줌 레벨에서의 프로젝션으로 “한 번만” 오프셋 적용 좌표 계산
+    const projection = map.getProjection()
+    const pt = projection.pointFromCoords(target)
+    const OFFSET_PX = 80 // 마커/카드가 화면 아래쪽에 조금 보이도록
+    pt.y -= OFFSET_PX
+    const adjusted = projection.coordsFromPoint(pt)
+
+    // 4) 단일 애니메이션 이동
+    map.panTo(adjusted)
+  }, [selectedStoreId, isMapReady, stores])
+
+  // 스토어 마커 & 오버레이 생성 (selectedStoreId와 독립)
   useEffect(() => {
     if (!mapInstance.current || !isMapReady) return
+    const map = mapInstance.current
 
     // 기존 제거
     storeMarkersInstance.current.forEach(({ marker, nameOverlay, detailOverlay }) => {
@@ -185,7 +169,7 @@ export default function KakaoMap({
       const marker = new window.kakao.maps.Marker({
         position: pos,
         image: img,
-        map: mapInstance.current,
+        map,
       })
 
       // 2) 상시 이름 오버레이
@@ -207,7 +191,6 @@ export default function KakaoMap({
         ">
           ${displayName}
         </div>`
-      // ✅ 이름 오버레이 내부 클릭 전파 차단
       nameEl.addEventListener('click', (e) => e.stopPropagation())
       nameEl.addEventListener('mousedown', (e) => e.stopPropagation())
       nameEl.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true })
@@ -218,11 +201,10 @@ export default function KakaoMap({
         yAnchor: -0.3,
         zIndex: 20,
       })
-      nameOverlay.setMap(mapInstance.current)
+      nameOverlay.setMap(map)
 
-      // 3) 상세 카드 오버레이 (모달 느낌)
+      // 3) 상세 카드 오버레이
       const detailEl = createStoreOverlayElement(store)
-      // ✅ 상세 오버레이 내부 클릭 전파 차단
       detailEl.addEventListener('click', (e) => e.stopPropagation())
       detailEl.addEventListener('mousedown', (e) => e.stopPropagation())
       detailEl.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true })
@@ -234,19 +216,15 @@ export default function KakaoMap({
         zIndex: 30,
       })
 
-      // 마커 클릭 → 선택 토글 + 중심 이동
+      // ✅ 마커 클릭: 선택만 토글 (이동은 selection effect에서 1회 panTo)
       window.kakao.maps.event.addListener(marker, 'click', () => {
-        // 이미 선택돼 있으면 닫기, 아니면 선택
         const next = selectedStoreId === store.id ? null : store.id
         onSelectStore(next)
-        if (next) {
-          mapInstance.current.panTo(pos)
-        }
       })
 
       storeMarkersInstance.current.push({ marker, nameOverlay, detailOverlay, store })
     })
-  }, [stores, isMapReady]) // ← selectedStoreId 제외!
+  }, [stores, isMapReady]) // selectedStoreId 제외!
 
   if (!userLocation) {
     return (
