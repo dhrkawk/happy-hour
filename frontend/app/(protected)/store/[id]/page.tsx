@@ -72,6 +72,7 @@ export default function StorePage() {
       store_id: vm.id,
       event_id: vm.event?.id,
       event_title: vm.event?.title ?? "",
+      event_description: vm.event?.description,
       happy_hour_start_time: (vm.event?.happyHourStartTime ?? "00:00:00").slice(0, 5), // HH:MM
       happy_hour_end_time: (vm.event?.happyHourEndTime ?? "00:00:00").slice(0, 5), // HH:MM
       weekdays: vm.event?.weekdays?.length ? vm.event.weekdays : ["MON"],
@@ -306,7 +307,7 @@ export default function StorePage() {
                           {/* 제목 + 담기 버튼 */}
                           <div className="flex items-center justify-between">
                             <h4
-                              className={`font-bold text-gray-800 text-lg leading-tight truncate ${
+                              className={`font-semibold text-gray-800 text-m leading-tight truncate ${
                                 showDiscount ? "mb-0.5" : "mb-1.5"
                               }`}
                             >
@@ -362,12 +363,12 @@ export default function StorePage() {
                           {showDiscount ? (
                             <>
                               {/* 원가 */}
-                              <span className="block text-gray-400 text-sm line-through leading-4">
+                              <span className="block text-gray-400 text-xs line-through leading-4">
                                 {m.price.toLocaleString()}원
                               </span>
                               {/* 할인가 + 할인율 */}
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-base font-bold text-blue-600 leading-5">
+                                <span className="text-m font-bold text-blue-600 leading-5">
                                   {m.finalPrice!.toLocaleString()}원
                                 </span>
                                 {typeof m.discountRate === "number" && (
@@ -459,17 +460,17 @@ export default function StorePage() {
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-3">
-              <h1 className="text-2xl font-bold text-gray-800">{vm.name}</h1>
+              <h1 className="text-xl font-semibold text-gray-800">{vm.name}</h1>
               {hasPartnership && (
                 <Badge variant="outline" className="border-blue-200 text-blue-600 bg-blue-50">
                   제휴
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-gray-600">
-                <MapPin className="w-5 h-5" />
-                <span className="font-medium">{vm.address}</span>
+            <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 text-gray-600">
+                <MapPin className="w-3 h-3" />
+                <span className="text-sm">{vm.address}</span>
               </div>
             </div>
           </div>
@@ -533,7 +534,7 @@ export default function StorePage() {
       <div className="px-4 py-6 pb-40 bg-gray-50 space-y-8"> {/* 푸터와 여백 확보 */}
       {(vm.gifts?.length ?? 0) > 0 && (
         <div>
-          <h3 className="text-xl font-bold text-gray-800 mb-4">증정</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">증정</h3>
           <div className="space-y-3">
             {vm.gifts.map((g) => {
               const checked = isGiftChecked(g);
@@ -560,7 +561,7 @@ export default function StorePage() {
         </div>
       )}
       {/* 메뉴 리스트: 카테고리별 그룹 */}
-        <h3 className="text-xl font-bold text-gray-800 mb-6">메뉴</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-6">메뉴</h3>
         <div className="space-y-8">
           {categoryGroupedMenus}
         </div>
@@ -636,7 +637,7 @@ export default function StorePage() {
                 )}
               </div>
               <div className="text-right">
-                <div className="text-2xl font-extrabold text-gray-900">
+                <div className="text-xl font-extrabold text-gray-900">
                   {totalPayable.toLocaleString()}원
                 </div>
               </div>

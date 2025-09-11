@@ -145,6 +145,7 @@ export const CouponInsertSchema = z.object({
   happy_hour_end_time: TimeHHMM,
   weekdays: StringArrayNonEmpty,
   event_title: z.string(),
+  event_description: z.string().nullable(),
 });
 
 export type CouponInsertDTO = z.infer<typeof CouponInsertSchema>;

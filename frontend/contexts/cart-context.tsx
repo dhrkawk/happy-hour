@@ -25,6 +25,7 @@ const initialState: CartState = {
   happy_hour_end_time: "00:00",
   weekdays: ["MON"],
   event_title: "",
+  event_description: null,
   items: [],
 };
 
@@ -200,6 +201,7 @@ export function CouponCartProvider({ children }: { children: React.ReactNode }) 
         happy_hour_end_time: state.happy_hour_end_time!,
         weekdays: state.weekdays!, // 서버에서 문자열/숫자 모두 허용(정규화)
         event_title: state.event_title ?? "",
+        event_description: state.event_description ?? null,
 
         items: state.items.map((it) =>
           it.type === "gift"

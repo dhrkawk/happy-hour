@@ -54,7 +54,7 @@ export default function ProfilePage() {
     if (count === 0) {
       router.push("/profile/store-registration")
     } else if (count === 1 && primaryStoreId) {
-      router.push(`/profile/store-management/${primaryStoreId}`)
+      router.push("/profile/store-selection")
     } else {
       router.push("/profile/store-selection")
     }

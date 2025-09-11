@@ -26,6 +26,7 @@ export type CouponVM = {
   id: string;
 
   eventTitle?: string | null;
+  eventDescription: string | null;
   storeName?: string | null;
   storeId: string;
   happyHourStartTime: string;
@@ -131,6 +132,7 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
   return {
     id: coupon.id,
     eventTitle: (coupon as any).eventTitle ?? (coupon as any).event_title ?? undefined,
+    eventDescription: coupon.eventDescription,
     storeName: (coupon as any).storeName ?? (coupon as any).store_name ?? undefined,
     storeId: coupon.storeId,
     weekdays: coupon.weekdays,
@@ -159,6 +161,7 @@ export type CouponListItemVM = {
   id: string;
   storeId: string;
   eventTitle: string;
+  eventDescription: string | null;
   storeName: string;
   status: CouponStatus; // 추가
   statusText: string;
@@ -179,6 +182,7 @@ export function buildCouponListVM(coupons: Coupon[]): CouponListItemVM[] {
       id: c.id,
       storeId: c.storeId,
       eventTitle: eventTitle,
+      eventDescription: c.eventDescription,
       storeName: storeName,
       status: c.status as CouponStatus, // 추가
       statusText: statusText(c.status),

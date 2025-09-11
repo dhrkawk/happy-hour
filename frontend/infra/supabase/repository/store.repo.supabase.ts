@@ -53,9 +53,10 @@ export class SupabaseStoreRepository implements StoreRepository {
         p_store_id: id,
         p_only_active_events: opts?.onlyActiveEvents ?? false,
       });
-
-    if (error) throw error;
-
+    
+    if (error) {
+      throw error;
+    }
     const payload = data as RpcStoreWithEventsAndMenus;
 
     if (!payload || !payload.store) {

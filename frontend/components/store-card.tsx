@@ -32,7 +32,7 @@ export function StoreCard({ vm }: Props) {
             {vm.partershipText && (
                 <Badge
                   variant="outline"
-                  className="text-[11px] md:text-xs px-2 py-[2px] border-blue-200 text-blue-600 bg-blue-50"
+                  className="px-1.5 py-0.5 mt-1 mb-1 text-[10px] border-blue-200 text-blue-600 bg-blue-50 leading-none"
                   title={vm.partershipText ?? undefined}
                 >
                   한양대 제휴
@@ -42,8 +42,8 @@ export function StoreCard({ vm }: Props) {
 
             {/* 거리 + 카테고리 */}
             <div className="mt-0.5 flex items-center gap-2 min-w-0">
-              <div className="flex items-center gap-1 text-[13px] md:text-sm text-gray-600 min-w-0">
-                <MapPin className="w-4 h-4 shrink-0" />
+              <div className="flex items-center gap-1 text-xs text-gray-600 min-w-0">
+                <MapPin className="w-3 h-3 shrink-0" />
                 <span className="truncate">{vm.distanceText ?? vm.address}</span>
               </div>
 

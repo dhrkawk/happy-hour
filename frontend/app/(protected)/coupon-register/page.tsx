@@ -261,13 +261,18 @@ export default function CouponRegisterPage() {
               />
             </div>
             <KV
-              label="쿠폰 만료 날짜"
+              label="쿠폰 유효기간"
               value={
                 <>
                   {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                     .toISOString()
                     .slice(0, 10)}
                 </>
+              }
+            />
+             <KV
+              label="설명"
+              value={(cart.event_description)
               }
             />
           </div>
@@ -316,8 +321,9 @@ export default function CouponRegisterPage() {
         <Button
           onClick={handleGoIssue}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold"
+          disabled={createMutate.isPending}
         >
-          교환권 발급받기
+          {createMutate.isPending ? "발급 중..." : "교환권 발급받기"}
         </Button>
       </div>
     </div>

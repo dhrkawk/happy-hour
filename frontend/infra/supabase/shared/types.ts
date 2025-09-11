@@ -59,6 +59,7 @@ export type Database = {
         Row: {
           activated_at: string | null
           created_at: string | null
+          event_description: string | null
           event_title: string
           expected_visit_time: string | null
           expired_time: string
@@ -74,6 +75,7 @@ export type Database = {
         Insert: {
           activated_at?: string | null
           created_at?: string | null
+          event_description?: string | null
           event_title: string
           expected_visit_time?: string | null
           expired_time?: string
@@ -89,6 +91,7 @@ export type Database = {
         Update: {
           activated_at?: string | null
           created_at?: string | null
+          event_description?: string | null
           event_title?: string
           expected_visit_time?: string | null
           expired_time?: string
@@ -461,6 +464,14 @@ export type Database = {
         Args: { p_coupon_id: string }
         Returns: undefined
       }
+      is_my_store: {
+        Args: { p_store_id: string }
+        Returns: boolean
+      }
+      my_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       redeem_coupon: {
         Args: { p_coupon_id: string }
         Returns: undefined
@@ -472,6 +483,10 @@ export type Database = {
       stores_with_events: {
         Args: { only_active_events?: boolean }
         Returns: Json
+      }
+      uid: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       update_event_with_discounts_and_gifts: {
         Args: { payload: Json }

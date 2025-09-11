@@ -49,16 +49,16 @@ export function KV({ label, value }: { label: string; value: React.ReactNode }) 
    Status Badge
 =========================== */
 function CouponStatusBadge({ vm }: { vm: CouponListItemVM }) {
-  if (vm.isExpired) return <Badge variant="destructive">기간 만료</Badge>;
+  if (vm.isExpired) return <Badge variant="destructive" className="text-[10px] px-1">기간 만료</Badge>;
   switch (vm.status) {
     case "redeemed":
-      return <Badge className="bg-gray-500 text-white">사용 완료</Badge>;
+      return <Badge className="bg-gray-500 text-white text-[10px] px-1">사용 완료</Badge>;
     case "cancelled":
-      return <Badge variant="destructive">취소됨</Badge>;
+      return <Badge className="bg-red-500 text-white text-[10px] px-1">취소됨</Badge>;
     case "activating":
-      return <Badge className="bg-blue-600 text-white">사용 중</Badge>;
+      return <Badge className="bg-blue-600 text-white text-[10px] px-1">사용 중</Badge>;
     case "issued":
-      return <Badge className="bg-green-600 text-white">사용 가능</Badge>;
+      return <Badge className="bg-green-600 text-white text-[10px] px-1 ">사용 가능</Badge>;
     default:
       return <Badge variant="outline">알 수 없음</Badge>;
   }
@@ -154,33 +154,29 @@ export default function CouponBoxPage() {
               >
                 <CardContent className="p-4">
                   {/* 상단: 스토어명 + 티켓 + 가게 보러가기 + 상태/취소 */}
+                  <div className="flex-1">
                   <div className="mb-2 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <TicketChip />
-                        <h3 className="truncate text-[15px] font-semibold text-gray-900 tracking-tight">
-                          {coupon.storeName}
-                        </h3>
-
-                        {/* 가게 보러가기 버튼 (storeName 옆) */}
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="ml-1 h-6 px-2 text-[12px]"
+                        <div
                           onClick={(e) => handleGoStore(e, coupon)}
+                          className="cursor-pointer"
                         >
-                          가게 보기
-                        </Button>
+                          <h3 className="truncate text-[15px] font-semibold text-gray-900 tracking-tight hover:underline">
+                            {coupon.storeName}
+                          </h3>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <CouponStatusBadge vm={coupon} />
                       {coupon.statusText === "발급됨" && !coupon.isExpired && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                          className="h-6 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
                           onClick={(e) => handleCancel(e, coupon.id)}
                           disabled={isCurrentlyCanceling}
                           aria-label="쿠폰 취소"
@@ -194,6 +190,7 @@ export default function CouponBoxPage() {
                       )}
                     </div>
                   </div>
+                  </div>
 
                   {/* 가운데: 이벤트 조건 박스 */}
                   <div
@@ -206,7 +203,7 @@ export default function CouponBoxPage() {
 
                     <div className="grid grid-cols-1 gap-2 text-sm sm:grid-rows-3">
                       <KV
-                        label="시간"
+                        label="사용 가능 시간"
                         value={
                           <>
                             {coupon.happyHourStartTime?.slice(0, 5)} ~{" "}
@@ -214,10 +211,14 @@ export default function CouponBoxPage() {
                           </>
                         }
                       />
-                      <KV label="요일" value={weekdaysLabel || "—"} />
+                      <KV label="사용 가능 요일" value={weekdaysLabel || "—"} />
                       <KV
-                        label="만료"
+                        label="유효기간"
                         value={coupon.expiresAtText ? coupon.expiresAtText : "만료 정보 없음"}
+                      />
+                      <KV
+                        label="설명"
+                        value={coupon.eventDescription ? coupon.eventDescription : "정보 없음"}
                       />
                     </div>
                   </div>
