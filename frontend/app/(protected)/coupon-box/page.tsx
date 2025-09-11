@@ -58,7 +58,7 @@ function CouponStatusBadge({ vm }: { vm: CouponListItemVM }) {
     case "activating":
       return <Badge className="bg-blue-600 text-white text-[10px] px-1">사용 중</Badge>;
     case "issued":
-      return <Badge className="bg-green-600 text-white text-[10px] px-1 ">사용 가능</Badge>;
+      return <Badge className="bg-green-600 text-white text-[10px] px-1 ">사용 하기</Badge>;
     default:
       return <Badge variant="outline">알 수 없음</Badge>;
   }
@@ -163,9 +163,9 @@ export default function CouponBoxPage() {
                           onClick={(e) => handleGoStore(e, coupon)}
                           className="cursor-pointer"
                         >
-                          <h3 className="truncate text-[15px] font-semibold text-gray-900 tracking-tight hover:underline">
-                            {coupon.storeName}
-                          </h3>
+                        <h3 className="truncate text-[15px] font-semibold text-gray-900 tracking-tight">
+                          {coupon.storeName}
+                        </h3>
                         </div>
                       </div>
                     </div>

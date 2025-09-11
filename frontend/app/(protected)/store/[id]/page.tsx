@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { KV } from "../../coupon-box/page";
+import { Loader2 } from "lucide-react";
 
 import { useGetStoreDetail } from "@/hooks/usecases/stores.usecase";
 import { useCouponsByUserId } from "@/hooks/usecases/coupons.usecase";
@@ -420,11 +421,9 @@ export default function StorePage() {
   // 로딩/에러 화면
   if (isLoading || !vm) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">불러오는 중…</h1>
-          <p className="text-gray-600">가게 정보를 준비하고 있어요</p>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <p className="ml-3 text-blue-700">가게 정보를 불러오는 중입니다...</p>
       </div>
     );
   }
@@ -487,7 +486,9 @@ export default function StorePage() {
             <div className="flex items-center gap-1">
               <div className="flex items-center gap-1 text-gray-600">
                 <MapPin className="w-3 h-3" />
-                <span className="text-sm">{vm.address}</span>
+                <Link href={vm.naver_link!}>
+                  <span className="text-sm">{vm.address}</span>
+                </Link>
               </div>
             </div>
           </div>

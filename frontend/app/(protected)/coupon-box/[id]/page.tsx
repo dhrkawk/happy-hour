@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Store, Calendar, CheckCircle, XCircle, Loader2, Info, QrCode, Clock } from "lucide-react";
+import { ArrowLeft, Store, Calendar, CheckCircle, XCircle, Loader2, Info, QrCode, Clock, CalendarClock, FileText, Tag } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import ConfirmDialog from "@/components/confirm-dialog";
@@ -48,12 +48,12 @@ function ActivationTimerBanner({ vm, onTimeEnd }: { vm: CouponVM, onTimeEnd: () 
   return (
     <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6 text-center">
       <p className="text-sm text-blue-700 mb-2">아래 쿠폰 번호를 점원에게 보여주세요.</p>
-      <div className="bg-white text-blue-600 font-mono text-2xl tracking-widest p-3 rounded-lg mb-4 inline-block">
+      <div className="bg-white text-blue-600 font-mono text-xl tracking-widest p-3 rounded-lg mb-4 inline-block">
         {vm.id.slice(-12)}
       </div>
       <div className="text-blue-800">
         <p className="text-sm">남은 시간</p>
-        <p className="text-3xl font-bold">{timeLeft}</p>
+        <p className="text-xl">{timeLeft}</p>
       </div>
     </div>
   );
@@ -199,7 +199,7 @@ export default function CouponDetailPage() {
               </Button>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600 pt-2">
-              <Info className="w-4 h-4" />
+              <Tag className="w-4 h-4" />
               <span>{vm.eventTitle || '가게 정보 없음'}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -211,11 +211,11 @@ export default function CouponDetailPage() {
               <span>사용 가능 요일: {(vm.weekdays || []).map((d) => WEEKDAYS[d] ?? d).join(" ")}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Calendar className="w-4 h-4" />
-              <span>{vm.expiresAtText ? `만료일: ${vm.expiresAtText}` : "만료 정보 없음"}</span>
+              <CalendarClock className="w-4 h-4" />
+              <span>{vm.expiresAtText ? `유효 기간: ${vm.expiresAtText}` : "만료 정보 없음"}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Calendar className="w-4 h-4" />
+              <FileText className="w-4 h-4" />
               <span>{vm.eventDescription ? `설명: ${vm.eventDescription}` : "정보 없음"}</span>
             </div>
           </CardHeader>
@@ -238,11 +238,11 @@ export default function CouponDetailPage() {
                       {/* {item.discountBadge && <Badge variant="secondary">{item.discountBadge}</Badge>} */}
                       <div className="flex items-center gap-2 font-semibold">
                         {showDiscount && (
-                          <span className="text-gray-400 line-through">
+                          <span className="text-gray-400 line-through text-xs">
                             {originalPrice.toLocaleString()}원
                           </span>
                         )}
-                        <span className="text-gray-900">
+                        <span className="text-gray-900 text-m">
                           {item.isGift ? '무료' : `${finalPrice.toLocaleString()}원`}
                         </span>
                       </div>
@@ -251,11 +251,11 @@ export default function CouponDetailPage() {
                 )
               })}
             </div>
-            <div className="flex justify-between items-center font-bold text-lg border-t mt-4 pt-4">
+            <div className="flex justify-between items-center font-bold border-t mt-4 pt-4">
               <span>총 합계</span>
               <div className="flex items-center gap-3">
                 {(vm.totalOriginalPrice ?? 0) > (vm.totalPrice ?? 0) && (
-                  <span className="text-gray-400 font-normal line-through">
+                  <span className="text-gray-400 font-normal line-through text-sm">
                     {vm.totalOriginalPrice?.toLocaleString()}원
                   </span>
                 )}
