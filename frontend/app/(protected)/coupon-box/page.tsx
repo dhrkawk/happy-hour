@@ -7,6 +7,7 @@ import { ArrowLeft, Ticket, Loader2, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import ConfirmDialog from "@/components/confirm-dialog";
+import AlertDialogBasic from "@/components/alert-dialog-basic";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import BottomNavigation from "@/components/bottom-navigation";
@@ -91,16 +92,20 @@ export default function CouponBoxPage() {
   };
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingCouponId, setPendingCouponId] = useState<string | null>(null);
+  // 기본 알림 모달 (AlertDialogBasic)
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const showAlert = (msg: string) => {
+    setAlertMessage(String(msg ?? ""));
+    setAlertOpen(true);
+  };
 
   const handleCancel = (e: React.MouseEvent, couponId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (confirm("정말로 이 쿠폰을 취소하시겠습니까?")) {
-      setCancelingId(couponId);
-      cancelCoupon(couponId, {
-        onSettled: () => setCancelingId(null),
-      });
-    }
+    // 브라우저 기본 confirm 대신 커스텀 ConfirmDialog 사용
+    setPendingCouponId(couponId);
+    setConfirmOpen(true);
   };
 
   const handleGoStore = (e: React.MouseEvent, coupon: CouponListItemVM) => {
@@ -291,12 +296,23 @@ export default function CouponBoxPage() {
           setConfirmOpen(false);
           setCancelingId(pendingCouponId);
           cancelCoupon(pendingCouponId, {
+            onError: () => {
+              showAlert("쿠폰 취소에 실패했어요. 잠시 후 다시 시도해주세요.");
+            },
             onSettled: () => {
               setCancelingId(null);
               setPendingCouponId(null);
             }
           });
         }}
+      />
+      <AlertDialogBasic
+        open={alertOpen}
+        onOpenChange={setAlertOpen}
+        title="알림"
+        message={alertMessage}
+        okText="확인"
+        onOk={() => setAlertOpen(false)}
       />
     </div>
   );
