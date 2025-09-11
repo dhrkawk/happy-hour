@@ -9,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button, type ButtonProps } from "@/components/ui/button";
 
 type AlertDialogBasicProps = {
   open: boolean;
@@ -17,6 +18,9 @@ type AlertDialogBasicProps = {
   okText?: string;
   onOpenChange?: (open: boolean) => void;
   onOk?: () => void;
+  // 스타일 옵션 (전역 기본값은 #3B82F6)
+  okVariant?: ButtonProps["variant"];
+  okClassName?: string;
 };
 
 export default function AlertDialogBasic({
@@ -26,6 +30,8 @@ export default function AlertDialogBasic({
   okText = "확인",
   onOpenChange,
   onOk,
+  okVariant = "default",
+  okClassName = "bg-[#3B82F6] hover:bg-[#3B82F6] text-white focus-visible:ring-[#3B82F6]",
 }: AlertDialogBasicProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -35,10 +41,13 @@ export default function AlertDialogBasic({
           <AlertDialogDescription>{message}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction onClick={onOk}>{okText}</AlertDialogAction>
+          <AlertDialogAction asChild>
+            <Button variant={okVariant} onClick={onOk} className={okClassName}>
+              {okText}
+            </Button>
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
-

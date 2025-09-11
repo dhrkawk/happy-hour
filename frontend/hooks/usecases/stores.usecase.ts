@@ -174,7 +174,12 @@ export function useSortedAndFilteredStoreList(
 
     // 1) 카테고리 필터
     if (selectedCategory !== "전체") {
-      arr = arr.filter((s) => s.category === selectedCategory);
+      if (selectedCategory === "기타") {
+        // '기타'는 '식당'과 '카페'를 제외한 모든 카테고리
+        arr = arr.filter((s) => s.category !== "식당" && s.category !== "카페");
+      } else {
+        arr = arr.filter((s) => s.category === selectedCategory);
+      }
     }
 
     // 2) 정렬키에 따른 추가 필터

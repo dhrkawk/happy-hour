@@ -1,7 +1,7 @@
 export const SEMANTIC_COLORS = {
   discount: {
-    500: '#F97316',
-    600: '#EA580C',
+    500: '#2563EB',
+    600: '#1D4ED8',
   },
   user: {
     500: '#2563EB',
