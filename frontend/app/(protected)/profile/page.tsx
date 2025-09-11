@@ -26,9 +26,9 @@ export default function ProfilePage() {
 
   if (meLoading || storeIdLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
-        <p className="ml-2 text-teal-600">정보를 불러오는 중...</p>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <p className="ml-3 text-blue-700">정보를 불러오는 중입니다...</p>
       </div>
     );
   }

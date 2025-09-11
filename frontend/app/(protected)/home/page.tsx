@@ -3,43 +3,44 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MapPin, RefreshCw, Loader2 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StoreCard } from "@/components/store-card";
 import { StoreCardSkeleton } from "@/components/store-card-skeleton";
 import BottomNavigation from "@/components/bottom-navigation";
 import CategoryFilter from "@/components/category-filter";
-
 import { useAppContext } from "@/contexts/app-context";
 import { useGetStoresWithEvents, useSortedAndFilteredStoreList } from "@/hooks/usecases/stores.usecase";
 import Image from "next/image";
 
 export default function HomePage() {
   const { appState, fetchLocation } = useAppContext();
-  const { address, loading: locationLoading, error: locationError, lastUpdated, coordinates } =
+  const { address, loading: locationLoading, error: locationError, lastUpdated } =
     appState.location ?? {};
-  
-  // 화면 상태 (카테고리/정렬)
-  const [selectedCategory, setSelectedCategory] = useState<string>("전체");
-  const [selectedSorting, setSelectedSorting] = useState<"거리순" | "할인순" | "할인만" | "제휴만">("할인순");
 
-  // 서버에서 최소 데이터만: 활성 스토어 + 활성 이벤트 포함
-  const {data, isLoading, error} = useGetStoresWithEvents(true);
-  const storeList = useSortedAndFilteredStoreList(data ?? [], selectedCategory, selectedSorting);
+  const [selectedCategory, setSelectedCategory] = useState<string>("전체");
+  const [selectedSorting, setSelectedSorting] =
+    useState<"거리순" | "할인순" | "할인만" | "제휴만">("할인순");
+
+  const { data, isLoading, error } = useGetStoresWithEvents(true);
+  const storeList = useSortedAndFilteredStoreList(
+    data ?? [],
+    selectedCategory,
+    selectedSorting
+  );
 
   const isSkeletonLoading = locationLoading || isLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative">
-      {/* 헤더 */}
+    <div className="mx-auto max-w-xl bg-gray-50 grid min-h-[100dvh] grid-rows-[auto,1fr,auto]">
+      {/* 헤더 (row 1) */}
       <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
         <div className="px-4 pt-4 pb-3">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">
               <div className="flex gap-1">
-              <Image src="/logo.svg" alt="🍽️" width={32} height={32} />
-              <h1 className="text-2xl font-bold text-blue-600">OURCAMPUS</h1>
+                <Image src="/logo.svg" alt="🍽️" width={28} height={28} />
+                <h1 className="text-[22px] font-bold text-blue-600">OURCAMPUS</h1>
               </div>
               <div className="flex items-center gap-1 text-sm text-gray-600 mt-1 truncate">
                 <MapPin className="w-4 h-4 flex-shrink-0" />
@@ -70,15 +71,13 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* 가게 리스트 */}
-      <main className="px-4 py-4 space-y-4 pb-24">
+      {/* 스크롤 가능한 본문 (row 2) */}
+      <main className="overflow-y-auto px-4 py-4 pb-24">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-gray-800">
-            가게 목록
-          </h2>
+          <h2 className="text-md font-semibold text-gray-800">가게 목록</h2>
           <div className="flex items-center gap-2">
-            {(["할인순", "할인만", "제휴만","거리순"] as const).map((label) => (
-              <Badge key={label} variant="secondary" className="bg-white vorder-gray-700 px-3 py-1 rounded-full">
+            {(["할인순", "할인만", "제휴만", "거리순"] as const).map((label) => (
+              <Badge key={label} variant="secondary" className="bg-white px-3 py-1 rounded-full">
                 <Button
                   variant="link"
                   className={`text-sm p-0 h-auto ${
@@ -95,7 +94,7 @@ export default function HomePage() {
 
         {isSkeletonLoading ? (
           Array.from({ length: 5 }).map((_, index) => <StoreCardSkeleton key={index} />)
-        ) : storeList.length==0 ? (
+        ) : storeList.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">해당 카테고리의 할인 가게가 없습니다</h3>
@@ -113,7 +112,10 @@ export default function HomePage() {
         )}
       </main>
 
-      <BottomNavigation />
+      {/* 하단 네비 (row 3) */}
+      <div className="bg-white border-t border-gray-100">
+        <BottomNavigation />
+      </div>
     </div>
   );
 }
