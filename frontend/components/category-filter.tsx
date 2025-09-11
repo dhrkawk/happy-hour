@@ -23,7 +23,7 @@ export default function CategoryFilter({ selectedCategory, onCategoryChange }: C
           variant={selectedCategory === category.id ? "default" : "outline"}
           size="sm"
           onClick={() => onCategoryChange(category.id)}
-          className={`flex-shrink-0 whitespace-nowrap ${
+          className={`flex-shrink-0 whitespace-nowrap px-2 py-1 h-auto ${
             selectedCategory === category.id
               ? "bg-blue-400 hover:bg-blue-500 text-white"
               : "bg-white hover:bg-blue-50 text-gray-700 border-gray-300"

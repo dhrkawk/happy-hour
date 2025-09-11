@@ -86,7 +86,7 @@ export default function MapPage() {
               )}
             </Button>
             {lastUpdated && (
-              <div className="text-xs text-gray-400 mt-1 whitespace-nowrap">
+              <div className="text-xs text-gray-400 whitespace-nowrap">
                 마지막 업데이트:{" "}
                 {new Date(lastUpdated).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
@@ -94,7 +94,7 @@ export default function MapPage() {
           </div>
         </header>
 
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-1">
           <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function MapPage() {
 
         {/* 지도 */}
         <div className="px-4 pt-3">
-          <div className="relative h-[56vh] sm:h-[60vh]">
+          <div className="relative h-[35vh] sm:h-[40vh]">
             <KakaoMap
               userLocation={coordinates}
               stores={storeList}
