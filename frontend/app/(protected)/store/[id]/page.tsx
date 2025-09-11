@@ -411,7 +411,7 @@ export default function StorePage() {
                                 </Badge>
                               )}
                             <div className="text-xs text-gray-500">
-                              {m.remaining != null ? `재고 ${m.remaining}` : "재고 정보 없음"}
+                              {m.remaining != null ? `재고 ${m.remaining}` : ""}
                             </div>
                             </div>
                           </>
@@ -590,7 +590,7 @@ export default function StorePage() {
                       {g.description && <div className="text-sm text-gray-600">{g.description}</div>}
                     </div>
                     <div className="text-sm text-gray-500">
-                    {g.remaining != null ? `잔여 ${g.remaining}` : "재고 정보 없음"}
+                    {g.remaining != null ? `잔여 ${g.remaining}` : ""}
                   </div>
                   </div>
                   <Checkbox checked={checked} onCheckedChange={(c) => toggleGift(g, Boolean(c))} />
