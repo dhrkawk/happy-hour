@@ -54,6 +54,8 @@ export default function StorePage() {
     setAlertOpen(true);
   }, []);
 
+  const [showOnlyDiscounted, setShowOnlyDiscounted] = useState(false);
+
   // 이미 사용 가능한 쿠폰이 있는 경우
   // 지금은 가지고 있는 쿠폰을 다 가지고 왔지만 나중에는 store_id,user_id로 한번에 필터링해서 가져오는
   // 방식도 생각해보자!
@@ -270,135 +272,150 @@ export default function StorePage() {
     const menuCategories = vm.menus.map(m => m.category ?? '기타');
     const allCategoryNames = Array.from(new Set([...officialCategories, ...menuCategories]));
 
-    return allCategoryNames.map(category => {
-      const itemsInCategory = vm.menus.filter(m => (m.category ?? '기타') === category);
+    const categories = allCategoryNames.map(category => {
+      let itemsInCategory = vm.menus.filter(m => (m.category ?? '기타') === category);
+      
+      if (showOnlyDiscounted) {
+        itemsInCategory = itemsInCategory.filter(m => 
+          typeof m.finalPrice === "number" &&
+          Number.isFinite(m.finalPrice) &&
+          m.finalPrice < m.price
+        );
+      }
+
+      if (itemsInCategory.length === 0) {
+        return null;
+      }
+
       return (
         <div key={category}>
           <h4 className="text-lg font-semibold text-gray-700 mb-4">{category}</h4>
-          {itemsInCategory.length > 0 ? (
-            <div className="space-y-2">
-              {itemsInCategory.map((m: MenuWithDiscountVM) => {
-                const showDiscount =
-                  typeof m.finalPrice === "number" &&
-                  Number.isFinite(m.finalPrice) &&
-                  m.finalPrice! < m.price;
+          <div className="space-y-2">
+            {itemsInCategory.map((m: MenuWithDiscountVM) => {
+              const showDiscount =
+                typeof m.finalPrice === "number" &&
+                Number.isFinite(m.finalPrice) &&
+                m.finalPrice! < m.price;
 
-                const qty = getMenuQty(m.menuId);
-                const handleAddOne = () => setMenuQty(m, qty + 1);
-                const handleSubOne = () => setMenuQty(m, qty - 1 <= 0 ? 0 : qty - 1);
+              const qty = getMenuQty(m.menuId);
+              const handleAddOne = () => setMenuQty(m, qty + 1);
+              const handleSubOne = () => setMenuQty(m, qty - 1 <= 0 ? 0 : qty - 1);
 
-                return (
-                  <Card key={m.menuId} className="border-gray-200">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-4">
-                        {/* 썸네일 */}
-                        {m.thumbnail ? (
-                          <img
-                            src={m.thumbnail}
-                            alt=""
-                            className="w-16 h-16 object-cover rounded-lg shrink-0"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-lg bg-gray-100 shrink-0" />
+              return (
+                <Card key={m.menuId} className="border-gray-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      {/* 썸네일 */}
+                      {m.thumbnail ? (
+                        <img
+                          src={m.thumbnail}
+                          alt=""
+                          className="w-16 h-16 object-cover rounded-lg shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-gray-100 shrink-0" />
+                      )}
+
+                      {/* 본문 */}
+                      <div className="flex-1">
+                        {/* 제목 + 담기 버튼 */}
+                        <div className="flex items-center justify-between">
+                          <h4
+                            className={`font-semibold text-gray-800 text-m leading-tight truncate ${
+                              showDiscount ? "mb-0.5" : "mb-1.5"
+                            }`}
+                          >
+                            {m.name}
+                          </h4>
+
+                          <div>
+                            {qty <= 0 ? (
+                              <Button
+                              size="sm"
+                              variant="secondary"
+                              className="ml-1 h-6 px-2 text-[12px] h-8 px-3"
+                              onClick={() => setMenuQty(m, 1)}
+                            >
+                              담기
+                            </Button>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-4 h-8 p-0"
+                                  onClick={handleSubOne}
+                                >
+                                  <Minus className="w-8 h-8" />
+                                </Button>
+                                <span className="w-6 text-center">{qty}</span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-4 h-8 p-0"
+                                  onClick={handleAddOne}
+                                >
+                                  <Plus className="w-8 h-8" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 설명 */}
+                        {m.description && (
+                          <p
+                            className={`text-gray-600 text-sm ${
+                              showDiscount ? "mb-1" : "mb-2"
+                            }`}
+                          >
+                            {m.description}
+                          </p>
                         )}
 
-                        {/* 본문 */}
-                        <div className="flex-1">
-                          {/* 제목 + 담기 버튼 */}
-                          <div className="flex items-center justify-between">
-                            <h4
-                              className={`font-semibold text-gray-800 text-m leading-tight truncate ${
-                                showDiscount ? "mb-0.5" : "mb-1.5"
-                              }`}
-                            >
-                              {m.name}
-                            </h4>
-
-                            <div>
-                              {qty <= 0 ? (
-                                <Button
-                                size="sm"
-                                variant="secondary"
-                                className="ml-1 h-6 px-2 text-[12px] h-8 px-3"
-                                onClick={() => setMenuQty(m, 1)}
-                              >
-                                담기
-                              </Button>
-                              ) : (
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-4 h-8 p-0"
-                                    onClick={handleSubOne}
-                                  >
-                                    <Minus className="w-8 h-8" />
-                                  </Button>
-                                  <span className="w-6 text-center">{qty}</span>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-4 h-8 p-0"
-                                    onClick={handleAddOne}
-                                  >
-                                    <Plus className="w-8 h-8" />
-                                  </Button>
-                                </div>
+                        {/* 가격 영역 */}
+                        {showDiscount ? (
+                          <>
+                            {/* 원가 */}
+                            <span className="block text-gray-400 text-xs line-through leading-4">
+                              {m.price.toLocaleString()}원
+                            </span>
+                            {/* 할인가 + 할인율 */}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-m font-bold text-blue-600 leading-5">
+                                {m.finalPrice!.toLocaleString()}원
+                              </span>
+                              {typeof m.discountRate === "number" && (
+                                <Badge className="bg-blue-600 text-white font-medium">
+                                  {m.discountRate}% 할인
+                                </Badge>
                               )}
                             </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center mt-1.5">
+                            <span className="text-base font-medium text-gray-900 leading-5">
+                              {m.price.toLocaleString()}원
+                            </span>
                           </div>
-
-                          {/* 설명 */}
-                          {m.description && (
-                            <p
-                              className={`text-gray-600 text-sm ${
-                                showDiscount ? "mb-1" : "mb-2"
-                              }`}
-                            >
-                              {m.description}
-                            </p>
-                          )}
-
-                          {/* 가격 영역 */}
-                          {showDiscount ? (
-                            <>
-                              {/* 원가 */}
-                              <span className="block text-gray-400 text-xs line-through leading-4">
-                                {m.price.toLocaleString()}원
-                              </span>
-                              {/* 할인가 + 할인율 */}
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-m font-bold text-blue-600 leading-5">
-                                  {m.finalPrice!.toLocaleString()}원
-                                </span>
-                                {typeof m.discountRate === "number" && (
-                                  <Badge className="bg-blue-600 text-white font-medium">
-                                    {m.discountRate}% 할인
-                                  </Badge>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex items-center mt-1.5">
-                              <span className="text-base font-medium text-gray-900 leading-5">
-                                {m.price.toLocaleString()}원
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 pl-2">이 카테고리에 등록된 메뉴가 없습니다.</p>
-          )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       );
-    });
-  }, [vm, getMenuQty, setMenuQty]);
+    }).filter(Boolean);
+
+    if (categories.length === 0) {
+      return <p className="text-sm text-gray-500 pl-2">표시할 메뉴가 없습니다.</p>;
+    }
+    return categories;
+
+  }, [vm, getMenuQty, setMenuQty, showOnlyDiscounted]);
 
   // 로딩/에러 화면
   if (isLoading || !vm) {
@@ -561,7 +578,15 @@ export default function StorePage() {
         </div>
       )}
       {/* 메뉴 리스트: 카테고리별 그룹 */}
-        <h3 className="text-lg font-semibold text-gray-800 mb-6">메뉴</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">메뉴</h3>
+          <div className="flex items-center gap-2">
+            <Checkbox id="show-discounted" checked={showOnlyDiscounted} onCheckedChange={(checked) => setShowOnlyDiscounted(Boolean(checked))} />
+            <label htmlFor="show-discounted" className="text-sm font-medium text-gray-700">
+              할인만
+            </label>
+          </div>
+        </div>
         <div className="space-y-8">
           {categoryGroupedMenus}
         </div>
