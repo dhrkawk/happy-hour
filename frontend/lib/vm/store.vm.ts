@@ -19,6 +19,7 @@ export type StoreListItemVM = {
     thumbnail: string;
     menuCategory: string[] | null;
     partershipText: string | null;
+    naverLink: string | null;
 
     // 추가된 필드
     hasEvent: boolean;
@@ -46,6 +47,7 @@ export function buildStoreListVMs(
         lng: store.lng,
         phone: store.phone,
         category: store.category,
+        naverLink: store.naver_link,
         thumbnail: store.storeThumbnail,
         menuCategory: store.menuCategory ?? null,
         partershipText: store.partnership ?? null, // (원문 타입 오타 유지)

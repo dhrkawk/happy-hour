@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { StoreListItemVM } from '@/lib/vm/store.vm'
 import { SEMANTIC_COLORS } from '@/lib/constants/colors'
+import { createStoreOverlayElement } from './\bhelper'
 
 export const MARKER_COLOR_DEFAULT = SEMANTIC_COLORS.default[500]
 export const MARKER_COLOR_DISCOUNT = SEMANTIC_COLORS.discount[500]
@@ -97,6 +98,33 @@ export default function KakaoMap({
     userMarkerInstance.current = marker
   }, [userLocation, isMapReady])
 
+  useEffect(() => {
+    if (!mapInstance.current || !isMapReady) return;
+  
+    let targetPos: any | null = null;
+  
+    storeMarkersInstance.current.forEach(({ store, detailOverlay, marker }) => {
+      if (store.id === selectedStoreId) {
+        detailOverlay.setMap(mapInstance.current);
+        // ✅ 선택된 매장 좌표 기억
+        targetPos = new window.kakao.maps.LatLng(store.lat, store.lng);
+      } else {
+        detailOverlay.setMap(null);
+      }
+    });
+  
+    // ✅ 선택되었으면 지도 이동 + 줌 레벨 조정(선택)
+    if (targetPos) {
+      // 부드럽게 이동
+      mapInstance.current.panTo(targetPos);
+      // 필요시 확대
+      const currentLevel = mapInstance.current.getLevel?.() ?? 3;
+      if (currentLevel > 3) {
+        mapInstance.current.setLevel(3);
+      }
+    }
+  }, [selectedStoreId, isMapReady]);
+
   // 스토어 마커
   useEffect(() => {
     if (!mapInstance.current || !isMapReady) return
@@ -160,39 +188,40 @@ export default function KakaoMap({
       nameOverlay.setMap(mapInstance.current)
 
       // 3) hover 상세 오버레이 (첫 이벤트 요약)
-      const maxRate = store.maxDiscountRate // 확장된 VM에 있을 때 표시
-      const detailEl = document.createElement('div')
-      detailEl.innerHTML = `
-      <div onclick="window.location.href='/store/${store.id}'" style="
-        background: white;
-        border: 1px solid #ddd;
-        padding: 10px;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        font-size: 12px;
-        width: 220px;
-        line-height: 1.4;
-        cursor: pointer;
-      ">
-        <strong style="color:#0f766e">${store.name}</strong><br/>
-        ${store.category ? `카테고리: ${store.category}<br/>` : ''}
-        ${store.distanceText ? `거리: ${store.distanceText}<br/>` : ''}
+    //   const maxRate = store.maxDiscountRate // 확장된 VM에 있을 때 표시
+    //   const detailEl = document.createElement('div')
+    //   detailEl.innerHTML = `
+    //   <div onclick="window.location.href='/store/${store.id}'" style="
+    //     background: white;
+    //     border: 1px solid #ddd;
+    //     padding: 10px;
+    //     border-radius: 8px;
+    //     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    //     font-size: 12px;
+    //     width: 220px;
+    //     line-height: 1.4;
+    //     cursor: pointer;
+    //   ">
+    //     <strong style="color:#0f766e">${store.name}</strong><br/>
+    //     ${store.category ? `카테고리: ${store.category}<br/>` : ''}
+    //     ${store.distanceText ? `거리: ${store.distanceText}<br/>` : ''}
     
-        ${
-          store.hasEvent
-            ? `
-              <hr style="margin:6px 0;border:none;border-top:1px solid #eee" />
-              <div> ${store.eventTitle} </div>
-              ${
-                typeof maxRate === 'number' && maxRate > 0
-                  ? `<div style="color:#ef4444">${maxRate}% 할인</div>`
-                  : `<div>이벤트 진행 중</div>`
-              }
-            `
-            : `<div>진행 중인 이벤트 없음</div>`
-        }
-      </div>
-    `;
+    //     ${
+    //       store.hasEvent
+    //         ? `
+    //           <hr style="margin:6px 0;border:none;border-top:1px solid #eee" />
+    //           <div> ${store.eventTitle} </div>
+    //           ${
+    //             typeof maxRate === 'number' && maxRate > 0
+    //               ? `<div style="color:#ef4444">${maxRate}% 할인</div>`
+    //               : `<div>이벤트 진행 중</div>`
+    //           }
+    //         `
+    //         : `<div>진행 중인 이벤트 없음</div>`
+    //     }
+    //   </div>
+    // `;
+      const detailEl = createStoreOverlayElement(store);
       const detailOverlay = new window.kakao.maps.CustomOverlay({
         content: detailEl,
         position: pos,

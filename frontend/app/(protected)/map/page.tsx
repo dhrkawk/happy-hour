@@ -1,20 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useRef, useState } from "react";
 import { Loader2, RefreshCw, MapPin } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import BottomNavigation from "@/components/bottom-navigation";
 import CategoryFilter from "@/components/category-filter";
 import KakaoMap from "@/components/map/kakao-map";
-import { StoreCard } from "@/components/store-card";
 import { StoreCardSkeleton } from "@/components/store-card-skeleton";
 import { LocationErrorBanner } from "@/components/location-error-banner";
-
 import { useAppContext } from "@/contexts/app-context";
 import { useGetStoresWithEvents, useSortedAndFilteredStoreList } from "@/hooks/usecases/stores.usecase";
+import { StoreCard2 } from "@/components/store-card2";
 
 export default function MapPage() {
   const { appState, fetchLocation } = useAppContext();
@@ -30,8 +27,35 @@ export default function MapPage() {
   const storeList = useSortedAndFilteredStoreList(data ?? [], selectedCategory, selectedSorting);
   const isLoading = locationLoading || storesLoading;
 
+
+  // ✅ 스크롤 컨테이너(main)와 지도 앵커 ref
+  const mainRef = useRef<HTMLDivElement>(null);
+  const mapTopRef = useRef<HTMLDivElement>(null);
+
+  const handleSelectFromList = (id: string) => {
+    setSelectedStoreId(id);
+
+    // 1) 앵커 기준 스크롤 (컨테이너/윈도우 어느 쪽이든 잘 동작)
+    mapTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    // 2) 컨테이너 직접 스크롤 (컨테이너가 main일 때)
+    if (mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      // smooth 미지원/먹히지 않을 때 즉시 이동 fallback
+      setTimeout(() => {
+        if (mainRef.current && mainRef.current.scrollTop > 0) {
+          mainRef.current.scrollTop = 0;
+        }
+      }, 250);
+    }
+
+    // 3) 그래도 안되면 window 스크롤 (스크롤이 window에 걸린 경우)
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   return (
-    // ✅ 3행 그리드: [상단 고정(헤더+카테고리), 스크롤영역(지도+리스트), 하단 네비]
     <div className="mx-auto max-w-xl bg-gray-50 grid min-h-[100dvh] grid-rows-[auto,1fr,auto]">
       {/* 상단 고정: 헤더 + 카테고리 필터 */}
       <div className="bg-white border-b border-teal-100 shadow-sm sticky top-0 z-10">
@@ -70,23 +94,23 @@ export default function MapPage() {
           </div>
         </header>
 
-        {/* ✅ 카테고리 필터도 상단 고정 영역에 포함 */}
         <div className="px-4 pb-3">
           <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
         </div>
       </div>
 
       {/* ✅ 스크롤 영역: 지도 + 리스트 */}
-      <main className="overflow-y-auto">
+      <main ref={mainRef} className="overflow-y-auto">
+
         {locationError && (
           <div className="px-4 pt-3">
             <LocationErrorBanner />
           </div>
         )}
+        <div ref={mapTopRef} className="scroll-mt-20" />
 
         {/* 지도 */}
         <div className="px-4 pt-3">
-          {/* 스크롤 영역 내에서 높이 설정 (뷰포트 기준) */}
           <div className="relative h-[56vh] sm:h-[60vh]">
             <KakaoMap
               userLocation={coordinates}
@@ -104,15 +128,14 @@ export default function MapPage() {
             <div className="flex items-center gap-2">
               {(["할인순", "할인만", "제휴만", "거리순"] as const).map((label) => (
                 <Badge key={label} variant="secondary" className="bg-white px-3 py-1 rounded-full">
-                  <Button
-                    variant="link"
+                  <button
                     className={`text-sm p-0 h-auto ${
                       selectedSorting === label ? "text-gray-800 font-semibold" : "text-gray-500"
                     }`}
                     onClick={() => setSelectedSorting(label)}
                   >
                     {label}
-                  </Button>
+                  </button>
                 </Badge>
               ))}
             </div>
@@ -127,9 +150,12 @@ export default function MapPage() {
             </div>
           ) : (
             storeList.map((item) => (
-              <Link key={item.id} href={`/store/${item.id}`}>
-                <StoreCard vm={item} />
-              </Link>
+              <StoreCard2
+                key={item.id}
+                vm={item}
+                selected={selectedStoreId === item.id}
+                onSelect={handleSelectFromList}
+              />
             ))
           )}
         </div>
