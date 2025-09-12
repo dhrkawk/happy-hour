@@ -43,14 +43,6 @@ export function createStoreOverlayElement(store: StoreListItemVM) {
     root.style.transform = "translateY(0)";
   };
 
-  // 썸네일
-  if (store.thumbnail) {
-    const thumb = document.createElement("div");
-    thumb.style.cssText = "height:80px; overflow:hidden; background:#e5e7eb;";
-    thumb.innerHTML = `<img src="${store.thumbnail}" alt="${store.name}" style="width:100%; height:100%; object-fit:cover;">`;
-    root.appendChild(thumb);
-  }
-
   const body = document.createElement("div");
   body.style.cssText = "padding:8px 10px 10px;";
   root.appendChild(body);
