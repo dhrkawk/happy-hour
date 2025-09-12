@@ -1,16 +1,22 @@
 // app/profile/store-select/page.tsx
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Store, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useGetMyStoreId } from "@/hooks/usecases/stores.usecase";
+import { useGetMyStores } from "@/hooks/usecases/stores.usecase";
 
 export default function StoreSelectPage() {
   const router = useRouter();
-  const { data: storeIds, isLoading, error } = useGetMyStoreId();
+  const { data: stores, isLoading, error } = useGetMyStores();
+
+  const sortedStores = useMemo(() => {
+    if (!stores) return [];
+    return [...stores].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  }, [stores]);
 
   const handleSelect = (id: string) => {
     router.push(`/profile/store-management/${id}`);
@@ -36,8 +42,6 @@ export default function StoreSelectPage() {
     );
   }
 
-  const ids = storeIds ?? [];
-
   return (
     <div className="min-h-screen bg-gray-50 max-w-xl mx-auto">
       {/* Header */}
@@ -51,7 +55,7 @@ export default function StoreSelectPage() {
       </header>
 
       <div className="px-4 py-6 space-y-4">
-        {ids.length === 0 ? (
+        {sortedStores.length === 0 ? (
           <Card className="border-blue-100">
             <CardContent className="p-6 text-center">
               <p className="text-gray-700 mb-4">등록된 가게가 없습니다.</p>
@@ -64,10 +68,10 @@ export default function StoreSelectPage() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {ids.map((id) => (
+            {sortedStores.map((store) => (
               <button
-                key={id}
-                onClick={() => handleSelect(id)}
+                key={store.id}
+                onClick={() => handleSelect(store.id)}
                 className="w-full text-left"
               >
                 <Card className="border-gray-100 hover:shadow-md transition-shadow">
@@ -77,10 +81,9 @@ export default function StoreSelectPage() {
                         <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                           <Store className="w-5 h-5 text-green-600" />
                         </div>
-                        {/* 필요 시 가게 이름을 보여주도록 확장 가능 */}
                         <div className="flex flex-col">
                           <span className="font-medium text-gray-900">
-                            가게 ID: {id}
+                            {store.name}
                           </span>
                           <span className="text-sm text-gray-500">
                             클릭하면 관리 화면으로 이동합니다
@@ -97,7 +100,7 @@ export default function StoreSelectPage() {
         )}
 
         {/* 보조 액션 */}
-        {ids.length > 0 && (
+        {sortedStores.length > 0 && (
           <div className="pt-2">
             <Link href="/profile/store-registration">
               <Button variant="outline" className="w-full">
