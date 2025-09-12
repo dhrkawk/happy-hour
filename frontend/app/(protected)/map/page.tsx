@@ -13,6 +13,17 @@ import { useAppContext } from "@/contexts/app-context";
 import { useGetStoresWithEvents, useSortedAndFilteredStoreList } from "@/hooks/usecases/stores.usecase";
 import { StoreCard2 } from "@/components/store-card2";
 
+// 스크롤 함수
+function scrollToMapTop(anchorEl: HTMLElement | null) {
+  if (!anchorEl) return;
+
+  const header = document.getElementById("sticky-header");
+  const headerH = header?.getBoundingClientRect().height ?? 0;
+
+  const y = anchorEl.getBoundingClientRect().top + window.scrollY - headerH - 8; // 여유 8px
+  window.scrollTo({ top: y, behavior: "smooth" });
+}
+
 export default function MapPage() {
   const { appState, fetchLocation } = useAppContext();
   const { coordinates, address, loading: locationLoading, error: locationError, lastUpdated } =
@@ -30,27 +41,17 @@ export default function MapPage() {
 
   // ✅ 스크롤 컨테이너(main)와 지도 앵커 ref
   const mainRef = useRef<HTMLDivElement>(null);
+  const mapTopRef = useRef<HTMLDivElement>(null);
 
   const handleSelectFromList = (id: string) => {
     setSelectedStoreId(id);
-
-    // 오직 main 스크롤만 제어 (윈도우/scrollIntoView 사용 금지)
-    if (mainRef.current) {
-      mainRef.current.scrollTo({ top: 0, behavior: "smooth" });
-
-      // 일부 브라우저에서 smooth가 안 먹을 때 fallback
-      setTimeout(() => {
-        if (mainRef.current && mainRef.current.scrollTop > 0) {
-          mainRef.current.scrollTop = 0;
-        }
-      }, 300);
-    }
+    scrollToMapTop(mapTopRef.current);
   };
-
+    
   return (
     <div className="mx-auto max-w-xl bg-gray-50 grid min-h-[100dvh] grid-rows-[auto,1fr,auto]">
       {/* 상단 고정: 헤더 + 카테고리 필터 */}
-      <div className="bg-white border-b border-teal-100 shadow-sm sticky top-0 z-10">
+      <div id="sticky-header" className="bg-white border-b border-teal-100 shadow-sm sticky top-0 z-10">
         <header className="px-4 py-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div>
@@ -92,8 +93,9 @@ export default function MapPage() {
       </div>
 
       {/* ✅ 스크롤 영역: 지도 + 리스트 */}
-      <main ref={mainRef} className="overflow-y-auto">
+      <main ref={mainRef} className="min-h-0">
 
+      <div ref={mapTopRef} style={{ height: 0 }} />
         {locationError && (
           <div className="px-4 pt-3">
             <LocationErrorBanner />

@@ -218,8 +218,7 @@ export default function KakaoMap({
 
       // ✅ 마커 클릭: 선택만 토글 (이동은 selection effect에서 1회 panTo)
       window.kakao.maps.event.addListener(marker, 'click', () => {
-        const next = selectedStoreId === store.id ? null : store.id
-        onSelectStore(next)
+        onSelectStore(store.id)
       })
 
       storeMarkersInstance.current.push({ marker, nameOverlay, detailOverlay, store })

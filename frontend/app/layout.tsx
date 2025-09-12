@@ -18,8 +18,8 @@ const suit = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "해피아워 - 할인 가게 찾기",
-  description: "현재 위치 기반 할인 가게를 찾아보세요",
+  title: "OURCAMPUS - 할인 가게 찾기",
+  description: "학교 주변 할인 가게를 찾아보세요",
   generator: "v0.dev",
 };
 
