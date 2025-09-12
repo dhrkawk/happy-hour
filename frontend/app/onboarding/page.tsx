@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/infra/supabase/shared/client'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog'
 import AlertDialogBasic from '@/components/alert-dialog-basic'
+import { Separator } from '@/components/ui/separator'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -22,11 +23,25 @@ export default function OnboardingPage() {
   const [agreedPrivacy, setAgreedPrivacy] = useState(false)
   const [agreedLocation, setAgreedLocation] = useState(false)
   const [agreedMarketing, setAgreedMarketing] = useState(false)
+  const [agreedAll, setAgreedAll] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [alertOpen, setAlertOpen] = useState(false)
   const [alertMessage, setAlertMessage] = useState<string>("")
 
   const isFormValid = name && phone && agreedTerms && agreedPrivacy && agreedLocation
+
+  useEffect(() => {
+    const allChecked = agreedTerms && agreedPrivacy && agreedLocation && agreedMarketing;
+    setAgreedAll(allChecked);
+  }, [agreedTerms, agreedPrivacy, agreedLocation, agreedMarketing]);
+
+  const handleAgreeAll = (checked: boolean) => {
+    setAgreedAll(checked);
+    setAgreedTerms(checked);
+    setAgreedPrivacy(checked);
+    setAgreedLocation(checked);
+    setAgreedMarketing(checked);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,7 +75,7 @@ export default function OnboardingPage() {
       console.error(error)
     } else {
       localStorage.setItem('onboardingChecked', 'true')
-      router.push('/home')
+      router.push('/home?from=onboarding')
     }
   }
 
@@ -126,6 +141,17 @@ export default function OnboardingPage() {
                 title="마케팅 정보 수신 동의 (선택)"
                 dialogTitle="마케팅 정보 수신 동의"
               />
+              <Separator className="my-4" />
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="all"
+                  checked={agreedAll}
+                  onCheckedChange={(checked) => handleAgreeAll(Boolean(checked))}
+                />
+                <Label htmlFor="all" className="text-sm font-bold">
+                  모두 동의
+                </Label>
+              </div>
             </div>
 
             <Button
