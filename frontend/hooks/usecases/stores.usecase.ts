@@ -130,6 +130,17 @@ export function useGetMyStoreId() {
   });
 }
 
+export function useGetMyStores() {
+  const key: QueryKey = ['stores', 'mine', 'details'];
+
+  return useQuery({
+    queryKey: key,
+    queryFn: () => jsonFetch<{id: string, name: string}[]>('/api/stores/mine?details=true'),
+    select: (d) => d ?? null,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+}
 
 
 /** POST /api/store (insert) */

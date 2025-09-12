@@ -141,4 +141,19 @@ export class SupabaseStoreRepository implements StoreRepository {
     // id만 뽑아서 배열로 리턴
     return data?.map(row => row.id) ?? [];
   }
+
+  async getMyStores(): Promise<{id: Id, name: string}[]> {
+    const { data: { user }, error: userErr } = await this.sb.auth.getUser();
+    if (userErr) throw userErr;
+    if (!user) return [];
+  
+    const { data, error } = await this.sb
+      .from('stores')
+      .select('id, name')
+      .eq('owner_id', user.id);
+  
+    if (error) throw error;
+  
+    return data?.map(row => ({ id: row.id, name: row.name ?? '' })) ?? [];
+  }
 }

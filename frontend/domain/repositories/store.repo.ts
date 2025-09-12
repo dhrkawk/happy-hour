@@ -17,4 +17,5 @@ export interface StoreRepository {
 
     // GET api/stores/mine
     getMyStoreIds(): Promise<Id[]>;
+    getMyStores(): Promise<{id: Id, name: string}[]>;
 }
