@@ -113,7 +113,6 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
     discountRate: (it as any).discountRate ?? (it as any).discount_rate ?? null,
     discountBadge: buildItemDiscountBadge(it),
   }));
-
   const totalQty = itemVMs.reduce((s, i) => s + (i.qty ?? 0), 0);
   
   const { totalPrice, totalOriginalPrice } = itemVMs.reduce((acc, i) => {
@@ -121,10 +120,8 @@ export function buildCouponWithItemsVM(data: CouponWithItems): CouponVM {
     const finalPrice = typeof i.finalPrice === 'number' ? i.finalPrice : (typeof i.originalPrice === 'number' ? i.originalPrice : 0);
     const originalPrice = typeof i.originalPrice === 'number' ? i.originalPrice : finalPrice;
     
-    if (!i.isGift) {
-        acc.totalPrice += finalPrice * qty;
-        acc.totalOriginalPrice += originalPrice * qty;
-    }
+      acc.totalPrice += finalPrice * qty;
+      acc.totalOriginalPrice += originalPrice * qty;
     
     return acc;
   }, { totalPrice: 0, totalOriginalPrice: 0 });

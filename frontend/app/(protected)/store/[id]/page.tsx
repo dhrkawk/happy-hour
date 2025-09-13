@@ -36,6 +36,7 @@ export default function StorePage() {
   const [confirmActivateOpen2, setConfirmActivateOpen2] = useState(false);
 
 
+
   const { appState } = useAppContext();
   const { user } = appState;
   const userId = user?.profile?.userId;
@@ -52,6 +53,9 @@ export default function StorePage() {
 
   const { state: cart, setHeader, addItem, updateItem, removeItem, clear } = useCouponCart();
   const [openCart, setOpenCart] = useState(false);
+  // 현재 선택된 gift (cart 기준)
+  const currentGift = cart.items.find((it: any) => it.type === 'gift');
+  const selectedGiftId = currentGift?.ref_id ?? null;
 
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
@@ -603,33 +607,58 @@ export default function StorePage() {
       {/* === Gift 섹션: 상단 배치 + 토글 체크박스 (수량 1 고정) === */}
       <div className="px-4 py-6 pb-40 bg-gray-50 space-y-8"> {/* 푸터와 여백 확보 */}
       {(vm.gifts?.length ?? 0) > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">증정 택 1</h3>
-          <div className="space-y-3">
-            {vm.gifts.map((g) => {
-              const checked = isGiftChecked(g);
-              return (
-                <div
-                  key={g.giftOptionId}
-                  className="flex items-center bg-white justify-between p-3 border border-gray-200 rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <Gift className="w-5 h-5 text-green-700" />
-                    <div>
-                      <div className="font-medium text-gray-900">{g.name}</div>
-                      {g.description && <div className="text-sm text-gray-600">{g.description}</div>}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                    {g.remaining != null ? `잔여 ${g.remaining}` : ""}
-                  </div>
-                  </div>
-                  <Checkbox checked={checked} onCheckedChange={(c) => toggleGift(g, Boolean(c))} />
-                </div>
-              );
-            })}
+  <div>
+    <h3 className="text-lg font-semibold text-gray-800 mb-4">증정 택 1</h3>
+    <div className="space-y-3">
+      {vm.gifts.map((g) => {
+        const checked = selectedGiftId === g.giftOptionId;
+
+        return (
+          <div
+            key={g.giftOptionId}
+            className="flex items-center bg-white justify-between p-3 border border-gray-200 rounded-lg"
+          >
+            <div className="flex items-center gap-3">
+              <Gift className="w-5 h-5 text-green-700" />
+              <div>
+                <div className="font-medium text-gray-900">{g.name}</div>
+                {g.description && (
+                  <div className="text-sm text-gray-600">{g.description}</div>
+                )}
+              </div>
+              <div className="text-sm text-gray-500">
+                {g.remaining != null ? `잔여 ${g.remaining}` : ''}
+              </div>
+            </div>
+
+            {/* ✅ 체크하면 기존 gift 제거 → 새 gift 선택 (라디오처럼 동작) */}
+            <Checkbox
+              checked={checked}
+              onCheckedChange={(c) => {
+                const want = Boolean(c);
+
+                if (want) {
+                  // 다른 gift가 이미 담겨 있으면 먼저 제거
+                  if (selectedGiftId && selectedGiftId !== g.giftOptionId) {
+                    const prevIdx = cart.items.findIndex(
+                      (it: any) => it.type === 'gift' && it.ref_id === selectedGiftId
+                    );
+                    if (prevIdx >= 0) removeItem(prevIdx);
+                  }
+                  // 이 gift 선택
+                  toggleGift(g, true);
+                } else {
+                  // 현재 선택된 걸 해제
+                  toggleGift(g, false);
+                }
+              }}
+            />
           </div>
-        </div>
-      )}
+        );
+      })}
+    </div>
+  </div>
+)}
       {/* 메뉴 리스트: 카테고리별 그룹 */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-800">메뉴</h3>
