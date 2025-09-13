@@ -73,7 +73,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50 max-w-xl mx-auto relative">
       {/* 헤더 */}
-      <header className="bg-white shadow-sm border-b border-gray-100">
+      <header className="bg-white sticky top-0 z-20 border-b border-gray-200 shadow-sm">
         <div className="px-4 py-4">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold text-gray-800">마이페이지</h1>
