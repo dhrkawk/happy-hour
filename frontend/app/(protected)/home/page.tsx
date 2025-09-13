@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { MapPin, RefreshCw, Loader2 } from "lucide-react";
+import { MapPin, RefreshCw, Loader2, Info } from "lucide-react"; // ✅ Info 아이콘 추가
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StoreCard } from "@/components/store-card";
@@ -13,12 +13,7 @@ import CategoryFilter from "@/components/category-filter";
 import { useAppContext } from "@/contexts/app-context";
 import { useGetStoresWithEvents, useSortedAndFilteredStoreList } from "@/hooks/usecases/stores.usecase";
 import Image from "next/image";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { OnboardingDialog } from "@/components/onboarding-dialog";
 
 export default function HomePage() {
   const { appState, fetchLocation } = useAppContext();
@@ -44,7 +39,6 @@ export default function HomePage() {
   useEffect(() => {
     if (searchParams.get("from") === "onboarding") {
       setShowOnboardingPopup(true);
-      // Clean the URL to prevent the popup from showing on refresh
       window.history.replaceState(null, "", "/home");
     }
   }, [searchParams]);
@@ -52,7 +46,7 @@ export default function HomePage() {
   return (
     <>
       <div className="mx-auto max-w-xl bg-gray-50 grid min-h-[100dvh] grid-rows-[auto,1fr,auto]">
-        {/* 헤더 (row 1) */}
+        {/* 헤더 */}
         <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
           <div className="px-4 pt-4 pb-1">
             <div className="flex items-start justify-between mb-3">
@@ -69,7 +63,16 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="flex flex-col items-end ml-2">
-                <div className="flex items-center gap-2">
+                
+                <div className="flex-1 items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowOnboardingPopup(true)}
+                  aria-label="이용 안내 보기"
+                >
+                  <Info className="w-5 h-5 text-gray-500" />
+                </Button>
                   <Button variant="ghost" size="sm" onClick={() => fetchLocation()} disabled={locationLoading}>
                     {locationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                   </Button>
@@ -83,19 +86,23 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* 카테고리 필터 (헤더 내부: 고정) */}
+            {/* 카테고리 필터 */}
             <div className="flex items-center gap-2 flex-wrap">
               <CategoryFilter selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
             </div>
           </div>
         </header>
 
-        {/* 본문 (row 2): 상단 고정 서브헤더 + 스크롤 리스트 */}
+        {/* 본문 */}
         <section className="px-4 py-4 pb-24 grid grid-rows-[auto,1fr] min-h-0">
-          {/* 서브헤더: 제목 + 정렬 배지 (고정) */}
           <div className="mb-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-md font-semibold text-gray-800">가게 목록</h2>
+              {/* 제목 + Info 버튼 */}
+              <div className="flex items-center gap-2">
+                <h2 className="text-md font-semibold text-gray-800">가게 목록</h2>
+              </div>
+
+              {/* 정렬 배지 */}
               <div className="flex items-center gap-2">
                 {(["할인순", "할인만", "제휴만", "거리순"] as const).map((label) => (
                   <Badge key={label} variant="secondary" className="bg-white px-3 py-1 rounded-full">
@@ -114,7 +121,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* 리스트 스크롤 영역 */}
+          {/* 리스트 */}
           <div className="overflow-y-auto min-h-0">
             {isSkeletonLoading ? (
               Array.from({ length: 5 }).map((_, index) => <StoreCardSkeleton key={index} />)
@@ -139,27 +146,17 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 하단 네비 (row 3) */}
+        {/* 하단 네비 */}
         <div className="bg-white border-t border-gray-100">
           <BottomNavigation />
         </div>
       </div>
-      <Dialog open={showOnboardingPopup} onOpenChange={setShowOnboardingPopup}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>아워캠퍼스 이용 안내</DialogTitle>
-          </DialogHeader>
-          <div className="flex justify-center">
-            <Image
-              src="/poster_example.jpg"
-              alt="아워캠퍼스 이용 안내"
-              width={400}
-              height={600}
-              className="w-full h-auto"
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+
+      {/* OnboardingDialog */}
+      <OnboardingDialog
+        open={showOnboardingPopup}
+        onOpenChange={setShowOnboardingPopup}
+      />
     </>
   );
 }
