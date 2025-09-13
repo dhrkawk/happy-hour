@@ -276,7 +276,7 @@ export default function StorePage() {
 
     const officialCategories = vm.menuCategory ?? [];
     const menuCategories = vm.menus.map(m => m.category ?? '기타');
-    const allCategoryNames = Array.from(new Set([...officialCategories, ...menuCategories]));
+    const allCategoryNames = Array.from(new Set([...officialCategories, ...menuCategories])).filter(category => category !== '증정품');
 
     const categories = allCategoryNames.map(category => {
       let itemsInCategory = vm.menus.filter(m => (m.category ?? '기타') === category);

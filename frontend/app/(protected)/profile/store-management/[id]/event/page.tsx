@@ -234,7 +234,15 @@ export default function StoreEventsPage() {
   const editForm = useForm<UpdateEventFormValues>({
     resolver: zodResolver(
       // 스키마도 id 제외한 형태로 검증
-      UpdateEventWithDiscountsAndGiftsSchema.omit({ id: true })
+      (UpdateEventWithDiscountsAndGiftsSchema as any).innerType().omit({ id: true }).superRefine((data:any, ctx:any) => {
+        if ((data.discounts ?? []).length === 0 && (data.gift_options ?? []).length === 0) {
+          ctx.addIssue({
+            code: 'custom',
+            message: '적어도 하나의 할인 또는 증정 옵션이 필요합니다.',
+            path: ['discounts'],
+          });
+        }
+      })
     ),
     defaultValues: {
       store_id: storeId,
