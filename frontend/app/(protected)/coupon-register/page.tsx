@@ -64,46 +64,41 @@ export default function CouponRegisterPage() {
   const { menuItems, totalPrice, originalPrice, totalDiscount } = useMemo(() => {
     let total = 0;
     let original = 0;
+    let giftValue = 0;
 
     const items =
       (cart.items ?? []).map((it: any, idx: number) => {
-        if (it.type === "gift") {
-          // gift는 수량 1, 금액 0
-          return {
-            id: `gift-${it.gitf_option_id ?? idx}`,
-            name: it.menu_name ?? "증정",
-            description: "증정 혜택",
-            originalPrice: 0,
-            finalPrice: 0,
-            quantity: 1,
-            isGift: true,
-          };
-        }
-        const qty = Number(it.qty) || 0;
+        const isGift = it.type === "gift";
+        const qty = Number(it.qty ?? 1);
         const orig = Number(it.original_price ?? 0);
-        const fin = Number((it.final_price ?? it.original_price) ?? 0);
+        const fin = isGift ? 0 : Number(it.final_price ?? orig);
+
+        if (isGift) {
+          giftValue += orig;
+        }
 
         original += orig * qty;
         total += fin * qty;
 
         return {
-          id: it.menu_id ?? idx,
+          id: it.menu_id ?? `gift-${it.ref_id ?? idx}`,
           name: it.menu_name ?? "메뉴",
-          description: "",
+          description: isGift ? "증정 혜택" : "",
           originalPrice: orig,
           finalPrice: fin,
           quantity: qty,
-          isGift: false,
+          isGift: isGift,
         };
       }) ?? [];
 
-    const discount = original > total ? original - total : 0;
+    const priceDiscount = original - total - giftValue;
+    const totalDiscount = (priceDiscount > 0 ? priceDiscount : 0) + giftValue;
 
     return {
       menuItems: items,
       totalPrice: total,
       originalPrice: original,
-      totalDiscount: discount,
+      totalDiscount,
     };
   }, [cart.items]);
 
@@ -209,15 +204,13 @@ export default function CouponRegisterPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  {!item.isGift && item.originalPrice !== item.finalPrice && (
+                  {item.originalPrice > item.finalPrice && (
                     <div className="text-sm text-gray-400 line-through">
                       {(item.originalPrice * item.quantity).toLocaleString()}원
                     </div>
                   )}
                   <div className="font-semibold text-gray-800">
-                    {item.isGift
-                      ? "0원"
-                      : (item.finalPrice * item.quantity).toLocaleString() + "원"}
+                    {(item.finalPrice * item.quantity).toLocaleString()}원
                   </div>
                 </div>
               </div>

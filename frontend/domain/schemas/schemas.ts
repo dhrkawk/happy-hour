@@ -265,14 +265,14 @@ export type CreateCouponTxDTO = z.infer<typeof CreateCouponTxSchema>;
  /* ---------- Input Types ---------- */
 export const GiftOptionInput = z.object({
   menu_id: UUID,
-  remaining: z.coerce.number().int().nullable().optional().default(null),
+  remaining: z.union([z.coerce.number().int().nonnegative(), z.null()]).optional().default(null),
   is_active: z.coerce.boolean().default(true),
 });
 
 export const DiscountInput = z.object({
   menu_id: UUID,
   discount_rate: z.coerce.number().int().min(1).max(100),
-  remaining: z.coerce.number().int().nullable().optional().default(null),
+  remaining: z.union([z.coerce.number().int().nonnegative(), z.null()]).optional().default(null),
   is_active: z.coerce.boolean().default(true),
   final_price: z.coerce.number().int().positive(),
 });
@@ -293,8 +293,16 @@ export const EventInput = z.object({
 
 /* ---------- Extended with Discounts & Gifts ---------- */
 export const CreateEventWithDiscountsAndGiftsSchema = EventInput.extend({
-  discounts: z.array(DiscountInput).min(1), // 적어도 하나 필요
+  discounts: z.array(DiscountInput).optional().default([]),
   gift_options: z.array(GiftOptionInput).optional().default([]),
+}).superRefine((data, ctx) => {
+  if (data.discounts.length === 0 && data.gift_options.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "적어도 하나의 할인 또는 증정 옵션이 필요합니다.",
+      path: ["discounts"],
+    });
+  }
 });
 
 export type CreateEventWithDiscountsAndGiftsDTO = z.infer<typeof CreateEventWithDiscountsAndGiftsSchema>;
@@ -303,7 +311,7 @@ export type CreateEventWithDiscountsAndGiftsDTO = z.infer<typeof CreateEventWith
 export const GiftOptionUpsertInput = z.object({
   id: UUID.optional(),                     // ← 기존 옵션이면 포함
   menu_id: UUID,
-  remaining: z.coerce.number().int().nullable().optional().default(null),
+  remaining: z.union([z.coerce.number().int().nonnegative(), z.null()]).optional().default(null),
   is_active: z.coerce.boolean().default(true),
 });
 
@@ -311,7 +319,7 @@ export const DiscountUpsertInput = z.object({
   id: UUID.optional(),                     // ← 기존 할인이면 포함
   menu_id: UUID,
   discount_rate: z.coerce.number().int().min(1).max(100),
-  remaining: z.coerce.number().int().nullable().optional().default(null),
+  remaining: z.union([z.coerce.number().int().nonnegative(), z.null()]).optional().default(null),
   is_active: z.coerce.boolean().default(true),
   final_price: z.coerce.number().int().positive(),
 });
@@ -332,8 +340,16 @@ export const EventUpdateInput = z.object({
 
 /* ---- 최종 업데이트 DTO: replace-all 전략 ---- */
 export const UpdateEventWithDiscountsAndGiftsSchema = EventUpdateInput.extend({
-  discounts: z.array(DiscountUpsertInput).min(1),
+  discounts: z.array(DiscountUpsertInput).optional().default([]),
   gift_options: z.array(GiftOptionUpsertInput).optional().default([]),
+}).superRefine((data, ctx) => {
+  if (data.discounts.length === 0 && data.gift_options.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "적어도 하나의 할인 또는 증정 옵션이 필요합니다.",
+      path: ["discounts"],
+    });
+  }
 });
 
 export type UpdateEventWithDiscountsAndGiftsDTO = z.infer<typeof UpdateEventWithDiscountsAndGiftsSchema>;
