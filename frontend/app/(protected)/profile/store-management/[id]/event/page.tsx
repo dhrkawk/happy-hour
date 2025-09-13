@@ -761,7 +761,7 @@ function DiscountItem({
         <Label>남은 수량(옵션)</Label>
         <Input
           type="number"
-          {...form.register(`discounts.${i}.remaining`, { valueAsNumber: true })}
+          {...form.register(`discounts.${i}.remaining`)}
         />
       </div>
       <div>
@@ -868,9 +868,7 @@ function GiftOptionArray({
               <Label>남은 수량(옵션)</Label>
               <Input
                 type="number"
-                {...form.register(`gift_options.${i}.remaining`, {
-                  valueAsNumber: true,
-                })}
+                {...form.register(`gift_options.${i}.remaining`)}
               />
             </div>
             <div>

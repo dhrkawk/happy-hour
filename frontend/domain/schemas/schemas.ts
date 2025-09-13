@@ -265,14 +265,14 @@ export type CreateCouponTxDTO = z.infer<typeof CreateCouponTxSchema>;
  /* ---------- Input Types ---------- */
 export const GiftOptionInput = z.object({
   menu_id: UUID,
-  remaining: z.union([z.coerce.number().int().nonnegative(), z.null()]).optional().default(null),
+  remaining: z.preprocess((val) => (val === '' || val == null) ? null : Number(val), z.number().int().nonnegative().nullable()),
   is_active: z.coerce.boolean().default(true),
 });
 
 export const DiscountInput = z.object({
   menu_id: UUID,
   discount_rate: z.coerce.number().int().min(1).max(100),
-  remaining: z.union([z.coerce.number().int().nonnegative(), z.null()]).optional().default(null),
+  remaining: z.preprocess((val) => (val === '' || val == null) ? null : Number(val), z.number().int().nonnegative().nullable()),
   is_active: z.coerce.boolean().default(true),
   final_price: z.coerce.number().int().positive(),
 });
@@ -311,7 +311,7 @@ export type CreateEventWithDiscountsAndGiftsDTO = z.infer<typeof CreateEventWith
 export const GiftOptionUpsertInput = z.object({
   id: UUID.optional(),                     // ← 기존 옵션이면 포함
   menu_id: UUID,
-  remaining: z.union([z.coerce.number().int().nonnegative(), z.null()]).optional().default(null),
+  remaining: z.preprocess((val) => (val === '' || val == null) ? null : Number(val), z.number().int().nonnegative().nullable()),
   is_active: z.coerce.boolean().default(true),
 });
 
@@ -319,7 +319,7 @@ export const DiscountUpsertInput = z.object({
   id: UUID.optional(),                     // ← 기존 할인이면 포함
   menu_id: UUID,
   discount_rate: z.coerce.number().int().min(1).max(100),
-  remaining: z.union([z.coerce.number().int().nonnegative(), z.null()]).optional().default(null),
+  remaining: z.preprocess((val) => (val === '' || val == null) ? null : Number(val), z.number().int().nonnegative().nullable()),
   is_active: z.coerce.boolean().default(true),
   final_price: z.coerce.number().int().positive(),
 });
