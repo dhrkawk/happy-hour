@@ -93,6 +93,13 @@ export default function StorePage() {
     setHeader({ user_id: user.profile.userId });
   }, [user?.isAuthenticated, user?.profile?.userId]);
 
+  // 3) 다른 가게에 들어왔을 때 장바구니 비우기
+  useEffect(() => {
+    if (cart.items.length > 0 && cart.store_id && cart.store_id !== id) {
+      clear();
+    }
+  }, [id, cart.store_id, cart.items.length, clear]);
+
   // 유틸: 현재 장바구니에서 특정 메뉴의 수량 찾기 (할인 아이템)
   const getMenuQty = (menuId: string) => {
     const idx = cart.items.findIndex((it: any) => it.type === "discount" && it.menu_id === menuId);
@@ -168,6 +175,8 @@ export default function StorePage() {
             weekdays: vm.event?.weekdays?.length ? vm.event.weekdays : ["MON"],
           });
         }
+        const giftMenu = vm.menus.find(m => m.menuId === gift.menuId);
+
         addItem({
           type: "gift",
           qty: 1, // 고정 1개
@@ -175,6 +184,7 @@ export default function StorePage() {
           ref_id: gift.giftOptionId,
           menu_id: gift.menuId,
           menu_name: gift.name,
+          original_price: giftMenu?.price ?? 0, // 증정품의 원래 가격 추가
         } as any);
       } catch (e: any) {
         const code = e?.message ?? String(e);
@@ -203,12 +213,12 @@ export default function StorePage() {
       };
     }
 
-    // gifts: 금액 0, 수량 1
     let items = 0;
-    let original = 0;
+    let originalForDiscountCalc = 0; // 할인액 계산용 원가 (할인 아이템만)
     let payable = 0;
     let giftValue = 0;
     let hasGiftItem = false;
+    let displayOriginal = 0; // UI 표시용 원가 (전체)
 
     for (const it of cart.items as any[]) {
       if (it.type === "gift") {
@@ -217,24 +227,27 @@ export default function StorePage() {
         const giftMenu = vm.menus.find((m) => m.menuId === it.menu_id);
         if (giftMenu) {
           giftValue += giftMenu.price;
+          displayOriginal += giftMenu.price; // UI용 원가에만 더함
         }
         continue;
       }
+      
       // discount item
       const qty = Number(it.qty) || 0;
       const orig = Number(it.original_price ?? 0);
       const fin = Number((it.final_price ?? it.original_price) ?? 0);
       items += qty;
-      original += orig * qty;
+      originalForDiscountCalc += orig * qty; // 할인액 계산용 원가에 더함
       payable += fin * qty;
+      displayOriginal += orig * qty; // UI용 원가에 더함
     }
 
-    const priceDiscount = original > payable ? original - payable : 0;
+    const priceDiscount = originalForDiscountCalc > payable ? originalForDiscountCalc - payable : 0;
     const totalDiscount = priceDiscount + giftValue;
 
     return {
       totalItems: items,
-      totalOriginal: original,
+      totalOriginal: displayOriginal, // UI용 원가를 반환
       totalPayable: payable,
       totalDiscount,
       hasGift: hasGiftItem,
@@ -251,13 +264,31 @@ export default function StorePage() {
 
   // 장바구니 라인아이템 요약 (메뉴명, 수량, 합계)
   const cartLines = useMemo(() => {
-    return (cart.items as any[]).map((it) => {
-      const qty = Number(it.qty ?? (it.type === "gift" ? 1 : 0));
-      const originalPrice = Number(it.original_price ?? 0);
-      const finalPrice = Number(it.final_price ?? originalPrice);
+    if (!vm?.menus) return []; // 메뉴 정보 없으면 빈 배열 반환
 
+    return (cart.items as any[]).map((it) => {
       const isGift = it.type === "gift";
-      const showDiscount = !isGift && finalPrice < originalPrice;
+      const qty = Number(it.qty ?? (isGift ? 1 : 0));
+
+      let originalTotal = 0;
+      let finalTotal = 0;
+      let showDiscount = false;
+
+      if (isGift) {
+        const giftMenu = vm.menus.find((m) => m.menuId === it.menu_id);
+        if (giftMenu) {
+          originalTotal = giftMenu.price; // 증정품의 원래 가격을 설정
+        }
+        finalTotal = 0; // 증정품의 최종가는 0
+        showDiscount = true; // 증정품도 할인이 적용된 것처럼 표시
+      } else {
+        // 기존 할인 상품 로직
+        const originalPrice = Number(it.original_price ?? 0);
+        const finalPrice = Number(it.final_price ?? originalPrice);
+        originalTotal = originalPrice * qty;
+        finalTotal = finalPrice * qty;
+        showDiscount = finalPrice < originalPrice;
+      }
 
       return {
         key: `${it.type}:${it.menu_id}:${it.ref_id ?? ''}`,
@@ -265,11 +296,11 @@ export default function StorePage() {
         qty,
         isGift,
         showDiscount,
-        originalTotal: isGift ? 0 : originalPrice * qty,
-        finalTotal: isGift ? 0 : finalPrice * qty,
+        originalTotal,
+        finalTotal,
       };
     });
-  }, [cart.items]);
+  }, [cart.items, vm?.menus]);
 
   const categoryGroupedMenus = useMemo(() => {
     if (!vm) return null;
@@ -684,9 +715,20 @@ export default function StorePage() {
                 )}
               </div>
               <div className="text-right">
-                <div className="text-xl font-extrabold text-gray-900">
-                  {totalPayable.toLocaleString()}원
-                </div>
+                {(totalDiscount > 0 || hasGift) ? (
+                  <>
+                    <span className="block text-gray-400 text-sm line-through">
+                      {totalOriginal.toLocaleString()}원
+                    </span>
+                    <div className="text-xl font-extrabold text-gray-900">
+                      {totalPayable.toLocaleString()}원
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-xl font-extrabold text-gray-900">
+                    {totalPayable.toLocaleString()}원
+                  </div>
+                )}
               </div>
             </div>
           </div>

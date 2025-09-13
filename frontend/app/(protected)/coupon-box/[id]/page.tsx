@@ -223,7 +223,7 @@ export default function CouponDetailPage() {
             <h4 className="font-semibold text-md text-gray-800 mb-3 border-t pt-4">쿠폰 내역</h4>
             <div className="space-y-3">
               {vm.items.map((item: CouponItemVM, index) => {
-                const showDiscount = !item.isGift && typeof item.originalPrice === 'number' && typeof item.finalPrice === 'number' && item.originalPrice > item.finalPrice;
+                const showDiscount = typeof item.originalPrice === 'number' && typeof item.finalPrice === 'number' && item.originalPrice > item.finalPrice;
                 const itemQty = item.qty ?? 1;
                 const finalPrice = (item.finalPrice ?? item.originalPrice ?? 0) * itemQty;
                 const originalPrice = (item.originalPrice ?? 0) * itemQty;
