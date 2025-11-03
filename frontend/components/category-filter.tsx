@@ -8,13 +8,10 @@ interface CategoryFilterProps {
 }
 
 const categories = [
-  { id: "전체", label: "전체", emoji: "🍽️" },
-  { id: "한식", label: "한식", emoji: "🍲" },
-  { id: "양식", label: "양식", emoji: "🍕" },
-  { id: "중식", label: "중식", emoji: "🥟" },
-  { id: "일식", label: "일식", emoji: "🍣" },
+  { id: "전체", label: "전체", emoji: "🌐" },
+  { id: "식당", label: "식당", emoji: "🍽️" },
   { id: "카페", label: "카페", emoji: "☕" },
-  { id: "뷰티", label: "뷰티", emoji: "💄" },
+  { id: "기타", label: "기타", emoji: "🧩" },
 ]
 
 export default function CategoryFilter({ selectedCategory, onCategoryChange }: CategoryFilterProps) {
@@ -26,10 +23,10 @@ export default function CategoryFilter({ selectedCategory, onCategoryChange }: C
           variant={selectedCategory === category.id ? "default" : "outline"}
           size="sm"
           onClick={() => onCategoryChange(category.id)}
-          className={`flex-shrink-0 whitespace-nowrap ${
+          className={`flex-shrink-0 whitespace-nowrap px-2 py-1 h-auto ${
             selectedCategory === category.id
-              ? "bg-teal-500 hover:bg-teal-600 text-white"
-              : "bg-white hover:bg-teal-50 text-gray-700 border-gray-300"
+              ? "bg-blue-400 hover:bg-blue-500 text-white"
+              : "bg-white hover:bg-blue-50 text-gray-700 border-gray-300"
           }`}
         >
           <span className="mr-1">{category.emoji}</span>
@@ -39,3 +36,4 @@ export default function CategoryFilter({ selectedCategory, onCategoryChange }: C
     </div>
   )
 }
+

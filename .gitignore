@@ -1,5 +1,5 @@
 # Dependencies
-/node_modules
+frontend/node_modules
 
 # Next.js
 /.next/
@@ -9,6 +9,7 @@
 __pycache__/
 *.pyc
 .venv
+venv/
 
 # IDE / OS
 .vscode
@@ -20,3 +21,17 @@ __pycache__/
 *.env.local
 *.env.production
 *.env.test
+
+frontend/.next
+backend/
+gemini*.txt
+
+
+# gemini
+.gemini/
+
+# cursor
+.cursor/
+
+#docs
+docs/

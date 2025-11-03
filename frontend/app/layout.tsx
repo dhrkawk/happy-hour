@@ -1,24 +1,38 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
+// app/layout.tsx
+import type { Metadata } from "next";
+import localFont from "next/font/local";
+import "./globals.css";
+import { Providers } from "./providers";
 
-const inter = Inter({ subsets: ["latin"] })
+// 👉 SUIT Variable (woff2) 폰트 등록
+const suit = localFont({
+  variable: "--font-suit",
+  src: [
+    {
+      path: "../public/fonts/SUIT-Variable.woff2",
+      weight: "100 900", // Variable font는 범위 지정
+      style: "normal",
+    },
+  ],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "해피아워 - 할인 가게 찾기",
-  description: "현재 위치 기반 할인 가게를 찾아보세요",
-    generator: 'v0.dev'
-}
+  title: "OURCAMPUS - 할인 가게 찾기",
+  description: "학교 주변 할인 가게를 찾아보세요",
+  generator: "v0.dev",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
-      <body className={inter.className}>{children}</body>
+    <html lang="ko" className={suit.variable}>
+      <body className="font-suit">
+        <Providers>{children}</Providers>
+      </body>
     </html>
-  )
+  );
 }
